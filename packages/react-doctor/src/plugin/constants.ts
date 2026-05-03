@@ -496,14 +496,20 @@ export const ELLIPSIS_EXCLUDED_TAG_NAMES = new Set(["code", "pre", "kbd", "samp"
 
 export const EM_DASH_CHARACTER = "\u2014";
 
+// HACK: trailing boundary uses a LOOKAHEAD `(?=...)` so the whitespace
+// between Tailwind tokens isn't consumed. With a consuming `(?:$|\s|:)`
+// trailing group, `matchAll` over `"px-4 px-6"` would catch `px-4` plus
+// the trailing space, then fail to find a leading `\s` boundary for
+// `px-6` because we just ate it — silently skipping the second token.
 export const PADDING_HORIZONTAL_AXIS_PATTERN =
-  /(?:^|\s)(-?)px-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+  /(?:^|\s)(-?)px-(\d+(?:\.\d+)?|\[[^\]]+\])(?=$|[\s:])/g;
 
-export const PADDING_VERTICAL_AXIS_PATTERN = /(?:^|\s)(-?)py-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+export const PADDING_VERTICAL_AXIS_PATTERN =
+  /(?:^|\s)(-?)py-(\d+(?:\.\d+)?|\[[^\]]+\])(?=$|[\s:])/g;
 
-export const SIZE_WIDTH_AXIS_PATTERN = /(?:^|\s)(-?)w-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+export const SIZE_WIDTH_AXIS_PATTERN = /(?:^|\s)(-?)w-(\d+(?:\.\d+)?|\[[^\]]+\])(?=$|[\s:])/g;
 
-export const SIZE_HEIGHT_AXIS_PATTERN = /(?:^|\s)(-?)h-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+export const SIZE_HEIGHT_AXIS_PATTERN = /(?:^|\s)(-?)h-(\d+(?:\.\d+)?|\[[^\]]+\])(?=$|[\s:])/g;
 
 export const FLEX_OR_GRID_DISPLAY_TOKENS = new Set(["flex", "inline-flex", "grid", "inline-grid"]);
 

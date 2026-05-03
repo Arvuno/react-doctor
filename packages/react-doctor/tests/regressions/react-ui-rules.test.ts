@@ -102,6 +102,23 @@ describe("design-no-redundant-padding-axes", () => {
     const hits = await collectRuleHits(projectDir, "design-no-redundant-padding-axes");
     expect(hits).toHaveLength(0);
   });
+
+  it("reports every matching pair when the same axis appears multiple times", async () => {
+    // Regression: the trailing axis-pattern boundary used to consume the
+    // whitespace between tokens, breaking matchAll's ability to find
+    // `px-6` after `px-4`. With both pairs present, the rule must report
+    // both `p-4` and `p-6`.
+    const projectDir = setupReactProject(tempRoot, "no-padding-axes-multi", {
+      files: {
+        "src/Box.tsx": `export const Box = () => <div className="px-4 px-6 py-4 py-6">Hi</div>;\n`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "design-no-redundant-padding-axes");
+    expect(hits).toHaveLength(2);
+    expect(hits.some((hit) => hit.message.includes("p-4"))).toBe(true);
+    expect(hits.some((hit) => hit.message.includes("p-6"))).toBe(true);
+  });
 });
 
 describe("design-no-redundant-size-axes", () => {
@@ -115,6 +132,20 @@ describe("design-no-redundant-size-axes", () => {
     const hits = await collectRuleHits(projectDir, "design-no-redundant-size-axes");
     expect(hits).toHaveLength(1);
     expect(hits[0].message).toContain("size-10");
+  });
+
+  it("reports every matching pair when the same axis appears multiple times", async () => {
+    // Same regression as the padding-axes case — exercise w-/h- variant.
+    const projectDir = setupReactProject(tempRoot, "no-size-axes-multi", {
+      files: {
+        "src/Pair.tsx": `export const Pair = () => <div className="w-8 w-10 h-8 h-10" />;\n`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "design-no-redundant-size-axes");
+    expect(hits).toHaveLength(2);
+    expect(hits.some((hit) => hit.message.includes("size-8"))).toBe(true);
+    expect(hits.some((hit) => hit.message.includes("size-10"))).toBe(true);
   });
 
   it("does not flag fractional widths (w-1/2 h-1/2)", async () => {
