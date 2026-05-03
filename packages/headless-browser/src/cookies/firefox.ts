@@ -7,6 +7,7 @@ import { FIREFOX_CONFIG } from "./browser-config";
 import { ListBrowsersError } from "./errors";
 import { Browsers } from "./browser-detector";
 import { makeFirefoxBrowser, type FirefoxBrowser } from "./types";
+import { fileExists } from "./utils/file-exists";
 
 const profileSectionSchema = z.object({
   Name: z.string(),
@@ -59,21 +60,12 @@ export const firefoxPlatformWin32: FirefoxPlatform = {
   }),
 };
 
-const exists = async (filePath: string): Promise<boolean> => {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export const registerFirefoxSource = (browsers: Browsers, platform: FirefoxPlatform): void => {
   browsers.register(async () => {
     try {
       let executablePath: string | undefined;
       for (const candidate of platform.executablePaths) {
-        if (await exists(candidate)) {
+        if (await fileExists(candidate)) {
           executablePath = candidate;
           break;
         }
@@ -90,7 +82,7 @@ export const registerFirefoxSource = (browsers: Browsers, platform: FirefoxPlatf
             ? path.join(platform.dataDir, parsed.path)
             : parsed.path;
           const cookiesPath = path.join(profileEntryPath, "cookies.sqlite");
-          if (!(await exists(cookiesPath))) return undefined;
+          if (!(await fileExists(cookiesPath))) return undefined;
 
           return makeFirefoxBrowser({
             profileName: path.basename(profileEntryPath),

@@ -8,6 +8,7 @@ import * as path from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
 import { chromiumConfig } from "./browser-config";
+import { fileExists } from "./utils/file-exists";
 import {
   CHROMIUM_META_VERSION_HASH_PREFIX,
   DPAPI_PREFIX_LENGTH_BYTES,
@@ -145,15 +146,6 @@ export const defaultChromiumKeyProvider = (): ChromiumKeyProvider => {
   return chromiumKeyProviderLinux;
 };
 
-const exists = async (filePath: string): Promise<boolean> => {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export class ChromiumSqliteFallback {
   constructor(
     private readonly sqliteClient: SqliteClient = new SqliteClient(),
@@ -163,10 +155,10 @@ export class ChromiumSqliteFallback {
 
   private async resolveCookieDbPath(profilePath: string, browserKey: string): Promise<string> {
     const networkPath = path.join(profilePath, "Network", "Cookies");
-    if (await exists(networkPath)) return networkPath;
+    if (await fileExists(networkPath)) return networkPath;
 
     const legacyPath = path.join(profilePath, "Cookies");
-    if (await exists(legacyPath)) return legacyPath;
+    if (await fileExists(legacyPath)) return legacyPath;
 
     throw new CookieDatabaseNotFoundError(browserKey);
   }

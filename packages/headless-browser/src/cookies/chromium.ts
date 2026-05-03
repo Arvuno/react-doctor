@@ -8,6 +8,7 @@ import { CHROMIUM_CONFIGS, type ChromiumConfig } from "./browser-config";
 import { CONCURRENCY_PROFILE_SCAN } from "./constants";
 import { ListBrowsersError } from "./errors";
 import { Browsers } from "./browser-detector";
+import { fileExists } from "./utils/file-exists";
 import {
   chromiumBrowserOrderBy,
   makeChromiumBrowser,
@@ -94,15 +95,6 @@ export const createChromiumPlatformWin32 = async (): Promise<ChromiumPlatform> =
   };
 };
 
-const exists = async (filePath: string): Promise<boolean> => {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const readJsonSafe = async <T>(filePath: string, schema: z.ZodType<T>): Promise<T | undefined> => {
   try {
     const content = await fs.readFile(filePath, "utf-8");
@@ -153,7 +145,7 @@ const detectProfiles = async (
   executablePath: string,
   userDataDir: string,
 ): Promise<ChromiumBrowser[]> => {
-  if (!(await exists(userDataDir))) return [];
+  if (!(await fileExists(userDataDir))) return [];
 
   const lastUsedProfileName = await getLastUsedProfile(userDataDir);
   let entries: string[];
@@ -168,7 +160,7 @@ const detectProfiles = async (
     CONCURRENCY_PROFILE_SCAN,
     async (entry): Promise<ChromiumBrowser | undefined> => {
       const profileEntryPath = path.join(userDataDir, entry);
-      if (!(await exists(path.join(profileEntryPath, "Preferences")))) return undefined;
+      if (!(await fileExists(path.join(profileEntryPath, "Preferences")))) return undefined;
 
       const locale = await loadProfileLocale(profileEntryPath);
       return makeChromiumBrowser({
@@ -193,7 +185,7 @@ export const registerChromiumSource = (browsers: Browsers, platform: ChromiumPla
         CHROMIUM_CONFIGS.map(async (config) => {
           let executablePath: string | undefined;
           for (const candidate of platform.executableCandidates(config)) {
-            if (await exists(candidate)) {
+            if (await fileExists(candidate)) {
               executablePath = candidate;
               break;
             }
