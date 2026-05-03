@@ -232,9 +232,15 @@ export const noSpaceOnFlexChildren: Rule = {
       if (!hasFlexOrGridLayout) return;
       const spaceMatch = classNameLiteral.match(SPACE_AXIS_PATTERN);
       if (!spaceMatch) return;
+      // HACK: preserve the axis in the suggestion — `space-x-4` maps
+      // to `gap-x-4` (horizontal only). A bare `gap-4` would also add
+      // vertical gap, silently changing layout for the developer who
+      // followed the hint.
+      const spaceAxis = spaceMatch[1];
+      const spaceValue = spaceMatch[2];
       context.report({
         node: jsxAttribute,
-        message: `space-${spaceMatch[1]}-${spaceMatch[2]} on a flex/grid parent — use gap-${spaceMatch[2]} instead. Per-sibling margins phantom-gap on conditional render and don't mirror in RTL`,
+        message: `space-${spaceAxis}-${spaceValue} on a flex/grid parent — use gap-${spaceAxis}-${spaceValue} instead. Per-sibling margins phantom-gap on conditional render and don't mirror in RTL`,
       });
     },
   }),

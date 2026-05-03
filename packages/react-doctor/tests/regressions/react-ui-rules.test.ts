@@ -161,7 +161,7 @@ describe("design-no-redundant-size-axes", () => {
 });
 
 describe("design-no-space-on-flex-children", () => {
-  it("flags space-x on a flex parent", async () => {
+  it("flags space-x on a flex parent and suggests gap-x (preserving the axis)", async () => {
     const projectDir = setupReactProject(tempRoot, "no-space-on-flex-pos", {
       files: {
         "src/Row.tsx": `export const Row = () => (
@@ -176,7 +176,10 @@ describe("design-no-space-on-flex-children", () => {
 
     const hits = await collectRuleHits(projectDir, "design-no-space-on-flex-children");
     expect(hits).toHaveLength(1);
-    expect(hits[0].message).toContain("gap-4");
+    // Regression: bare `gap-4` would also add vertical gap, changing
+    // layout. The suggestion must preserve the axis: `gap-x-4`.
+    expect(hits[0].message).toContain("gap-x-4");
+    expect(hits[0].message).not.toMatch(/gap-4(?!\d)/);
   });
 
   it("does not flag space-y on a plain block parent", async () => {
