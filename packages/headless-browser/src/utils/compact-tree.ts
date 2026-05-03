@@ -15,10 +15,17 @@ export const compactTree = (tree: string): string => {
 
     retained[index] = true;
 
+    // HACK: narrow `targetIndent` each time we accept a true ancestor.
+    // Without this, the comparison stays anchored at the content line's
+    // indent forever, so any preceding shallower line gets retained —
+    // including SIBLINGS of the actual parent. The aunt's subtree
+    // would survive even though only the parent chain should.
+    let targetIndent = indents[index];
     for (let ancestor = index - 1; ancestor >= 0; ancestor--) {
-      if (indents[ancestor] >= indents[index]) continue;
+      if (indents[ancestor] >= targetIndent) continue;
       if (retained[ancestor]) break;
       retained[ancestor] = true;
+      targetIndent = indents[ancestor];
     }
   }
 

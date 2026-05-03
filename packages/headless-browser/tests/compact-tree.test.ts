@@ -103,6 +103,29 @@ describe("compactTree", () => {
     expect(compactTree(tree)).toBe("");
   });
 
+  it("should NOT retain a sibling of the parent that appears earlier in source (true ancestor walk)", () => {
+    // Regression: the ancestor walk used to compare against the
+    // CONTENT line's indent forever, so any earlier line shallower
+    // than the content was retained — including siblings of the
+    // actual parent ("aunts"). Now narrows the target indent on each
+    // hit so only the true parent chain survives.
+    const tree = [
+      "- root:",
+      "  - aunt:",
+      '    - leaf "x"',
+      "  - parent:",
+      '    - link "Home" [ref=e1]',
+    ].join("\n");
+
+    const result = compactTree(tree);
+    expect(result).toContain("root");
+    expect(result).toContain("parent");
+    expect(result).toContain("[ref=e1]");
+    // The crucial assertions: aunt and her subtree must NOT survive.
+    expect(result).not.toContain("aunt");
+    expect(result).not.toContain('leaf "x"');
+  });
+
   it("should keep content lines alongside ref lines", () => {
     const tree = [
       '- heading "Title" [ref=e1]',
