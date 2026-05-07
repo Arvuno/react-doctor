@@ -170,9 +170,17 @@ export const noDerivedUseState: Rule = {
     // are not modeled here (a known limitation — pre-existing).
     const componentPropStack: Array<Set<string>> = [];
 
+    // HACK: empty stack frames are barriers — pushed when entering a
+    // non-component FunctionDeclaration / ArrowFunctionExpression so
+    // identifiers inside the helper don't resolve against an outer
+    // component's props (a closed-over `value` is NOT a prop of the
+    // helper). Stop the walk at the first empty frame so the lookup
+    // honors the barrier the visitor pushed.
     const isPropName = (name: string): boolean => {
       for (let stackIndex = componentPropStack.length - 1; stackIndex >= 0; stackIndex--) {
-        if (componentPropStack[stackIndex].has(name)) return true;
+        const frame = componentPropStack[stackIndex];
+        if (frame.size === 0) return false;
+        if (frame.has(name)) return true;
       }
       return false;
     };
@@ -405,9 +413,16 @@ export const noPropCallbackInEffect: Rule = {
       componentPropParamStack.push(propNames);
     };
 
+    // HACK: empty stack frames are barriers — pushed when entering a
+    // non-component FunctionDeclaration / ArrowFunctionExpression so
+    // identifiers inside the helper don't resolve against an outer
+    // component's props. Stop the walk at the first empty frame so
+    // the lookup honors the barrier the visitor pushed.
     const isPropName = (name: string): boolean => {
       for (let stackIndex = componentPropParamStack.length - 1; stackIndex >= 0; stackIndex--) {
-        if (componentPropParamStack[stackIndex].has(name)) return true;
+        const frame = componentPropParamStack[stackIndex];
+        if (frame.size === 0) return false;
+        if (frame.has(name)) return true;
       }
       return false;
     };
