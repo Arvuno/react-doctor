@@ -60,15 +60,15 @@ const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: 
   }
   for (const key of Object.keys(node)) {
     if (key === "parent" || key === "type") continue;
-    const child = (node as Record<string, unknown>)[key];
+    const child = node[key];
     if (Array.isArray(child)) {
       for (const item of child) {
-        if (item && typeof item === "object" && (item as EsTreeNode).type) {
-          collectValueIdentifierNames(item as EsTreeNode, into);
+        if (item && typeof item === "object" && item.type) {
+          collectValueIdentifierNames(item, into);
         }
       }
-    } else if (child && typeof child === "object" && (child as EsTreeNode).type) {
-      collectValueIdentifierNames(child as EsTreeNode, into);
+    } else if (child && typeof child === "object" && child.type) {
+      collectValueIdentifierNames(child, into);
     }
   }
 };
