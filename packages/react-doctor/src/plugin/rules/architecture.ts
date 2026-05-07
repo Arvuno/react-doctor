@@ -220,18 +220,49 @@ const REACT_19_DEPRECATED_MESSAGES: Record<string, string> = {
     "useContext is superseded by `use()` on React 19+ — `use()` reads context conditionally inside hooks, branches, and loops; switch to `import { use } from 'react'`",
 };
 
-export const noReact19DeprecatedApis: Rule = {
+interface DeprecatedReactImportRuleOptions {
+  /** The exact `import "..."` source string this rule watches. */
+  source: string;
+  /** Per-imported-name message dictionary. Exact-match lookup. */
+  messages: Record<string, string>;
+  /**
+   * Optional extra ImportDeclaration handler invoked BEFORE the standard
+   * source check — used by the react-dom rule to flag every import from
+   * `react-dom/test-utils` (whole entry point gone in React 19).
+   * Return `true` to mark "handled, skip the standard branch".
+   */
+  handleExtraSource?: (node: EsTreeNode, context: RuleContext) => boolean;
+}
+
+// HACK: shared scaffolding for "report deprecated React-package imports".
+// Both `noReact19DeprecatedApis` (for `react`) and
+// `noReactDomDeprecatedApis` (for `react-dom`) want the same shape:
+//   - bind namespace/default imports of the source to a Set
+//   - on ImportSpecifier, look the imported name up in a message map
+//   - on MemberExpression off a tracked binding, look the property up
+// Hoisting the pattern keeps the two call sites tiny and means future
+// React deprecations (e.g. a `react/jsx-runtime` rule) need just one
+// new factory call.
+const createDeprecatedReactImportRule = ({
+  source,
+  messages,
+  handleExtraSource,
+}: DeprecatedReactImportRuleOptions): Rule => ({
   create: (context: RuleContext) => {
-    const reactNamespaceBindings = new Set<string>();
+    const namespaceBindings = new Set<string>();
 
     return {
       ImportDeclaration(node: EsTreeNode) {
-        if (node.source?.value !== "react") return;
+        const sourceValue = node.source?.value;
+        if (typeof sourceValue !== "string") return;
+        if (handleExtraSource?.(node, context)) return;
+        if (sourceValue !== source) return;
+
         for (const specifier of node.specifiers ?? []) {
           if (specifier.type === "ImportSpecifier") {
             const importedName = specifier.imported?.name;
             if (!importedName) continue;
-            const message = REACT_19_DEPRECATED_MESSAGES[importedName];
+            const message = messages[importedName];
             if (message) context.report({ node: specifier, message });
             continue;
           }
@@ -240,22 +271,27 @@ export const noReact19DeprecatedApis: Rule = {
             specifier.type === "ImportNamespaceSpecifier"
           ) {
             const localName = specifier.local?.name;
-            if (localName) reactNamespaceBindings.add(localName);
+            if (localName) namespaceBindings.add(localName);
           }
         }
       },
       MemberExpression(node: EsTreeNode) {
-        if (reactNamespaceBindings.size === 0) return;
+        if (namespaceBindings.size === 0) return;
         if (node.computed) return;
         if (node.object?.type !== "Identifier") return;
-        if (!reactNamespaceBindings.has(node.object.name)) return;
+        if (!namespaceBindings.has(node.object.name)) return;
         if (node.property?.type !== "Identifier") return;
-        const message = REACT_19_DEPRECATED_MESSAGES[node.property.name];
+        const message = messages[node.property.name];
         if (message) context.report({ node, message });
       },
     };
   },
-};
+});
+
+export const noReact19DeprecatedApis: Rule = createDeprecatedReactImportRule({
+  source: "react",
+  messages: REACT_19_DEPRECATED_MESSAGES,
+});
 
 const RENDER_PROP_PATTERN = /^render[A-Z]/;
 
@@ -543,7 +579,7 @@ export const noDefaultProps: Rule = {
       if (!isUppercaseName(left.object.name)) return;
       context.report({
         node: left,
-        message: `${left.object.name}.defaultProps is removed for function components in React 19 — replace with ES6 default parameters in the destructured props (e.g. \`function ${left.object.name}({ size = "md", ...rest })\`)`,
+        message: `${left.object.name}.defaultProps — React 19 removes \`defaultProps\` for function components and discourages it for class components. Move defaults into the destructured props parameter (e.g. \`function ${left.object.name}({ size = "md", ...rest })\`) so the rule applies cleanly to both shapes`,
       });
     },
   }),
@@ -568,8 +604,6 @@ const REACT_DOM_DEPRECATED_MESSAGES: Record<string, string> = {
     "ReactDOM.unmountComponentAtNode no longer works on roots created with `createRoot` — keep a reference to the root and call `root.unmount()` instead (REMOVED in React 19)",
   findDOMNode:
     "ReactDOM.findDOMNode crawls the rendered tree and breaks composition — accept a ref directly and read `ref.current` (REMOVED in React 19)",
-  useFormState:
-    "useFormState was renamed to `useActionState` and moved to `react` — switch to `import { useActionState } from 'react'` (REMOVED from react-dom in React 19)",
 };
 
 const REACT_DOM_TEST_UTILS_REPLACEMENTS: Record<string, string> = {
@@ -589,59 +623,27 @@ const buildTestUtilsMessage = (importedName: string): string => {
   return `react-dom/test-utils is removed in React 19. ${replacementText}`;
 };
 
-export const noReactDomDeprecatedApis: Rule = {
-  create: (context: RuleContext) => {
-    const reactDomNamespaceBindings = new Set<string>();
-
-    return {
-      ImportDeclaration(node: EsTreeNode) {
-        const sourceValue = node.source?.value;
-        if (typeof sourceValue !== "string") return;
-
-        if (sourceValue === "react-dom/test-utils") {
-          for (const specifier of node.specifiers ?? []) {
-            if (specifier.type === "ImportSpecifier") {
-              const importedName = specifier.imported?.name ?? "default";
-              context.report({ node: specifier, message: buildTestUtilsMessage(importedName) });
-              continue;
-            }
-            context.report({
-              node: specifier,
-              message:
-                "react-dom/test-utils is removed in React 19. Use `act` from `react` and `fireEvent` / `render` from `@testing-library/react` instead",
-            });
-          }
-          return;
-        }
-
-        if (sourceValue !== "react-dom") return;
-
-        for (const specifier of node.specifiers ?? []) {
-          if (specifier.type === "ImportSpecifier") {
-            const importedName = specifier.imported?.name;
-            if (!importedName) continue;
-            const message = REACT_DOM_DEPRECATED_MESSAGES[importedName];
-            if (message) context.report({ node: specifier, message });
-            continue;
-          }
-          if (
-            specifier.type === "ImportDefaultSpecifier" ||
-            specifier.type === "ImportNamespaceSpecifier"
-          ) {
-            const localName = specifier.local?.name;
-            if (localName) reactDomNamespaceBindings.add(localName);
-          }
-        }
-      },
-      MemberExpression(node: EsTreeNode) {
-        if (reactDomNamespaceBindings.size === 0) return;
-        if (node.computed) return;
-        if (node.object?.type !== "Identifier") return;
-        if (!reactDomNamespaceBindings.has(node.object.name)) return;
-        if (node.property?.type !== "Identifier") return;
-        const message = REACT_DOM_DEPRECATED_MESSAGES[node.property.name];
-        if (message) context.report({ node, message });
-      },
-    };
-  },
+const reportTestUtilsImports = (node: EsTreeNode, context: RuleContext): void => {
+  for (const specifier of node.specifiers ?? []) {
+    if (specifier.type === "ImportSpecifier") {
+      const importedName = specifier.imported?.name ?? "default";
+      context.report({ node: specifier, message: buildTestUtilsMessage(importedName) });
+      continue;
+    }
+    context.report({
+      node: specifier,
+      message:
+        "react-dom/test-utils is removed in React 19. Use `act` from `react` and `fireEvent` / `render` from `@testing-library/react` instead",
+    });
+  }
 };
+
+export const noReactDomDeprecatedApis: Rule = createDeprecatedReactImportRule({
+  source: "react-dom",
+  messages: REACT_DOM_DEPRECATED_MESSAGES,
+  handleExtraSource: (node, context) => {
+    if (node.source?.value !== "react-dom/test-utils") return false;
+    reportTestUtilsImports(node, context);
+    return true;
+  },
+});

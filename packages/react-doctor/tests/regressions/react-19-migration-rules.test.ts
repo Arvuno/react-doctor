@@ -15,6 +15,7 @@ afterAll(() => {
 const collectRuleHits = async (
   projectDir: string,
   ruleId: string,
+  reactMajorVersion: number | null = null,
 ): Promise<Array<{ filePath: string; message: string }>> => {
   const diagnostics = await runOxlint({
     rootDirectory: projectDir,
@@ -22,6 +23,7 @@ const collectRuleHits = async (
     framework: "unknown",
     hasReactCompiler: false,
     hasTanStackQuery: false,
+    reactMajorVersion,
   });
   return diagnostics
     .filter((diagnostic) => diagnostic.rule === ruleId)
@@ -35,24 +37,22 @@ describe("no-react-dom-deprecated-apis", () => {
   it("flags react-dom legacy root and rendering APIs imported by name", async () => {
     const projectDir = setupReactProject(tempRoot, "no-react-dom-deprecated-apis-named", {
       files: {
-        "src/legacy.tsx": `import { render, hydrate, unmountComponentAtNode, findDOMNode, useFormState } from "react-dom";
+        "src/legacy.tsx": `import { render, hydrate, unmountComponentAtNode, findDOMNode } from "react-dom";
 
 void render;
 void hydrate;
 void unmountComponentAtNode;
 void findDOMNode;
-void useFormState;
 `,
       },
     });
 
     const hits = await collectRuleHits(projectDir, "no-react-dom-deprecated-apis");
-    expect(hits.length).toBeGreaterThanOrEqual(5);
+    expect(hits.length).toBeGreaterThanOrEqual(4);
     expect(hits.some((hit) => hit.message.includes("ReactDOM.render"))).toBe(true);
     expect(hits.some((hit) => hit.message.includes("ReactDOM.hydrate"))).toBe(true);
     expect(hits.some((hit) => hit.message.includes("unmountComponentAtNode"))).toBe(true);
     expect(hits.some((hit) => hit.message.includes("findDOMNode"))).toBe(true);
-    expect(hits.some((hit) => hit.message.includes("useFormState"))).toBe(true);
   });
 
   it("flags react-dom legacy APIs accessed via namespace binding", async () => {
@@ -289,7 +289,7 @@ Button.defaultProps = {
     const hits = await collectRuleHits(projectDir, "no-default-props");
     expect(hits.length).toBe(1);
     expect(hits[0].message).toContain("Button");
-    expect(hits[0].message).toContain("default parameters");
+    expect(hits[0].message).toContain("destructured props parameter");
   });
 
   it("does not flag ES6 default parameters in destructured props", async () => {
@@ -320,5 +320,116 @@ export { config };
 
     const hits = await collectRuleHits(projectDir, "no-default-props");
     expect(hits).toHaveLength(0);
+  });
+});
+
+describe("version gating", () => {
+  it("does NOT flag forwardRef on React 18 projects", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r18-forwardRef", {
+      reactVersion: "^18.3.1",
+      files: {
+        "src/Button.tsx": `import { forwardRef } from "react";
+
+export const Button = forwardRef<HTMLButtonElement>((_props, ref) => (
+  <button ref={ref} />
+));
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react19-deprecated-apis", 18);
+    expect(hits).toHaveLength(0);
+  });
+
+  it("DOES flag forwardRef on React 19 projects", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r19-forwardRef", {
+      files: {
+        "src/Button.tsx": `import { forwardRef } from "react";
+
+export const Button = forwardRef<HTMLButtonElement>((_props, ref) => (
+  <button ref={ref} />
+));
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react19-deprecated-apis", 19);
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does NOT flag Foo.defaultProps on React 18 projects", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r18-defaultProps", {
+      reactVersion: "^18.3.1",
+      files: {
+        "src/Button.tsx": `export const Button = ({ size }: { size?: string }) => <button data-size={size} />;
+Button.defaultProps = { size: "md" };
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-default-props", 18);
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does NOT flag react-dom render on React 17 projects", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r17-render", {
+      reactVersion: "^17.0.2",
+      files: {
+        "src/main.tsx": `import { render } from "react-dom";
+
+void render;
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react-dom-deprecated-apis", 17);
+    expect(hits).toHaveLength(0);
+  });
+
+  it("DOES flag react-dom render on React 18 projects (deprecated since 18)", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r18-render", {
+      reactVersion: "^18.3.1",
+      files: {
+        "src/main.tsx": `import { render } from "react-dom";
+
+void render;
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react-dom-deprecated-apis", 18);
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("STILL flags legacy lifecycles regardless of React version (warned since 16.3)", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-r17-lifecycle", {
+      reactVersion: "^17.0.2",
+      files: {
+        "src/Legacy.tsx": `import React from "react";
+
+export class Legacy extends React.Component<{}, {}> {
+  componentWillMount() {}
+  render() { return null; }
+}
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-legacy-class-lifecycles", 17);
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("leaves all rules enabled when the React version is unknown (null)", async () => {
+    const projectDir = setupReactProject(tempRoot, "gating-null-defaultProps", {
+      reactVersion: "*",
+      files: {
+        "src/Button.tsx": `export const Button = ({ size }: { size?: string }) => <button data-size={size} />;
+Button.defaultProps = { size: "md" };
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-default-props", null);
+    expect(hits.length).toBeGreaterThanOrEqual(1);
   });
 });
