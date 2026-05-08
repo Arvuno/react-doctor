@@ -88,3 +88,14 @@ export const buildNoReactDependencyError = (directory: string): string =>
 export const REACT_19_DEPRECATION_MIN_MAJOR = 19;
 
 export const REACT_DOM_LEGACY_API_MIN_MAJOR = 18;
+
+// HACK: cap on how far we look forward when walking a JSX element's
+// opening tag to find its `>` closer. Real-world openers stay well
+// under this; the cap bounds worst-case work for pathological files.
+export const JSX_OPENER_SCAN_MAX_LINES = 32;
+
+// HACK: cap on how far above a diagnostic line we'll search for a
+// `react-doctor-disable-next-line` comment when classifying near-miss
+// suppressions. Stacked-comment chains compress here naturally — the
+// budget is the maximum gap between a comment and the diagnostic line.
+export const SUPPRESSION_NEAR_MISS_MAX_LINES = 10;

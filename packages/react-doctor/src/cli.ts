@@ -25,8 +25,10 @@ import { highlighter } from "./utils/highlighter.js";
 import { loadConfig } from "./utils/load-config.js";
 import { logger, setLoggerSilent } from "./utils/logger.js";
 import { encodeAnnotationProperty, encodeAnnotationMessage } from "./utils/annotation-encoding.js";
+import { parseFileLineArgument } from "./utils/parse-file-line-argument.js";
 import { prompts } from "./utils/prompts.js";
 import { selectProjects } from "./utils/select-projects.js";
+import { toRelativePath } from "./utils/to-relative-path.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 
@@ -583,6 +585,58 @@ program
       handleError(error);
     }
   });
+
+program
+  .command("why")
+  .description("Diagnose why a rule fired or why a suppression didn't apply at a specific location")
+  .argument("<file:line>", 'target site, e.g. "src/components/foo.tsx:142"')
+  .argument("[directory]", "project directory to scan", ".")
+  .action(async (fileLineArgument: string, directory: string) => {
+    try {
+      await runWhy(fileLineArgument, directory);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+const runWhy = async (fileLineArgument: string, directory: string): Promise<void> => {
+  const { filePath, line } = parseFileLineArgument(fileLineArgument);
+  const resolvedDirectory = path.resolve(directory);
+  setLoggerSilent(true);
+  const userConfig = loadConfig(resolvedDirectory);
+  const scanResult = await scan(resolvedDirectory, {
+    silent: true,
+    offline: true,
+    configOverride: userConfig,
+  });
+  setLoggerSilent(false);
+
+  const matchingDiagnostics = scanResult.diagnostics.filter(
+    (diagnostic) =>
+      diagnostic.line === line &&
+      toRelativePath(diagnostic.filePath, resolvedDirectory) === toRelativePath(filePath, resolvedDirectory),
+  );
+
+  if (matchingDiagnostics.length === 0) {
+    logger.log(`No react-doctor diagnostics at ${filePath}:${line}.`);
+    return;
+  }
+
+  for (const diagnostic of matchingDiagnostics) {
+    const ruleIdentifier = `${diagnostic.plugin}/${diagnostic.rule}`;
+    logger.log(`${highlighter.error(ruleIdentifier)} — ${diagnostic.message}`);
+    if (diagnostic.help) logger.dim(`  ${diagnostic.help}`);
+    if (diagnostic.suppressionHint) {
+      logger.log("");
+      logger.log(`  Suppression diagnosis: ${diagnostic.suppressionHint}`);
+    } else {
+      logger.dim(
+        "  No nearby react-doctor-disable-next-line comment was detected — add one immediately above this line to suppress.",
+      );
+    }
+    logger.log("");
+  }
+};
 
 // HACK: when stdout is piped into a process that closes early (e.g.
 // `react-doctor . | head`), Node throws an uncaught EPIPE on the next
