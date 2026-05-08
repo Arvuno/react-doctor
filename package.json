@@ -23,7 +23,8 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish",
-    "bench:scores": "bun scripts/benchmark-scores.ts"
+    "bench:scores": "bun scripts/benchmark-scores.ts",
+    "leaderboard:update": "node --experimental-strip-types --no-warnings scripts/update-leaderboard.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
