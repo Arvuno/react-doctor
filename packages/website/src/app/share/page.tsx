@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { PERFECT_SCORE } from "@/constants";
+import { getDoctorFace } from "@/utils/get-doctor-face";
+import { getScoreColorClass } from "@/utils/get-score-color-class";
+import { getScoreLabel } from "@/utils/get-score-label";
 import AnimatedScore from "./animated-score";
 import BadgeSnippet from "./badge-snippet";
 
-const PERFECT_SCORE = 100;
-const SCORE_GOOD_THRESHOLD = 75;
-const SCORE_OK_THRESHOLD = 50;
 const MAX_PROJECT_NAME_LENGTH = 100;
 const MAX_DISPLAY_COUNT = 99_999;
 const COMMAND = "npx -y react-doctor@latest .";
@@ -28,24 +29,6 @@ const clampDisplayCount = (value: number): number =>
 const clampProjectName = (value: string | undefined | null): string | null => {
   if (!value) return null;
   return value.length > MAX_PROJECT_NAME_LENGTH ? value.slice(0, MAX_PROJECT_NAME_LENGTH) : value;
-};
-
-const getScoreLabel = (score: number): string => {
-  if (score >= SCORE_GOOD_THRESHOLD) return "Great";
-  if (score >= SCORE_OK_THRESHOLD) return "Needs work";
-  return "Critical";
-};
-
-const getScoreColorClass = (score: number): string => {
-  if (score >= SCORE_GOOD_THRESHOLD) return "text-green-400";
-  if (score >= SCORE_OK_THRESHOLD) return "text-yellow-500";
-  return "text-red-400";
-};
-
-const getDoctorFace = (score: number): [string, string] => {
-  if (score >= SCORE_GOOD_THRESHOLD) return ["\u25E0 \u25E0", " \u25BD "];
-  if (score >= SCORE_OK_THRESHOLD) return ["\u2022 \u2022", " \u2500 "];
-  return ["x x", " \u25BD "];
 };
 
 const DoctorFace = ({ score }: { score: number }) => {

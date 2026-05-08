@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Copy, Check, ChevronRight, RotateCcw } from "lucide-react";
+import { PERFECT_SCORE } from "@/constants";
+import { getDoctorFace } from "@/utils/get-doctor-face";
+import { getScoreColorClass } from "@/utils/get-score-color-class";
+import { getScoreLabel } from "@/utils/get-score-label";
 
 const COPIED_RESET_DELAY_MS = 2000;
 const INITIAL_DELAY_MS = 250;
@@ -15,11 +19,8 @@ const SCORE_FRAME_COUNT = 20;
 const SCORE_FRAME_DELAY_MS = 30;
 const POST_SCORE_DELAY_MS = 300;
 const TARGET_SCORE = 42;
-const PERFECT_SCORE = 100;
 const SCORE_BAR_WIDTH_MOBILE = 15;
 const SCORE_BAR_WIDTH_DESKTOP = 30;
-const SCORE_GOOD_THRESHOLD = 75;
-const SCORE_OK_THRESHOLD = 50;
 const DIAGNOSTIC_COUNT_MOBILE = 3;
 const TOTAL_ERROR_COUNT = 22;
 const AFFECTED_FILE_COUNT = 18;
@@ -104,18 +105,6 @@ const DIAGNOSTICS: Diagnostic[] = [
   },
 ];
 
-const getScoreColor = (score: number) => {
-  if (score >= SCORE_GOOD_THRESHOLD) return "text-green-400";
-  if (score >= SCORE_OK_THRESHOLD) return "text-yellow-500";
-  return "text-red-400";
-};
-
-const getScoreLabel = (score: number) => {
-  if (score >= SCORE_GOOD_THRESHOLD) return "Great";
-  if (score >= SCORE_OK_THRESHOLD) return "Needs work";
-  return "Critical";
-};
-
 const easeOutCubic = (progress: number) => 1 - Math.pow(1 - progress, 3);
 
 const sleep = (milliseconds: number) =>
@@ -127,18 +116,12 @@ const FadeIn = ({ children }: { children: React.ReactNode }) => (
   <div className="animate-fade-in">{children}</div>
 );
 
-const getDoctorFace = (score: number): [string, string] => {
-  if (score >= SCORE_GOOD_THRESHOLD) return ["◠ ◠", " ▽ "];
-  if (score >= SCORE_OK_THRESHOLD) return ["• •", " ─ "];
-  return ["x x", " ▽ "];
-};
-
 const BOX_TOP = "┌─────┐";
 const BOX_BOTTOM = "└─────┘";
 
 const DoctorBranding = ({ score }: { score: number }) => {
   const [eyes, mouth] = getDoctorFace(score);
-  const colorClass = getScoreColor(score);
+  const colorClass = getScoreColorClass(score);
 
   return (
     <div>
@@ -152,7 +135,7 @@ const DoctorBranding = ({ score }: { score: number }) => {
 const ScoreBar = ({ score, barWidth }: { score: number; barWidth: number }) => {
   const filledCount = Math.round((score / PERFECT_SCORE) * barWidth);
   const emptyCount = barWidth - filledCount;
-  const colorClass = getScoreColor(score);
+  const colorClass = getScoreColorClass(score);
 
   return (
     <>
@@ -163,7 +146,7 @@ const ScoreBar = ({ score, barWidth }: { score: number; barWidth: number }) => {
 };
 
 const ScoreGauge = ({ score }: { score: number }) => {
-  const colorClass = getScoreColor(score);
+  const colorClass = getScoreColorClass(score);
 
   return (
     <div className="pl-2">

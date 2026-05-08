@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PERFECT_SCORE } from "@/constants";
+import { getDoctorFace } from "@/utils/get-doctor-face";
+import { getScoreColorClass } from "@/utils/get-score-color-class";
 
-const PERFECT_SCORE = 100;
-const SCORE_GOOD_THRESHOLD = 75;
-const SCORE_OK_THRESHOLD = 50;
 const SCORE_BAR_WIDTH = 20;
 const REVALIDATE_SECONDS = 60 * 60;
 const COMMAND = "npx -y react-doctor@latest .";
@@ -38,18 +38,6 @@ export const metadata: Metadata = {
   title: "Leaderboard - React Doctor",
   description:
     "Scores for popular open-source React projects, diagnosed by React Doctor. Updated automatically from public benchmarks.",
-};
-
-const getScoreColorClass = (score: number): string => {
-  if (score >= SCORE_GOOD_THRESHOLD) return "text-green-400";
-  if (score >= SCORE_OK_THRESHOLD) return "text-yellow-500";
-  return "text-red-400";
-};
-
-const getDoctorFace = (score: number): [string, string] => {
-  if (score >= SCORE_GOOD_THRESHOLD) return ["\u25E0 \u25E0", " \u25BD "];
-  if (score >= SCORE_OK_THRESHOLD) return ["\u2022 \u2022", " \u2500 "];
-  return ["x x", " \u25BD "];
 };
 
 const formatGeneratedAt = (isoTimestamp: string): string => {
