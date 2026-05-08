@@ -378,6 +378,38 @@ export const Chat = ({ roomId }: { roomId: string }) => {
     expect(hits).toHaveLength(0);
   });
 
+  it("DOES still flag chains where effects only call `set.delete()` (Bugbot #156 round 3)", async () => {
+    // Regression: \`delete\` was in the unambiguous external-sync
+    // method names set, but \`Map.delete\`, \`Set.delete\`,
+    // \`URLSearchParams.delete\`, etc. all expose the same name.
+    // Effects that only call data-structure \`.delete\` should still
+    // be detected as part of an internal-only chain.
+    const projectDir = setupReactProject(tempRoot, "no-effect-chain-set-delete-not-external", {
+      files: {
+        "src/Pruner.tsx": `import { useEffect, useState } from "react";
+
+export const Pruner = ({ stale }: { stale: ReadonlySet<string> }) => {
+  const [pruned, setPruned] = useState<Set<string>>(new Set());
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const next = new Set<string>();
+    for (const item of stale) next.add(item);
+    next.delete("ignore-me");
+    setPruned(next);
+  }, [stale]);
+  useEffect(() => {
+    setCount(pruned.size);
+  }, [pruned]);
+  return <span>{count}</span>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-chain");
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("DOES still flag chains where effects only call `params.get()` (Bugbot #156 round 2)", async () => {
     // Regression: \`get\` as a method name is too ambiguous to count as
     // external sync on its own — \`Map.get\`, \`URLSearchParams.get\`,

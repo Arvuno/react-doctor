@@ -371,12 +371,13 @@ export const EXTERNAL_SYNC_MEMBER_METHOD_NAMES = new Set([
   "open",
   "close",
   // Mutating HTTP verbs — `*.post(url, body)` is essentially always
-  // a network call.
+  // a network call. (`delete` is moved to the ambiguous set below
+  // because Map / Set / URLSearchParams / Headers / FormData /
+  // WeakMap all expose `.delete(...)` as a built-in method.)
   "fetch",
   "post",
   "put",
   "patch",
-  "delete",
 ]);
 
 // HACK: `get`, `head`, `options` are HTTP verbs but ALSO names of
@@ -399,7 +400,12 @@ export const EXTERNAL_SYNC_HTTP_CLIENT_RECEIVERS = new Set([
   "fetcher",
 ]);
 
-export const EXTERNAL_SYNC_AMBIGUOUS_HTTP_METHOD_NAMES = new Set(["get", "head", "options"]);
+export const EXTERNAL_SYNC_AMBIGUOUS_HTTP_METHOD_NAMES = new Set([
+  "get",
+  "head",
+  "options",
+  "delete",
+]);
 
 export const EXTERNAL_SYNC_DIRECT_CALLEE_NAMES = new Set([
   "fetch",
