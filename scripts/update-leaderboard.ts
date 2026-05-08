@@ -48,7 +48,7 @@ const renderLeaderboardTable = (entries: LeaderboardEntry[]): string => {
 
 const renderLeaderboardSection = (entries: LeaderboardEntry[]): string => {
   const table = renderLeaderboardTable(entries);
-  return `${MARKER_START}\n<!-- prettier-ignore -->\n${table}\n${MARKER_END}`;
+  return `${MARKER_START}\n<!-- prettier-ignore -->\n${table}\n\n${MARKER_END}`;
 };
 
 const replaceLeaderboardSection = (markdown: string, replacement: string): string => {
