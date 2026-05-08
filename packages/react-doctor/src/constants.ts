@@ -22,6 +22,8 @@ export const SCORE_API_URL = "https://www.react.doctor/api/score";
 
 export const SHARE_BASE_URL = "https://www.react.doctor/share";
 
+export const REACT_DOCTOR_HOME_URL = "https://react.doctor";
+
 export const FETCH_TIMEOUT_MS = 10_000;
 
 export const GIT_LS_FILES_MAX_BUFFER_BYTES = 50 * 1024 * 1024;

@@ -60,6 +60,8 @@ export interface AppState {
   toastMessage: string | null;
   toastTone: "success" | "info" | "error";
   toastNonce: number;
+  diagnosticsDirectory: string | null;
+  shareUrl: string | null;
 }
 
 export interface GroupedRule {
@@ -89,6 +91,11 @@ export type AppAction =
   | { type: "navigate-workspace"; delta: number }
   | { type: "select-workspace"; directory: string }
   | { type: "set-toast"; message: string | null; tone?: "success" | "info" | "error" }
+  | {
+      type: "set-scan-artifacts";
+      diagnosticsDirectory: string | null;
+      shareUrl: string | null;
+    }
   | { type: "request-exit" };
 
 export interface CategoryBreakdown {

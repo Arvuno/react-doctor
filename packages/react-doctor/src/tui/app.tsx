@@ -14,9 +14,11 @@ import { Toast } from "./components/toast.js";
 import { runScanWithListener } from "./scan-controller.js";
 import { appReducer, buildInitialState } from "./store.js";
 import type { AppAction, GroupedRule } from "./types.js";
+import { buildShareUrl } from "./utils/build-share-url.js";
 import { copyToClipboard } from "./utils/copy-to-clipboard.js";
 import { formatIssueAsMarkdown } from "./utils/format-issue-as-markdown.js";
 import { useTerminalSize } from "./utils/use-terminal-size.js";
+import { writeDiagnosticsToTempDir } from "./utils/write-diagnostics-to-temp-dir.js";
 import { startWatcher, type WatcherHandle } from "./watcher.js";
 
 interface AppProps {
@@ -310,6 +312,52 @@ export const App = ({
     return () => clearTimeout(dismissTimer);
   }, [state.toastNonce, state.toastMessage, state.toastTone]);
 
+  // Persist diagnostics to a temp directory and refresh the share URL once
+  // per scan completion so the dashboard can surface both. Re-runs only when
+  // the scan count actually advances, never on cosmetic state changes.
+  const lastArtifactScanRef = useRef(0);
+  useEffect(() => {
+    if (state.scanStatus !== "complete") return;
+    if (state.scanCount <= lastArtifactScanRef.current) return;
+    lastArtifactScanRef.current = state.scanCount;
+    if (state.diagnostics.length === 0) {
+      dispatch({
+        type: "set-scan-artifacts",
+        diagnosticsDirectory: null,
+        shareUrl: null,
+      });
+      return;
+    }
+    try {
+      const writeResult = writeDiagnosticsToTempDir(state.diagnostics);
+      const projectName = state.project?.projectName ?? path.basename(state.rootDirectory);
+      const shareUrl = buildShareUrl(state.diagnostics, state.score, projectName);
+      dispatch({
+        type: "set-scan-artifacts",
+        diagnosticsDirectory: writeResult.outputDirectory,
+        shareUrl,
+      });
+    } catch (artifactError) {
+      dispatch({
+        type: "set-scan-artifacts",
+        diagnosticsDirectory: null,
+        shareUrl: null,
+      });
+      dispatch({
+        type: "set-toast",
+        message: `Could not write diagnostics: ${(artifactError as Error)?.message ?? "unknown error"}`,
+        tone: "error",
+      });
+    }
+  }, [
+    state.scanStatus,
+    state.scanCount,
+    state.diagnostics,
+    state.project,
+    state.rootDirectory,
+    state.score,
+  ]);
+
   const { columns, rows } = useTerminalSize();
 
   const headerDirectory = state.selectedDirectory ?? state.rootDirectory;
@@ -317,7 +365,7 @@ export const App = ({
 
   return (
     <Box flexDirection="column">
-      <Header rootDirectory={headerDirectory} />
+      <Header rootDirectory={headerDirectory} terminalColumns={columns} />
       {isPickingProject ? (
         <ProjectPicker
           rootDirectory={state.rootDirectory}

@@ -96,10 +96,32 @@ const buildPopulatedState = (): AppState => {
       { score: 82, diagnosticCount: 7, timestamp: 5 },
     ],
     steps: baseState.steps.map((step) => ({ ...step, status: "succeed" as const })),
+    diagnosticsDirectory: "/tmp/react-doctor-abc123",
+    shareUrl: "https://www.react.doctor/share?p=ami&s=82&e=2&w=5&f=6",
   };
 };
 
 describe("visual snapshots", () => {
+  it("logs the help overlay frame", async () => {
+    const { HelpOverlay } = await import("../../src/tui/components/help-overlay.js");
+    const { lastFrame } = render(<HelpOverlay />);
+    const frame = lastFrame() ?? "";
+    if (process.env.SNAPSHOT_LOG === "1") {
+      process.stdout.write(`\n===== HELP =====\n${frame}\n================\n`);
+    }
+  });
+
+  it("logs the header at wide terminal width", async () => {
+    const { Header } = await import("../../src/tui/components/header.js");
+    const { lastFrame } = render(
+      <Header rootDirectory="/Users/me/projects/ami" terminalColumns={120} />,
+    );
+    const frame = lastFrame() ?? "";
+    if (process.env.SNAPSHOT_LOG === "1") {
+      process.stdout.write(`\n===== HEADER =====\n${frame}\n==================\n`);
+    }
+  });
+
   it("logs a populated dashboard frame at 120 cols", () => {
     const { lastFrame } = render(
       <DashboardView state={buildPopulatedState()} terminalColumns={120} />,

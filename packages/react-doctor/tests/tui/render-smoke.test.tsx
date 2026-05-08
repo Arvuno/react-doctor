@@ -72,7 +72,9 @@ describe("Ink components render without throwing", () => {
   });
 
   it("renders the Header showing the project path", () => {
-    const { lastFrame } = render(<Header rootDirectory="/repo/projects/ami" />);
+    const { lastFrame } = render(
+      <Header rootDirectory="/repo/projects/ami" terminalColumns={120} />,
+    );
     const frame = lastFrame() ?? "";
     expect(frame).toContain("/repo/projects/ami");
   });

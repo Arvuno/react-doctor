@@ -1,4 +1,5 @@
 import { Box, Text } from "ink";
+import { CANONICAL_GITHUB_URL, REACT_DOCTOR_HOME_URL } from "../../constants.js";
 
 const HELP_LINES: Array<{ key: string; description: string }> = [
   { key: "d", description: "switch to diagnostic review" },
@@ -31,6 +32,16 @@ export const HelpOverlay = () => (
     </Box>
     <Box marginTop={1}>
       <Text color="gray">Press esc or ? to dismiss.</Text>
+    </Box>
+    <Box marginTop={1} flexDirection="column">
+      <Box>
+        <Text color="gray">Home </Text>
+        <Text color="cyan">{REACT_DOCTOR_HOME_URL}</Text>
+      </Box>
+      <Box>
+        <Text color="gray">GitHub </Text>
+        <Text color="cyan">{CANONICAL_GITHUB_URL}</Text>
+      </Box>
     </Box>
   </Box>
 );

@@ -50,6 +50,8 @@ export const buildInitialState = (rootDirectory: string): AppState => ({
   toastMessage: null,
   toastTone: "info",
   toastNonce: 0,
+  diagnosticsDirectory: null,
+  shareUrl: null,
 });
 
 const updateStep = (
@@ -223,6 +225,12 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         toastMessage: action.message,
         toastTone: action.tone ?? "info",
         toastNonce: state.toastNonce + 1,
+      };
+    case "set-scan-artifacts":
+      return {
+        ...state,
+        diagnosticsDirectory: action.diagnosticsDirectory,
+        shareUrl: action.shareUrl,
       };
     case "request-exit":
       return { ...state, exitRequested: true };
