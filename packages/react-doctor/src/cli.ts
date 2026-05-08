@@ -47,6 +47,7 @@ interface CliFlags {
   respectInlineDisables: boolean;
   project?: string;
   diff?: boolean | string;
+  why?: string;
   failOn: string;
 }
 
@@ -257,6 +258,46 @@ const resolveDiffMode = async (
   return Boolean(shouldScanChangedOnly);
 };
 
+const runWhy = async (
+  fileLineArgument: string,
+  resolvedDirectory: string,
+  userConfig: ReactDoctorConfig | null,
+): Promise<void> => {
+  const { filePath, line } = parseFileLineArgument(fileLineArgument);
+  const scanResult = await scan(resolvedDirectory, {
+    silent: true,
+    offline: true,
+    configOverride: userConfig,
+  });
+
+  const requestedRelativePath = toRelativePath(filePath, resolvedDirectory);
+  const matchingDiagnostics = scanResult.diagnostics.filter(
+    (diagnostic) =>
+      diagnostic.line === line &&
+      toRelativePath(diagnostic.filePath, resolvedDirectory) === requestedRelativePath,
+  );
+
+  if (matchingDiagnostics.length === 0) {
+    logger.log(`No react-doctor diagnostics at ${filePath}:${line}.`);
+    return;
+  }
+
+  for (const diagnostic of matchingDiagnostics) {
+    const ruleIdentifier = `${diagnostic.plugin}/${diagnostic.rule}`;
+    logger.log(`${highlighter.error(ruleIdentifier)} — ${diagnostic.message}`);
+    if (diagnostic.help) logger.dim(`  ${diagnostic.help}`);
+    if (diagnostic.suppressionHint) {
+      logger.break();
+      logger.log(`  Suppression diagnosis: ${diagnostic.suppressionHint}`);
+    } else {
+      logger.dim(
+        "  No nearby react-doctor-disable-next-line comment was detected — add one immediately above this line to suppress.",
+      );
+    }
+    logger.break();
+  }
+};
+
 const validateModeFlags = (flags: CliFlags): void => {
   // HACK: use the same coercion as resolveEffectiveDiff so a bare
   // `--diff false` (or `--diff ""`) is treated as "no diff" and doesn't
@@ -278,6 +319,9 @@ const validateModeFlags = (flags: CliFlags): void => {
   }
   if (flags.annotations && (flags.json || flags.score)) {
     throw new Error("--annotations cannot be combined with --json or --score.");
+  }
+  if (flags.why !== undefined && (flags.json || flags.score || flags.annotations || flags.staged)) {
+    throw new Error("--why cannot be combined with --json, --score, --annotations, or --staged.");
   }
 };
 
@@ -306,6 +350,10 @@ const program = new Command()
   .option("--fail-on <level>", "exit with error code on diagnostics: error, warning, none", "error")
   .option("--annotations", "output diagnostics as GitHub Actions annotations")
   .option(
+    "--why <file:line>",
+    "diagnose why a rule fired or why a suppression didn't apply at a specific location",
+  )
+  .option(
     "--respect-inline-disables",
     "respect inline `// eslint-disable*` / `// oxlint-disable*` comments (default)",
   )
@@ -333,6 +381,11 @@ const program = new Command()
       validateModeFlags(flags);
 
       const userConfig = loadConfig(resolvedDirectory);
+
+      if (flags.why !== undefined) {
+        await runWhy(flags.why, resolvedDirectory, userConfig);
+        return;
+      }
 
       if (!isQuiet) {
         logger.log(`react-doctor v${VERSION}`);
@@ -585,57 +638,6 @@ program
       handleError(error);
     }
   });
-
-program
-  .command("why")
-  .description("Diagnose why a rule fired or why a suppression didn't apply at a specific location")
-  .argument("<file:line>", 'target site, e.g. "src/components/foo.tsx:142"')
-  .argument("[directory]", "project directory to scan", ".")
-  .action(async (fileLineArgument: string, directory: string) => {
-    try {
-      await runWhy(fileLineArgument, directory);
-    } catch (error) {
-      handleError(error);
-    }
-  });
-
-const runWhy = async (fileLineArgument: string, directory: string): Promise<void> => {
-  const { filePath, line } = parseFileLineArgument(fileLineArgument);
-  const resolvedDirectory = path.resolve(directory);
-  const userConfig = loadConfig(resolvedDirectory);
-  const scanResult = await scan(resolvedDirectory, {
-    silent: true,
-    offline: true,
-    configOverride: userConfig,
-  });
-
-  const requestedRelativePath = toRelativePath(filePath, resolvedDirectory);
-  const matchingDiagnostics = scanResult.diagnostics.filter(
-    (diagnostic) =>
-      diagnostic.line === line &&
-      toRelativePath(diagnostic.filePath, resolvedDirectory) === requestedRelativePath,
-  );
-
-  if (matchingDiagnostics.length === 0) {
-    logger.log(`No react-doctor diagnostics at ${filePath}:${line}.`);
-    return;
-  }
-
-  for (const diagnostic of matchingDiagnostics) {
-    const ruleIdentifier = `${diagnostic.plugin}/${diagnostic.rule}`;
-    logger.log(`${highlighter.error(ruleIdentifier)} — ${diagnostic.message}`);
-    if (diagnostic.help) logger.dim(`  ${diagnostic.help}`);
-    if (diagnostic.suppressionHint) {
-      logger.break();
-      logger.log(`  Suppression diagnosis: ${diagnostic.suppressionHint}`);
-    } else {
-      logger.dim(
-        "  No nearby react-doctor-disable-next-line comment was detected — add one immediately above this line to suppress.",
-      );
-    }
-    logger.break();
-  }
-};
 
 // HACK: when stdout is piped into a process that closes early (e.g.
 // `react-doctor . | head`), Node throws an uncaught EPIPE on the next

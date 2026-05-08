@@ -81,33 +81,30 @@ The action outputs a `score` (0–100) you can use in subsequent steps.
 Usage: react-doctor [directory] [options]
 
 Options:
-  -v, --version      display the version number
-  --no-lint          skip linting
-  --no-dead-code     skip dead code detection
-  --verbose          show file details per rule
-  --score            output only the score
-  --json             output a single structured JSON report (suppresses other output)
-  -y, --yes          skip prompts, scan all workspace projects
-  --full             skip prompts, always run a full scan (decline diff-only)
-  --project <name>   select workspace project (comma-separated for multiple)
-  --diff [base]      scan only files changed vs base branch
-  --offline          skip telemetry (anonymous, not stored, only used to calculate score)
-  --staged           scan only staged (git index) files for pre-commit hooks
-  --fail-on <level>  exit with error code on diagnostics: error, warning, none
-  --annotations      output diagnostics as GitHub Actions annotations
-  -h, --help         display help for command
-
-Subcommands:
-  install                       install the react-doctor skill into your coding agents
-  why <file:line> [directory]   diagnose why a rule fired or why a suppression didn't apply
+  -v, --version       display the version number
+  --no-lint           skip linting
+  --no-dead-code      skip dead code detection
+  --verbose           show file details per rule
+  --score             output only the score
+  --json              output a single structured JSON report (suppresses other output)
+  -y, --yes           skip prompts, scan all workspace projects
+  --full              skip prompts, always run a full scan (decline diff-only)
+  --project <name>    select workspace project (comma-separated for multiple)
+  --diff [base]       scan only files changed vs base branch
+  --offline           skip telemetry (anonymous, not stored, only used to calculate score)
+  --staged            scan only staged (git index) files for pre-commit hooks
+  --fail-on <level>   exit with error code on diagnostics: error, warning, none
+  --annotations       output diagnostics as GitHub Actions annotations
+  --why <file:line>   diagnose why a rule fired or why a suppression didn't apply at a specific location
+  -h, --help          display help for command
 ```
 
-### `react-doctor why <file:line>`
+### `--why <file:line>`
 
-When a rule keeps firing despite a `react-doctor-disable-next-line` you wrote, run `why` to ask the scanner what it sees:
+When a rule keeps firing despite a `react-doctor-disable-next-line` you wrote, pass `--why <file:line>` (mirroring `eslint --print-config <file>`) to ask the scanner what it sees:
 
 ```bash
-npx -y react-doctor@latest why components/projects/Snapshot.tsx:254
+npx -y react-doctor@latest --why components/projects/Snapshot.tsx:254
 ```
 
 Output names the rule, prints any nearby suppression comment that didn't apply, and explains why — wrong rule list (suggesting the comma form), or a code-line gap (suggesting moving the comment or extracting the surrounding code into a helper). The same hint is also attached to each diagnostic inline when running with `--verbose` and is included in `--json` output as `diagnostic.suppressionHint`.
