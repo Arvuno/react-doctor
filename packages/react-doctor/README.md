@@ -218,7 +218,7 @@ Top React codebases scanned by React Doctor, ranked by score. Updated automatica
 
 <!-- LEADERBOARD:END -->
 
-See the [full leaderboard](https://www.react.doctor/leaderboard) or the [raw results](https://github.com/millionco/react-doctor-benchmarks/tree/main/results).
+See the [full leaderboard](https://www.react.doctor/leaderboard).
 
 ## Resources & Contributing Back
 
