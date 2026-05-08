@@ -27,6 +27,18 @@ You'll get a score (75+ Great, 50 to 74 Needs work, under 50 Critical) and a lis
 
 https://github.com/user-attachments/assets/07cc88d9-9589-44c3-aa73-5d603cb1c570
 
+## Interactive TUI
+
+Want a live dashboard with an animated doctor face, score gauge, progress checklist, and a master/detail diagnostic browser? Install [`react-doctor-tui`](./packages/react-doctor-tui) and run:
+
+```bash
+npx react-doctor-tui .          # dashboard
+npx react-doctor-tui . --watch  # rescan on save
+npx react-doctor-tui . --review # straight into the diagnostic browser
+```
+
+If `react-doctor-tui` is on your PATH, the bundled CLI will also forward `react-doctor watch` and `react-doctor review` to it.
+
 ## Install for your coding agent
 
 Teach your coding agent React best practices so it stops writing the bad code in the first place.
