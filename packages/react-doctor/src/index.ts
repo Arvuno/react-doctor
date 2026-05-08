@@ -13,6 +13,18 @@ import type {
   JsonReportSummary,
   ProjectInfo,
   ReactDoctorConfig,
+  ScanCompleteEvent,
+  ScanEvent,
+  ScanFailedEvent,
+  ScanOptions,
+  ScanProjectDetectedEvent,
+  ScanReporter,
+  ScanResult,
+  ScanScoreResolvedEvent,
+  ScanStepFinishEvent,
+  ScanStepId,
+  ScanStepStartEvent,
+  ScanWarnEvent,
   ScoreResult,
 } from "./types.js";
 import { buildJsonReport } from "./utils/build-json-report.js";
@@ -43,8 +55,21 @@ export type {
   JsonReportSummary,
   ProjectInfo,
   ReactDoctorConfig,
+  ScanCompleteEvent,
+  ScanEvent,
+  ScanFailedEvent,
+  ScanOptions,
+  ScanProjectDetectedEvent,
+  ScanReporter,
+  ScanResult,
+  ScanScoreResolvedEvent,
+  ScanStepFinishEvent,
+  ScanStepId,
+  ScanStepStartEvent,
+  ScanWarnEvent,
   ScoreResult,
 };
+export { scan } from "./scan.js";
 export { getDiffInfo, filterSourceFiles } from "./utils/get-diff-files.js";
 export { summarizeDiagnostics } from "./utils/summarize-diagnostics.js";
 export { buildJsonReport, buildJsonReportError };

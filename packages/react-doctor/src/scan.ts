@@ -19,8 +19,11 @@ import type {
   Diagnostic,
   ProjectInfo,
   ReactDoctorConfig,
+  ScanEvent,
   ScanOptions,
+  ScanReporter,
   ScanResult,
+  ScanStepId,
   ScoreResult,
 } from "./types.js";
 import { calculateScore, calculateScoreLocally } from "./utils/calculate-score.js";
@@ -437,7 +440,40 @@ interface ResolvedScanOptions {
   share: boolean;
   respectInlineDisables: boolean;
   adoptExistingLintConfig: boolean;
+  reporter: ScanReporter | null;
 }
+
+const emitScanEvent = (reporter: ScanReporter | null, event: ScanEvent): void => {
+  if (!reporter) return;
+  // HACK: never let a malformed reporter throw inside scan() — a
+  // crashing reporter shouldn't tank the entire scan. Surface it via
+  // logger.warn for the stdout reporter, then keep going.
+  try {
+    reporter.emit(event);
+  } catch (reporterError) {
+    logger.warn(`Scan reporter threw: ${(reporterError as Error)?.message ?? reporterError}`);
+  }
+};
+
+interface ReporterStepOptions {
+  reporter: ScanReporter | null;
+  stepId: ScanStepId;
+  message: string;
+}
+
+const startReporterStep = ({ reporter, stepId, message }: ReporterStepOptions): void => {
+  emitScanEvent(reporter, { type: "step-start", stepId, message });
+};
+
+const finishReporterStep = (
+  reporter: ScanReporter | null,
+  stepId: ScanStepId,
+  status: "succeed" | "fail" | "skip",
+  message: string,
+  detail?: string,
+): void => {
+  emitScanEvent(reporter, { type: "step-finish", stepId, status, message, detail });
+};
 
 const mergeScanOptions = (
   inputOptions: ScanOptions,
@@ -455,41 +491,78 @@ const mergeScanOptions = (
   respectInlineDisables:
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
   adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
+  reporter: inputOptions.reporter ?? null,
 });
 
-const printProjectDetection = (
-  projectInfo: ProjectInfo,
-  userConfig: ReactDoctorConfig | null,
-  isDiffMode: boolean,
-  includePaths: string[],
-  lintSourceFileCount?: number,
-): void => {
+interface ProjectDetectionContext {
+  projectInfo: ProjectInfo;
+  userConfig: ReactDoctorConfig | null;
+  isDiffMode: boolean;
+  includePaths: string[];
+  lintSourceFileCount?: number;
+  reporter: ScanReporter | null;
+}
+
+const reportProjectDetection = (context: ProjectDetectionContext): void => {
+  const { projectInfo, userConfig, isDiffMode, includePaths, lintSourceFileCount, reporter } =
+    context;
   const frameworkLabel = formatFrameworkName(projectInfo.framework);
   const languageLabel = projectInfo.hasTypeScript ? "TypeScript" : "JavaScript";
+  const filesScanCount = isDiffMode
+    ? includePaths.length
+    : (lintSourceFileCount ?? projectInfo.sourceFileCount);
 
-  const completeStep = (message: string) => {
+  emitScanEvent(reporter, {
+    type: "project-detected",
+    project: projectInfo,
+    isDiffMode,
+    scanFileCount: filesScanCount,
+    hasUserConfig: Boolean(userConfig),
+  });
+
+  const completeStep = (stepId: ScanStepId, message: string, detail?: string) => {
+    startReporterStep({ reporter, stepId, message });
     spinner(message).start().succeed(message);
+    finishReporterStep(reporter, stepId, "succeed", message, detail);
   };
 
-  completeStep(`Detecting framework. Found ${highlighter.info(frameworkLabel)}.`);
   completeStep(
-    `Detecting React version. Found ${highlighter.info(`React ${projectInfo.reactVersion}`)}.`,
+    "framework",
+    `Detecting framework. Found ${highlighter.info(frameworkLabel)}.`,
+    frameworkLabel,
   );
-  completeStep(`Detecting language. Found ${highlighter.info(languageLabel)}.`);
   completeStep(
+    "react-version",
+    `Detecting React version. Found ${highlighter.info(`React ${projectInfo.reactVersion}`)}.`,
+    projectInfo.reactVersion ?? undefined,
+  );
+  completeStep(
+    "language",
+    `Detecting language. Found ${highlighter.info(languageLabel)}.`,
+    languageLabel,
+  );
+  completeStep(
+    "react-compiler",
     `Detecting React Compiler. ${projectInfo.hasReactCompiler ? highlighter.info("Found React Compiler.") : "Not found."}`,
+    projectInfo.hasReactCompiler ? "enabled" : "disabled",
   );
 
   if (isDiffMode) {
-    completeStep(`Scanning ${highlighter.info(`${includePaths.length}`)} changed source files.`);
+    completeStep(
+      "files",
+      `Scanning ${highlighter.info(`${includePaths.length}`)} changed source files.`,
+      `${includePaths.length} files`,
+    );
   } else {
     completeStep(
+      "files",
       `Found ${highlighter.info(`${lintSourceFileCount ?? projectInfo.sourceFileCount}`)} source files.`,
+      `${lintSourceFileCount ?? projectInfo.sourceFileCount} files`,
     );
   }
 
   if (userConfig) {
-    completeStep(`Loaded ${highlighter.info("react-doctor config")}.`);
+    completeStep("config", `Loaded ${highlighter.info("react-doctor config")}.`);
   }
 
   logger.break();
@@ -513,6 +586,12 @@ export const scan = async (
 
   try {
     return await runScan(directory, options, userConfig, startTime);
+  } catch (scanError) {
+    emitScanEvent(options.reporter, {
+      type: "failed",
+      error: scanError instanceof Error ? scanError : new Error(String(scanError)),
+    });
+    throw scanError;
   } finally {
     if (options.silent) {
       setLoggerSilent(wasLoggerSilent);
@@ -540,20 +619,68 @@ const runScan = async (
   const lintSourceFileCount = lintIncludePaths?.length ?? projectInfo.sourceFileCount;
 
   if (!options.scoreOnly) {
-    printProjectDetection(projectInfo, userConfig, isDiffMode, includePaths, lintSourceFileCount);
+    reportProjectDetection({
+      projectInfo,
+      userConfig,
+      isDiffMode,
+      includePaths,
+      lintSourceFileCount,
+      reporter: options.reporter,
+    });
+  } else {
+    emitScanEvent(options.reporter, {
+      type: "project-detected",
+      project: projectInfo,
+      isDiffMode,
+      scanFileCount: isDiffMode ? includePaths.length : lintSourceFileCount,
+      hasUserConfig: Boolean(userConfig),
+    });
   }
 
   let didLintFail = false;
   let didDeadCodeFail = false;
 
+  startReporterStep({
+    reporter: options.reporter,
+    stepId: "node-resolve",
+    message: "Resolving Node runtime for oxlint.",
+  });
   const resolvedNodeBinaryPath = await resolveOxlintNode(
     options.lint,
     options.scoreOnly || options.silent,
   );
-  if (options.lint && !resolvedNodeBinaryPath) didLintFail = true;
+  if (options.lint && !resolvedNodeBinaryPath) {
+    didLintFail = true;
+    finishReporterStep(
+      options.reporter,
+      "node-resolve",
+      "fail",
+      "Resolving Node runtime for oxlint.",
+      `Node ${process.version} is incompatible with oxlint`,
+    );
+  } else if (options.lint) {
+    finishReporterStep(
+      options.reporter,
+      "node-resolve",
+      "succeed",
+      "Resolving Node runtime for oxlint.",
+    );
+  } else {
+    finishReporterStep(
+      options.reporter,
+      "node-resolve",
+      "skip",
+      "Resolving Node runtime for oxlint.",
+    );
+  }
 
   const lintPromise = resolvedNodeBinaryPath
     ? (async () => {
+        startReporterStep({
+          reporter: options.reporter,
+          stepId: "lint",
+          message: "Running lint checks...",
+        });
         const lintSpinner = options.scoreOnly ? null : spinner("Running lint checks...").start();
         try {
           const lintDiagnostics = await runOxlint({
@@ -570,13 +697,19 @@ const runScan = async (
             adoptExistingLintConfig: options.adoptExistingLintConfig,
           });
           lintSpinner?.succeed("Running lint checks.");
+          finishReporterStep(
+            options.reporter,
+            "lint",
+            "succeed",
+            "Running lint checks.",
+            `${lintDiagnostics.length} diagnostic${lintDiagnostics.length === 1 ? "" : "s"}`,
+          );
           return lintDiagnostics;
         } catch (error) {
           didLintFail = true;
+          const lintErrorChain = formatErrorChain(error);
+          const isNativeBindingError = lintErrorChain.includes("native binding");
           if (!options.scoreOnly) {
-            const lintErrorChain = formatErrorChain(error);
-            const isNativeBindingError = lintErrorChain.includes("native binding");
-
             if (isNativeBindingError) {
               lintSpinner?.fail(
                 `Lint checks failed — oxlint native binding not found (Node ${process.version}).`,
@@ -589,31 +722,71 @@ const runScan = async (
               logger.error(lintErrorChain);
             }
           }
+          finishReporterStep(
+            options.reporter,
+            "lint",
+            "fail",
+            "Lint checks failed (non-fatal, skipping).",
+            lintErrorChain,
+          );
           return [];
         }
       })()
-    : Promise.resolve<Diagnostic[]>([]);
+    : (() => {
+        finishReporterStep(options.reporter, "lint", "skip", "Lint checks skipped.");
+        return Promise.resolve<Diagnostic[]>([]);
+      })();
 
   const deadCodePromise =
     options.deadCode && !isDiffMode
       ? (async () => {
+          startReporterStep({
+            reporter: options.reporter,
+            stepId: "dead-code",
+            message: "Detecting dead code...",
+          });
           const deadCodeSpinner = options.scoreOnly
             ? null
             : spinner("Detecting dead code...").start();
           try {
             const knipDiagnostics = await runKnip(directory);
             deadCodeSpinner?.succeed("Detecting dead code.");
+            finishReporterStep(
+              options.reporter,
+              "dead-code",
+              "succeed",
+              "Detecting dead code.",
+              `${knipDiagnostics.length} diagnostic${knipDiagnostics.length === 1 ? "" : "s"}`,
+            );
             return knipDiagnostics;
           } catch (error) {
             didDeadCodeFail = true;
+            const errorChain = formatErrorChain(error);
             if (!options.scoreOnly) {
               deadCodeSpinner?.fail("Dead code detection failed (non-fatal, skipping).");
-              logger.error(formatErrorChain(error));
+              logger.error(errorChain);
             }
+            finishReporterStep(
+              options.reporter,
+              "dead-code",
+              "fail",
+              "Dead code detection failed (non-fatal, skipping).",
+              errorChain,
+            );
             return [];
           }
         })()
-      : Promise.resolve<Diagnostic[]>([]);
+      : (() => {
+          finishReporterStep(
+            options.reporter,
+            "dead-code",
+            "skip",
+            isDiffMode
+              ? "Dead code detection skipped (diff mode)."
+              : "Dead code detection skipped.",
+          );
+          return Promise.resolve<Diagnostic[]>([]);
+        })();
 
   const [lintDiagnostics, deadCodeDiagnostics] = await Promise.all([lintPromise, deadCodePromise]);
   const diagnostics = combineDiagnostics({
@@ -632,9 +805,26 @@ const runScan = async (
   if (didDeadCodeFail) skippedChecks.push("dead code");
   const hasSkippedChecks = skippedChecks.length > 0;
 
+  startReporterStep({
+    reporter: options.reporter,
+    stepId: "score",
+    message: options.offline ? "Calculating local score..." : "Fetching score...",
+  });
   const scoreResult = options.offline
     ? calculateScoreLocally(diagnostics)
     : await calculateScore(diagnostics);
+  finishReporterStep(
+    options.reporter,
+    "score",
+    "succeed",
+    options.offline ? "Score calculated locally." : "Score fetched.",
+    scoreResult ? `${scoreResult.score}/100 ${scoreResult.label}` : "no score",
+  );
+  emitScanEvent(options.reporter, {
+    type: "score-resolved",
+    score: scoreResult,
+    isOffline: options.offline,
+  });
   const noScoreMessage = OFFLINE_MESSAGE;
 
   const buildResult = (): ScanResult => ({
@@ -645,13 +835,19 @@ const runScan = async (
     elapsedMilliseconds,
   });
 
+  const emitCompleteAfter = (): ScanResult => {
+    const result = buildResult();
+    emitScanEvent(options.reporter, { type: "complete", result });
+    return result;
+  };
+
   if (options.scoreOnly) {
     if (scoreResult) {
       logger.log(`${scoreResult.score}`);
     } else {
       logger.dim(noScoreMessage);
     }
-    return buildResult();
+    return emitCompleteAfter();
   }
 
   if (diagnostics.length === 0) {
@@ -673,7 +869,7 @@ const runScan = async (
     } else {
       logger.dim(`  ${noScoreMessage}`);
     }
-    return buildResult();
+    return emitCompleteAfter();
   }
 
   printDiagnostics(diagnostics, options.verbose);
@@ -697,5 +893,5 @@ const runScan = async (
     logger.warn(`  Note: ${skippedLabel} checks failed — score may be incomplete.`);
   }
 
-  return buildResult();
+  return emitCompleteAfter();
 };

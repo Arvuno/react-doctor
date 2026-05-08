@@ -134,6 +134,76 @@ export interface ScanOptions {
   includePaths?: string[];
   configOverride?: ReactDoctorConfig | null;
   respectInlineDisables?: boolean;
+  reporter?: ScanReporter;
+}
+
+export interface ScanProjectDetectedEvent {
+  type: "project-detected";
+  project: ProjectInfo;
+  isDiffMode: boolean;
+  scanFileCount: number;
+  hasUserConfig: boolean;
+}
+
+export type ScanStepId =
+  | "framework"
+  | "react-version"
+  | "language"
+  | "react-compiler"
+  | "files"
+  | "config"
+  | "node-resolve"
+  | "lint"
+  | "dead-code"
+  | "score";
+
+export interface ScanStepStartEvent {
+  type: "step-start";
+  stepId: ScanStepId;
+  message: string;
+}
+
+export interface ScanStepFinishEvent {
+  type: "step-finish";
+  stepId: ScanStepId;
+  status: "succeed" | "fail" | "skip";
+  message: string;
+  detail?: string;
+}
+
+export interface ScanWarnEvent {
+  type: "warn";
+  message: string;
+  detail?: string;
+}
+
+export interface ScanScoreResolvedEvent {
+  type: "score-resolved";
+  score: ScoreResult | null;
+  isOffline: boolean;
+}
+
+export interface ScanCompleteEvent {
+  type: "complete";
+  result: ScanResult;
+}
+
+export interface ScanFailedEvent {
+  type: "failed";
+  error: Error;
+}
+
+export type ScanEvent =
+  | ScanProjectDetectedEvent
+  | ScanStepStartEvent
+  | ScanStepFinishEvent
+  | ScanWarnEvent
+  | ScanScoreResolvedEvent
+  | ScanCompleteEvent
+  | ScanFailedEvent;
+
+export interface ScanReporter {
+  emit: (event: ScanEvent) => void;
 }
 
 export interface DiffInfo {
