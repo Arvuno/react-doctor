@@ -8,23 +8,21 @@ interface ShortcutHint {
 
 interface StatusBarProps {
   viewMode: ViewMode;
-  isWatching: boolean;
   isSearchActive: boolean;
 }
 
-const buildDashboardShortcuts = (isWatching: boolean): ShortcutHint[] => [
+const DASHBOARD_SHORTCUTS: ShortcutHint[] = [
   { key: "d", label: "review" },
-  { key: "c", label: "copy issue" },
+  { key: "c", label: "copy all" },
   { key: "r", label: "rescan" },
-  { key: "w", label: `watch ${isWatching ? "on" : "off"}` },
   { key: "?", label: "help" },
   { key: "q", label: "quit" },
 ];
 
-const buildReviewShortcuts = (): ShortcutHint[] => [
+const REVIEW_SHORTCUTS: ShortcutHint[] = [
   { key: "↑↓", label: "rule" },
   { key: "←→", label: "site" },
-  { key: "c", label: "copy" },
+  { key: "c", label: "copy all" },
   { key: "/", label: "search" },
   { key: "esc", label: "back" },
   { key: "q", label: "quit" },
@@ -36,12 +34,12 @@ const SEARCH_SHORTCUTS: ShortcutHint[] = [
   { key: "↵", label: "apply" },
 ];
 
-export const StatusBar = ({ viewMode, isWatching, isSearchActive }: StatusBarProps) => {
+export const StatusBar = ({ viewMode, isSearchActive }: StatusBarProps) => {
   const shortcuts = isSearchActive
     ? SEARCH_SHORTCUTS
     : viewMode === "review"
-      ? buildReviewShortcuts()
-      : buildDashboardShortcuts(isWatching);
+      ? REVIEW_SHORTCUTS
+      : DASHBOARD_SHORTCUTS;
   return (
     <Box paddingX={1} marginTop={1}>
       {shortcuts.map((shortcut, shortcutIndex) => (

@@ -34,12 +34,6 @@ export const ScanSummaryFooter = ({ state }: ScanSummaryFooterProps) => {
             </Text>
           </>
         ) : null}
-        {state.isWatching ? (
-          <>
-            <Text color="gray"> · </Text>
-            <Text color="green">● watching</Text>
-          </>
-        ) : null}
         {isStale ? (
           <>
             <Text color="gray"> · </Text>

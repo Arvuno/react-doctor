@@ -4,11 +4,11 @@ import {
   detectNonInteractiveEnvironment,
   type NonInteractiveDetection,
 } from "../utils/is-non-interactive-environment.js";
+import { maybePromptInstallSkill } from "../utils/maybe-prompt-install-skill.js";
 import { App } from "./app.js";
 
 export interface RunTuiOptions {
   directory: string;
-  watch?: boolean;
   review?: boolean;
   project?: string;
 }
@@ -56,24 +56,21 @@ export const runTui = async (options: RunTuiOptions): Promise<void> => {
     process.exitCode = 1;
     return;
   }
+
+  // HACK: prompt before Ink renders. Once Ink owns the TTY the standard
+  // `prompts` library can't read keystrokes correctly, and the user would
+  // be staring at a frozen confirm. The prompt is only shown once across
+  // all react-doctor invocations (see first-run-state.ts).
+  await maybePromptInstallSkill();
+
   const initialMode = options.review ? "review" : "dashboard";
   const renderInstance = render(
     <App
       rootDirectory={path.resolve(options.directory)}
       initialMode={initialMode}
-      startWatching={Boolean(options.watch)}
       preselectedProject={options.project}
     />,
-    {
-      exitOnCtrlC: false,
-      // HACK: alternate screen buffer is the same mechanism vim / htop / less
-      // use. Without it, Ink renders in the primary buffer, and when the
-      // dashboard grows between frames (initial scanning state -> populated
-      // results) the previous shorter frame can leave residue scrolled up
-      // out of the redraw region. Alternate screen guarantees clean
-      // in-place updates and restores the user's terminal contents on exit.
-      alternateScreen: true,
-    },
+    { exitOnCtrlC: false },
   );
   await renderInstance.waitUntilExit();
 };

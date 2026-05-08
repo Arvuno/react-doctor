@@ -27,6 +27,7 @@ import { logger, setLoggerSilent } from "./utils/logger.js";
 import { encodeAnnotationProperty, encodeAnnotationMessage } from "./utils/annotation-encoding.js";
 import { findOwningProjectDirectory } from "./utils/find-owning-project.js";
 import { isNonInteractiveEnvironment } from "./utils/is-non-interactive-environment.js";
+import { maybePromptInstallSkill } from "./utils/maybe-prompt-install-skill.js";
 import { parseFileLineArgument } from "./utils/parse-file-line-argument.js";
 import { prompts } from "./utils/prompts.js";
 import { selectProjects } from "./utils/select-projects.js";
@@ -419,6 +420,10 @@ const program = new Command()
         logger.break();
       }
 
+      if (!isQuiet && !flags.yes && !flags.full) {
+        await maybePromptInstallSkill();
+      }
+
       const scanOptions = resolveCliScanOptions(flags, userConfig, program);
       const shouldSkipPrompts =
         flags.yes ||
@@ -667,7 +672,6 @@ program
   });
 
 interface TuiSubcommandOptions {
-  watch?: boolean;
   review?: boolean;
   project?: string;
 }
@@ -680,7 +684,6 @@ const launchTui = async (directory: string, tuiOptions: TuiSubcommandOptions): P
     const tuiModule = await import("./tui.js");
     await tuiModule.runTui({
       directory: path.resolve(directory),
-      watch: tuiOptions.watch,
       review: tuiOptions.review,
       project: tuiOptions.project,
     });
@@ -691,9 +694,8 @@ const launchTui = async (directory: string, tuiOptions: TuiSubcommandOptions): P
 
 program
   .command("tui")
-  .description("Open the interactive React code-health TUI")
+  .description("Open the interactive React code-health TUI (rescans automatically on save)")
   .argument("[directory]", "project directory to scan", ".")
-  .option("--watch", "rescan automatically when source files change", false)
   .option("--review", "open straight into the diagnostic review screen", false)
   .option("--project <name>", "preselect a workspace project (skips the picker)")
   .addHelpText(

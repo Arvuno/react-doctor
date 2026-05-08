@@ -13,10 +13,10 @@ import { StatusBar } from "./components/status-bar.js";
 import { Toast } from "./components/toast.js";
 import { runScanWithListener } from "./scan-controller.js";
 import { appReducer, buildInitialState } from "./store.js";
-import type { AppAction, GroupedRule } from "./types.js";
+import type { AppAction } from "./types.js";
 import { buildShareUrl } from "./utils/build-share-url.js";
 import { copyToClipboard } from "./utils/copy-to-clipboard.js";
-import { formatIssueAsMarkdown } from "./utils/format-issue-as-markdown.js";
+import { formatAllDiagnosticsAsMarkdown } from "./utils/format-all-diagnostics-as-markdown.js";
 import { useTerminalSize } from "./utils/use-terminal-size.js";
 import { writeDiagnosticsToTempDir } from "./utils/write-diagnostics-to-temp-dir.js";
 import { startWatcher, type WatcherHandle } from "./watcher.js";
@@ -24,7 +24,6 @@ import { startWatcher, type WatcherHandle } from "./watcher.js";
 interface AppProps {
   rootDirectory: string;
   initialMode: "dashboard" | "review";
-  startWatching: boolean;
   preselectedProject?: string;
 }
 
@@ -39,12 +38,7 @@ const findPackageByNameOrBasename = (
   return matched?.directory ?? null;
 };
 
-export const App = ({
-  rootDirectory,
-  initialMode,
-  startWatching,
-  preselectedProject,
-}: AppProps) => {
+export const App = ({ rootDirectory, initialMode, preselectedProject }: AppProps) => {
   const { exit } = useApp();
   const [state, dispatch] = useReducer(appReducer, rootDirectory, buildInitialState);
   const isScanInFlightRef = useRef(false);
@@ -108,8 +102,10 @@ export const App = ({
     }
   }, [state.selectedDirectory, state.scanCount, state.scanStatus, triggerScan]);
 
+  // HACK: watch mode is always-on now — no toggle. The watcher attaches as
+  // soon as a workspace is selected and stays attached until exit.
   useEffect(() => {
-    if (!startWatching || !state.selectedDirectory) return undefined;
+    if (!state.selectedDirectory) return undefined;
     dispatch({ type: "set-watching", watching: true });
     const targetDirectory = state.selectedDirectory;
     const handle = startWatcher(targetDirectory, () => {
@@ -120,7 +116,7 @@ export const App = ({
       void handle.close();
       watcherHandleRef.current = null;
     };
-  }, [state.selectedDirectory, startWatching, triggerScan]);
+  }, [state.selectedDirectory, triggerScan]);
 
   useEffect(() => {
     if (state.exitRequested) {
@@ -129,42 +125,31 @@ export const App = ({
     }
   }, [state.exitRequested, exit]);
 
-  const toggleWatch = useCallback(() => {
-    const targetDirectory = stateRef.current.selectedDirectory;
-    if (!targetDirectory) return;
-    if (watcherHandleRef.current) {
-      void watcherHandleRef.current.close();
-      watcherHandleRef.current = null;
-      dispatch({ type: "set-watching", watching: false });
-      return;
-    }
-    const handle = startWatcher(targetDirectory, () => {
-      if (!isScanInFlightRef.current) triggerScan(targetDirectory);
-    });
-    watcherHandleRef.current = handle;
-    dispatch({ type: "set-watching", watching: true });
-  }, [triggerScan]);
-
-  const pickRuleForCopy = useCallback((appState: typeof state): GroupedRule | undefined => {
-    if (appState.viewMode === "review") {
-      return appState.groupedRules[appState.selectedRuleIndex];
-    }
-    return appState.groupedRules[0];
-  }, []);
-
   const handleCopy = useCallback(async () => {
     const currentState = stateRef.current;
-    const rule = pickRuleForCopy(currentState);
-    if (!rule) {
+    if (currentState.groupedRules.length === 0) {
       dispatch({ type: "set-toast", message: "Nothing to copy yet.", tone: "info" });
       return;
     }
-    const markdown = formatIssueAsMarkdown(rule, currentState.rootDirectory);
+    const projectName =
+      currentState.project?.projectName ?? path.basename(currentState.rootDirectory);
+    const markdown = formatAllDiagnosticsAsMarkdown(currentState.groupedRules, {
+      rootDirectory: currentState.rootDirectory,
+      projectName,
+      scoreValue: currentState.score?.score,
+      scoreLabel: currentState.score?.label,
+    });
     const result = await copyToClipboard(markdown);
+    const totalSites = currentState.groupedRules.reduce(
+      (runningTotal, rule) => runningTotal + rule.diagnostics.length,
+      0,
+    );
+    const ruleCount = currentState.groupedRules.length;
+    const summaryLabel = `${ruleCount} rule${ruleCount === 1 ? "" : "s"} / ${totalSites} site${totalSites === 1 ? "" : "s"}`;
     if (result.ok) {
       dispatch({
         type: "set-toast",
-        message: `Copied diagnostic to clipboard (${result.via}).`,
+        message: `Copied ${summaryLabel} to clipboard (${result.via}).`,
         tone: "success",
       });
       return;
@@ -172,7 +157,7 @@ export const App = ({
     if (result.fallbackPath) {
       dispatch({
         type: "set-toast",
-        message: `No clipboard found — wrote ${result.fallbackPath}.`,
+        message: `No clipboard found — wrote ${summaryLabel} to ${result.fallbackPath}.`,
         tone: "info",
       });
       return;
@@ -182,7 +167,7 @@ export const App = ({
       message: `Copy failed: ${result.error ?? "unknown error"}.`,
       tone: "error",
     });
-  }, [pickRuleForCopy]);
+  }, []);
 
   useInput((rawInput, key) => {
     const currentState = stateRef.current;
@@ -258,10 +243,6 @@ export const App = ({
     }
     if (rawInput === "r") {
       if (currentState.selectedDirectory) triggerScan(currentState.selectedDirectory);
-      return;
-    }
-    if (rawInput === "w") {
-      toggleWatch();
       return;
     }
     if (rawInput === "c") {
@@ -382,11 +363,7 @@ export const App = ({
       {state.isSearchActive ? <SearchInput value={state.searchText} /> : null}
       {state.toastMessage ? <Toast message={state.toastMessage} tone={state.toastTone} /> : null}
       {!isPickingProject ? (
-        <StatusBar
-          viewMode={state.viewMode}
-          isWatching={state.isWatching}
-          isSearchActive={state.isSearchActive}
-        />
+        <StatusBar viewMode={state.viewMode} isSearchActive={state.isSearchActive} />
       ) : null}
     </Box>
   );

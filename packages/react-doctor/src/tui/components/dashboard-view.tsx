@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import {
   CATEGORY_BREAKDOWN_MIN_CATEGORIES,
+  NARROW_LAYOUT_BREAKPOINT_COLS,
   VERY_NARROW_LAYOUT_BREAKPOINT_COLS,
 } from "../constants.js";
 import type { AppState } from "../types.js";
@@ -40,13 +41,22 @@ const NoIssuesNotice = () => (
 
 export const DashboardView = ({ state, terminalColumns }: DashboardViewProps) => {
   const isInitialScan = state.scanStatus === "scanning" && state.scanCount === 0;
+  const isNarrowTerminal = terminalColumns < NARROW_LAYOUT_BREAKPOINT_COLS;
   const mood = moodFromState(state);
   const scoreBarWidth = computeScoreBarWidth(terminalColumns);
   const contentWidth = computeContentWidth(terminalColumns);
   const focusedRule = state.groupedRules[0];
   const categoryBreakdown = computeCategoryBreakdown(state.diagnostics);
+  // HACK: at narrow widths the category breakdown is the first thing to
+  // cut — the focused issue with its source snippet is the highest-value
+  // content and we want it as close to the top as possible.
   const showCategoryBreakdown =
-    !isInitialScan && categoryBreakdown.length >= CATEGORY_BREAKDOWN_MIN_CATEGORIES;
+    !isInitialScan &&
+    !isNarrowTerminal &&
+    categoryBreakdown.length >= CATEGORY_BREAKDOWN_MIN_CATEGORIES;
+  // HACK: same idea for the compact list — three lines on small screens
+  // is still useful as a 'what else' hint without crowding out the snippet.
+  const compactListLimit = isNarrowTerminal ? 3 : undefined;
 
   if (state.scanStatus === "error" && state.errorMessage) {
     return (
@@ -106,6 +116,7 @@ export const DashboardView = ({ state, terminalColumns }: DashboardViewProps) =>
                 rules={state.groupedRules}
                 excludeFirst
                 contentWidth={contentWidth}
+                limit={compactListLimit}
               />
             </Box>
           ) : null}
