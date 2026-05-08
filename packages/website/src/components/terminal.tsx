@@ -25,7 +25,6 @@ const TOTAL_ISSUE_COUNT = 36;
 const TOTAL_SOURCE_FILE_COUNT = 42;
 const AFFECTED_FILE_COUNT = 18;
 const ELAPSED_TIME = "2.1s";
-const RULE_NAME_COLUMN_WIDTH = 42;
 
 const ANIMATION_COMPLETED_KEY = "react-doctor-animation-completed";
 const COMMAND = "npx react-doctor@latest";
@@ -96,11 +95,6 @@ const FadeIn = ({ children }: { children: React.ReactNode }) => (
   <div className="animate-fade-in">{children}</div>
 );
 
-const padRuleName = (ruleName: string): string => {
-  if (ruleName.length >= RULE_NAME_COLUMN_WIDTH) return ruleName;
-  return ruleName + "\u00A0".repeat(RULE_NAME_COLUMN_WIDTH - ruleName.length);
-};
-
 const ScoreBar = ({ score, barWidth }: { score: number; barWidth: number }) => {
   const filledCount = Math.round((score / PERFECT_SCORE) * barWidth);
   const emptyCount = barWidth - filledCount;
@@ -168,10 +162,8 @@ const DiagnosticItem = ({ diagnostic }: { diagnostic: RuleDiagnostic }) => {
         />
         <span>
           <span className={colorClass}>{icon} </span>
-          <span className={colorClass}>
-            {countBadge ? padRuleName(diagnostic.ruleKey) : diagnostic.ruleKey}
-          </span>
-          {countBadge && <span className="text-neutral-500">{` ${countBadge}`}</span>}
+          <span className={colorClass}>{diagnostic.ruleKey}</span>
+          {countBadge && <span className="text-neutral-500">{`\u00A0${countBadge}`}</span>}
         </span>
       </button>
       <div
