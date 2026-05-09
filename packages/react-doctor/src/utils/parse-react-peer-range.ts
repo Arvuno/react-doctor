@@ -1,76 +1,50 @@
 import { REACT_19_DEPRECATION_MIN_MAJOR } from "../constants.js";
 
 // HACK: detects whether a `react` peer-dependency range advertises
-// support for any React major below 19. Used to special-case libraries:
-// when a package declares `react` in `peerDependencies` and the range
-// admits React 16/17/18, the library MUST keep using `forwardRef`,
-// `defaultProps`, and the legacy `react-dom` root API to honor that
-// peer contract — so the React-19 deprecation rules become noise.
-//
-// Two signals trigger the "supports legacy" verdict:
-//   1. Any comparator names a major in [1, 19) — `^17.0.0`, `>=18`,
-//      `17.x || 18.x || 19.x`, `>=18 <20`.
-//   2. The whole range is a wildcard (`"*"`, `"x"`, `"x.x"`, `"x.x.x"`)
-//      that admits literally any React version — including 17/18.
+// support for any React major below 19. Used to special-case
+// libraries: when a package declares `react` in `peerDependencies`
+// and the range admits React 16/17/18, the library MUST keep using
+// `forwardRef`, `defaultProps`, and the legacy `react-dom` root API
+// to honor that peer contract — so the React-19 deprecation rules
+// become noise.
 //
 // We split the raw range on the boolean operators semver allows
-// between comparators (`||` for OR, `,` and whitespace for AND) and
-// then read the FIRST integer of each comparator chunk. That first
-// integer is the major version the comparator is talking about
-// (`^17.0.0` → 17, `>=18` → 18, `<20` → 20, `19.x` → 19, `v19.0.0`
-// → 19). Trailing minor/patch digits are deliberately ignored —
-// matching every `\d+` would false-positive on `^19.0.0` (the `0`
-// patch reads as < 19) and on canary tags like
-// `0.0.0-canary-1a2b3c4d-20251230` (the hex digits inside the build
-// tag look like majors).
+// between comparators (`||`, `,`, whitespace) and treat each
+// comparator as a "vote": it admits legacy React if it's a pure
+// wildcard (`*` / `x.x.x`) OR its first integer is a major in
+// [1, 19). One vote is enough to flip the whole range to "supports
+// legacy" — accepting some semantic looseness vs. AND-comparator
+// shapes (`* >=19` would falsely trigger) in exchange for a tiny
+// parser, since real-world peer ranges almost never combine
+// wildcards with concrete bounds.
+//
+// Reading only the FIRST integer per comparator avoids two classes of
+// false positive: trailing minor/patch digits (`^19.0.0` would
+// otherwise look legacy because of the `0` patch) and hex digits
+// embedded in canary tags (`0.0.0-canary-1a2b3c4d`). The `0.x` major
+// is ignored on purpose so `0.0.0-experimental-*` doesn't masquerade
+// as "supports legacy".
 //
 // Examples:
-//   "^17.0.0 || ^18.0.0 || ^19.0.0" → true (17, 18 admitted)
+//   "^17.0.0 || ^18.0.0 || ^19.0.0" → true
 //   ">=17"                          → true
-//   ">=18 <20"                      → true (18 admitted)
-//   "17.x || 18.x || 19.x"          → true
-//   "*"                             → true (wildcard)
-//   "x"                             → true (wildcard)
+//   ">=18 <20"                      → true
+//   "*", "x", "x.x.x"               → true
+//   "^19.0.0", ">=19", "19.x"       → false
 //   "v19.0.0"                       → false
-//   "^19.0.0"                       → false
-//   "^19 || ^20"                    → false
-//   ">=19"                          → false
-//   "latest"                        → false (npm dist-tag, not a range)
-//   ""                              → false
-//
-// The `0.x` major is ignored on purpose so React experimental tags
-// (`0.0.0-experimental-*`) don't masquerade as "supports legacy" and
-// silently disable the migration nudge on canary checkouts.
+//   "latest", "next", "workspace:*" → false
 const COMPARATOR_SEPARATOR = /[\s,|]+/;
+const WILDCARD_COMPARATOR = /^[*xX](?:\.[*xX])*$/;
 
-const WILDCARD_COMPARATOR_PATTERN = /^[*xX](?:\.[*xX])*$/;
-
-const extractMajorFromComparator = (comparator: string): number | null => {
-  const match = comparator.match(/\d+/);
-  if (!match) return null;
-  const major = Number.parseInt(match[0], 10);
-  return Number.isFinite(major) ? major : null;
+const comparatorAdmitsLegacyReact = (comparator: string): boolean => {
+  if (WILDCARD_COMPARATOR.test(comparator)) return true;
+  const firstIntegerMatch = comparator.match(/\d+/);
+  if (!firstIntegerMatch) return false;
+  const major = Number.parseInt(firstIntegerMatch[0], 10);
+  return major >= 1 && major < REACT_19_DEPRECATION_MIN_MAJOR;
 };
 
 export const peerRangeSupportsLegacyReact = (range: string | null | undefined): boolean => {
   if (typeof range !== "string") return false;
-  const trimmed = range.trim();
-  if (trimmed.length === 0) return false;
-
-  const comparators = trimmed.split(COMPARATOR_SEPARATOR).filter(Boolean);
-  if (comparators.length === 0) return false;
-
-  // HACK: a range whose every comparator is a pure-wildcard admits any
-  // React version, including the legacy majors. Worth special-casing
-  // because the digit-scan below returns null for these (no integers
-  // present) and would otherwise fall through to `false`.
-  if (comparators.every((comparator) => WILDCARD_COMPARATOR_PATTERN.test(comparator))) {
-    return true;
-  }
-
-  return comparators.some((comparator) => {
-    const major = extractMajorFromComparator(comparator);
-    if (major === null) return false;
-    return major >= 1 && major < REACT_19_DEPRECATION_MIN_MAJOR;
-  });
+  return range.trim().split(COMPARATOR_SEPARATOR).filter(Boolean).some(comparatorAdmitsLegacyReact);
 };
