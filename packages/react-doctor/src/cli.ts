@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import { CANONICAL_GITHUB_URL } from "./constants.js";
 import { runInstallSkill } from "./install-skill.js";
 import { scan } from "./scan.js";
@@ -22,7 +22,8 @@ import { filterSourceFiles, getDiffInfo } from "./utils/get-diff-files.js";
 import { getStagedSourceFiles, materializeStagedFiles } from "./utils/get-staged-files.js";
 import { handleError } from "./utils/handle-error.js";
 import { highlighter } from "./utils/highlighter.js";
-import { loadConfig } from "./utils/load-config.js";
+import { loadConfigWithSource } from "./utils/load-config.js";
+import { resolveConfigRootDir } from "./utils/resolve-config-root-dir.js";
 import { logger, setLoggerSilent } from "./utils/logger.js";
 import { encodeAnnotationProperty, encodeAnnotationMessage } from "./utils/annotation-encoding.js";
 import { findOwningProjectDirectory } from "./utils/find-owning-project.js";
@@ -400,7 +401,7 @@ const program = new Command()
     "--explain <file:line>",
     "diagnose why a rule fired or why a suppression didn't apply at a specific location",
   )
-  .addOption(new Option("--why <file:line>", "alias for --explain").hideHelp())
+  .option("--why <file:line>", "alias for --explain")
   .option(
     "--respect-inline-disables",
     "respect inline `// eslint-disable*` / `// oxlint-disable*` comments (default)",
@@ -413,12 +414,12 @@ const program = new Command()
     const isScoreOnly = flags.score;
     const isJsonMode = flags.json;
     const isQuiet = isScoreOnly || isJsonMode;
-    const resolvedDirectory = path.resolve(directory);
+    const requestedDirectory = path.resolve(directory);
     const jsonStartTime = performance.now();
 
     isJsonModeActive = isJsonMode;
     isCompactJsonOutput = Boolean(flags.jsonCompact);
-    resolvedDirectoryForCancel = resolvedDirectory;
+    resolvedDirectoryForCancel = requestedDirectory;
     cancelStartTime = jsonStartTime;
 
     if (isJsonMode) {
@@ -428,7 +429,20 @@ const program = new Command()
     try {
       validateModeFlags(flags);
 
-      const userConfig = loadConfig(resolvedDirectory);
+      const loadedConfig = loadConfigWithSource(requestedDirectory);
+      const userConfig = loadedConfig?.config ?? null;
+      const redirectedDirectory = resolveConfigRootDir(
+        loadedConfig?.config ?? null,
+        loadedConfig?.sourceDirectory ?? null,
+      );
+      const resolvedDirectory = redirectedDirectory ?? requestedDirectory;
+      resolvedDirectoryForCancel = resolvedDirectory;
+      if (redirectedDirectory && !isQuiet) {
+        logger.dim(
+          `Redirected to ${highlighter.info(toRelativePath(resolvedDirectory, requestedDirectory))} via react-doctor config "rootDir".`,
+        );
+        logger.break();
+      }
 
       const explainArgument = flags.explain ?? flags.why;
       if (explainArgument !== undefined) {
@@ -531,6 +545,7 @@ const program = new Command()
           }
 
           if (
+            !isScoreOnly &&
             shouldFailForDiagnostics(
               remappedDiagnostics,
               resolveFailOnLevel(program, flags, userConfig),
@@ -610,7 +625,11 @@ const program = new Command()
           logger.dim(`Scanning ${projectDirectory}...`);
           logger.break();
         }
-        const scanResult = await scan(projectDirectory, { ...scanOptions, includePaths });
+        const scanResult = await scan(projectDirectory, {
+          ...scanOptions,
+          includePaths,
+          configOverride: userConfig,
+        });
         allDiagnostics.push(...scanResult.diagnostics);
         completedScans.push({ directory: projectDirectory, result: scanResult });
         if (!isQuiet) {
@@ -638,6 +657,7 @@ const program = new Command()
       }
 
       if (
+        !isScoreOnly &&
         shouldFailForDiagnostics(allDiagnostics, resolveFailOnLevel(program, flags, userConfig))
       ) {
         process.exitCode = 1;
@@ -648,7 +668,7 @@ const program = new Command()
           writeJsonReport(
             buildJsonReportError({
               version: VERSION,
-              directory: resolvedDirectory,
+              directory: resolvedDirectoryForCancel ?? requestedDirectory,
               error,
               elapsedMilliseconds: performance.now() - jsonStartTime,
               mode: currentReportMode,

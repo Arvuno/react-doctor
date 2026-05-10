@@ -15,6 +15,8 @@ const BOOLEAN_FIELD_NAMES = [
   "suppressDeadCodeForBuildEntries",
 ] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
 
+const STRING_FIELD_NAMES = ["rootDir"] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
+
 // HACK: write to stderr directly so the warning is visible even in
 // `--json` mode (where the logger is silenced to keep stdout a single
 // valid JSON document). Same pattern as `coerceDiffValue` in cli.ts.
@@ -40,6 +42,14 @@ const coerceMaybeBooleanString = (fieldName: string, value: unknown): boolean | 
   return undefined;
 };
 
+const validateString = (fieldName: string, value: unknown): string | undefined => {
+  if (typeof value === "string") return value;
+  warnConfigField(
+    `config field "${fieldName}" must be a string (got ${typeof value}); ignoring this field.`,
+  );
+  return undefined;
+};
+
 // Returns a config with boolean fields coerced from common JSON-typing
 // mistakes (string "true"/"false") and other invalid types stripped.
 // Non-boolean fields pass through untouched — the consumer still does
@@ -54,6 +64,16 @@ export const validateConfigTypes = (config: ReactDoctorConfig): ReactDoctorConfi
       delete (validated as Record<string, unknown>)[fieldName];
     } else {
       (validated as Record<string, unknown>)[fieldName] = coerced;
+    }
+  }
+  for (const fieldName of STRING_FIELD_NAMES) {
+    const original = (config as Record<string, unknown>)[fieldName];
+    if (original === undefined) continue;
+    const validatedString = validateString(fieldName, original);
+    if (validatedString === undefined) {
+      delete (validated as Record<string, unknown>)[fieldName];
+    } else {
+      (validated as Record<string, unknown>)[fieldName] = validatedString;
     }
   }
   return validated;
