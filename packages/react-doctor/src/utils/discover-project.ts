@@ -364,7 +364,20 @@ const resolveReactPeerRange = (packageJson: PackageJson, rootDirectory: string):
   if (typeof peerRange !== "string" || peerRange.length === 0) return null;
   if (!isCatalogReference(peerRange)) return peerRange;
 
-  const localResolved = resolveCatalogVersion(packageJson, "react", rootDirectory);
+  // HACK: forward the catalog NAME extracted from the peer range
+  // (e.g. `"catalog:react18"` → `"react18"`) so named-catalog lookups
+  // in `resolveCatalogVersion` route to the right group. Without this,
+  // a project with both `react18` and `react19` grouped catalogs
+  // would silently pick whichever group `Object.values()` happened to
+  // iterate first, producing wrong library-mode verdicts. Mirrors the
+  // `leafReactCatalogReference` plumbing used for `reactVersion`.
+  const peerCatalogReference = extractCatalogName(peerRange);
+  const localResolved = resolveCatalogVersion(
+    packageJson,
+    "react",
+    rootDirectory,
+    peerCatalogReference,
+  );
   if (localResolved) return localResolved;
 
   // HACK: pnpm catalogs typically live in `pnpm-workspace.yaml` at
@@ -381,7 +394,7 @@ const resolveReactPeerRange = (packageJson: PackageJson, rootDirectory: string):
   const monorepoPackageJsonPath = path.join(monorepoRoot, "package.json");
   if (!isFile(monorepoPackageJsonPath)) return null;
   const rootPackageJson = readPackageJson(monorepoPackageJsonPath);
-  return resolveCatalogVersion(rootPackageJson, "react", monorepoRoot);
+  return resolveCatalogVersion(rootPackageJson, "react", monorepoRoot, peerCatalogReference);
 };
 
 const extractDependencyInfo = (packageJson: PackageJson): DependencyInfo => {

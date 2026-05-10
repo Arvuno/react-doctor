@@ -346,6 +346,44 @@ describe("discoverProject", () => {
     expect(projectInfo.isLibraryTargetingLegacyReact).toBe(true);
   });
 
+  it("routes a NAMED catalog reference (`catalog:react18`) to the right group, ignoring sibling groups", () => {
+    // Regression for Bugbot review: the peer-range resolver must
+    // forward the catalog NAME so a project with both `react18` and
+    // `react19` grouped catalogs resolves to the requested group, not
+    // whichever group `Object.values()` happened to iterate first.
+    const monorepoRoot = path.join(tempDirectory, "named-catalog-peer-monorepo");
+    fs.mkdirSync(path.join(monorepoRoot, "packages", "ui"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      [
+        "packages:",
+        "  - packages/*",
+        "",
+        "catalogs:",
+        "  react18:",
+        "    react: ^18.3.1",
+        "  react19:",
+        "    react: ^19.0.0",
+        "",
+      ].join("\n"),
+    );
+    fs.writeFileSync(
+      path.join(monorepoRoot, "package.json"),
+      JSON.stringify({ name: "monorepo", private: true }),
+    );
+    fs.writeFileSync(
+      path.join(monorepoRoot, "packages", "ui", "package.json"),
+      JSON.stringify({
+        name: "ui",
+        peerDependencies: { react: "catalog:react18" },
+      }),
+    );
+
+    const projectInfo = discoverProject(path.join(monorepoRoot, "packages", "ui"));
+    expect(projectInfo.reactPeerRange).toBe("^18.3.1");
+    expect(projectInfo.isLibraryTargetingLegacyReact).toBe(true);
+  });
+
   it("ignores malformed peerDependencies.react entries (non-string)", () => {
     const projectDirectory = path.join(tempDirectory, "malformed-peer-library");
     fs.mkdirSync(projectDirectory, { recursive: true });
