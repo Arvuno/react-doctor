@@ -20,6 +20,7 @@ import { buildJsonReportError } from "./utils/build-json-report-error.js";
 import { calculateScore } from "./utils/calculate-score.js";
 import { checkReducedMotion } from "./utils/check-reduced-motion.js";
 import { clearIgnorePatternsCache } from "./utils/collect-ignore-patterns.js";
+import { clearAutoSuppressionCaches } from "./utils/merge-and-filter-diagnostics.js";
 import { clearProjectCache, discoverProject } from "./utils/discover-project.js";
 import { computeJsxIncludePaths } from "./utils/jsx-include-paths.js";
 import { clearConfigCache, loadConfigWithSource } from "./utils/load-config.js";
@@ -69,6 +70,7 @@ export const clearCaches = (): void => {
   clearConfigCache();
   clearPackageJsonCache();
   clearIgnorePatternsCache();
+  clearAutoSuppressionCaches();
 };
 
 interface ToJsonReportOptions {

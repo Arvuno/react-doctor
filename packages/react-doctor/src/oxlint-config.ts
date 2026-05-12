@@ -423,7 +423,6 @@ export interface RuleMetadataEntry {
 }
 
 const EMPTY_TAGS: ReadonlySet<string> = new Set();
-const DESIGN_TAGS: ReadonlySet<string> = new Set(["design"]);
 const TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["test-noise"]);
 const DESIGN_AND_TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["design", "test-noise"]);
 

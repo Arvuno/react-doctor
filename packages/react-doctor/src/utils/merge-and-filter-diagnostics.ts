@@ -11,6 +11,11 @@ interface MergeAndFilterOptions {
 const testFileResultCache = new Map<string, boolean>();
 const buildEntryResultCache = new Map<string, boolean>();
 
+export const clearAutoSuppressionCaches = (): void => {
+  testFileResultCache.clear();
+  buildEntryResultCache.clear();
+};
+
 const shouldAutoSuppress = (diagnostic: Diagnostic, directory: string): boolean => {
   const filePath = diagnostic.filePath;
 
