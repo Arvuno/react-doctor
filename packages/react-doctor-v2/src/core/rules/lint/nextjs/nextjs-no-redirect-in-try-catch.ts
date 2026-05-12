@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { NEXTJS_NAVIGATION_FUNCTIONS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { NEXTJS_NAVIGATION_FUNCTIONS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoRedirectInTryCatch = defineRule<Rule>({
   recommendation:

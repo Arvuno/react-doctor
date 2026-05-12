@@ -20,5 +20,5 @@ ${code}
     throw __error;
   }
 })()
-`
+`;
 }

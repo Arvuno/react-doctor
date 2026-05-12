@@ -1,6 +1,11 @@
 import { defineRule } from "../../registry.js";
-import { MUTATING_HTTP_METHODS, TANSTACK_QUERY_HOOKS, isNodeOfType, walkAst } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import {
+  MUTATING_HTTP_METHODS,
+  TANSTACK_QUERY_HOOKS,
+  isNodeOfType,
+  walkAst,
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const queryNoUseQueryForMutation = defineRule<Rule>({
   recommendation: "Use useMutation for writes and useQuery only for idempotent reads.",

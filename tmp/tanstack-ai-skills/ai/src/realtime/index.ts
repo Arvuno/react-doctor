@@ -1,7 +1,7 @@
-import type { RealtimeToken, RealtimeTokenOptions } from './types'
+import type { RealtimeToken, RealtimeTokenOptions } from "./types";
 
 // Re-export all types
-export * from './types'
+export * from "./types";
 
 /**
  * Generate a realtime token using the provided adapter.
@@ -30,9 +30,7 @@ export * from './types'
  *   })
  * ```
  */
-export async function realtimeToken(
-  options: RealtimeTokenOptions,
-): Promise<RealtimeToken> {
-  const { adapter } = options
-  return adapter.generateToken()
+export async function realtimeToken(options: RealtimeTokenOptions): Promise<RealtimeToken> {
+  const { adapter } = options;
+  return adapter.generateToken();
 }

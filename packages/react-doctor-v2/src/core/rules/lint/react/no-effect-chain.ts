@@ -9,8 +9,8 @@ import {
   isExternalSyncEffect,
   isUppercaseName,
   isNodeOfType,
-} from "./_utils.js";
-import type { EffectInfo, EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EffectInfo, EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const noEffectChain = defineRule<Rule>({
   recommendation:

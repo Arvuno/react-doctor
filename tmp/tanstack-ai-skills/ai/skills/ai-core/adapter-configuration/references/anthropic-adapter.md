@@ -16,7 +16,7 @@
 ## Import
 
 ```typescript
-import { anthropicText } from '@tanstack/ai-anthropic'
+import { anthropicText } from "@tanstack/ai-anthropic";
 ```
 
 ## Key Chat Models
@@ -37,26 +37,26 @@ Note: Model IDs use the format `claude-opus-4-6`, `claude-sonnet-4-6`, etc.
 
 ```typescript
 chat({
-  adapter: anthropicText('claude-sonnet-4-6'),
+  adapter: anthropicText("claude-sonnet-4-6"),
   messages,
   maxTokens: 16000,
   modelOptions: {
     // Extended thinking (budget-based)
     thinking: {
-      type: 'enabled',
+      type: "enabled",
       budget_tokens: 8000, // must be >= 1024 and < maxTokens
     },
     // Adaptive thinking (claude-sonnet-4-6, claude-opus-4-6+)
     thinking: {
-      type: 'adaptive',
+      type: "adaptive",
     },
-    effort: 'high', // 'max' | 'high' | 'medium' | 'low'
+    effort: "high", // 'max' | 'high' | 'medium' | 'low'
     // Service tier
-    service_tier: 'auto', // 'auto' | 'standard_only'
+    service_tier: "auto", // 'auto' | 'standard_only'
     // Stop sequences
-    stop_sequences: ['END'],
+    stop_sequences: ["END"],
     // Tool choice
-    tool_choice: { type: 'auto' },
+    tool_choice: { type: "auto" },
     // Context management
     context_management: {
       /* BetaContextManagementConfig */
@@ -64,21 +64,21 @@ chat({
     // MCP servers (max 20)
     mcp_servers: [
       {
-        name: 'my-server',
-        url: 'https://mcp.example.com',
-        type: 'url',
+        name: "my-server",
+        url: "https://mcp.example.com",
+        type: "url",
         tool_configuration: { enabled: true },
       },
     ],
     // Container (skills)
     container: {
-      id: 'container-id',
-      skills: [{ skill_id: 'analysis', type: 'anthropic' }],
+      id: "container-id",
+      skills: [{ skill_id: "analysis", type: "anthropic" }],
     },
     // Sampling
     top_k: 40,
   },
-})
+});
 ```
 
 ## Environment Variable

@@ -4,12 +4,12 @@
  * implementations to support `stream: true`.
  */
 
-import { EventType } from '@ag-ui/core'
-import { toRunErrorPayload } from './error-payload'
-import type { StreamChunk } from '../types'
+import { EventType } from "@ag-ui/core";
+import { toRunErrorPayload } from "./error-payload";
+import type { StreamChunk } from "../types";
 
 function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /**
@@ -26,35 +26,35 @@ export async function* streamGenerationResult<TResult>(
   generator: () => Promise<TResult>,
   options?: { runId?: string; threadId?: string },
 ): AsyncIterable<StreamChunk> {
-  const runId = options?.runId ?? createId('run')
-  const threadId = options?.threadId ?? createId('thread')
+  const runId = options?.runId ?? createId("run");
+  const threadId = options?.threadId ?? createId("thread");
 
   yield {
     type: EventType.RUN_STARTED,
     runId,
     threadId,
     timestamp: Date.now(),
-  } as StreamChunk
+  } as StreamChunk;
 
   try {
-    const result = await generator()
+    const result = await generator();
 
     yield {
       type: EventType.CUSTOM,
-      name: 'generation:result',
+      name: "generation:result",
       value: result as unknown,
       timestamp: Date.now(),
-    } as StreamChunk
+    } as StreamChunk;
 
     yield {
       type: EventType.RUN_FINISHED,
       runId,
       threadId,
-      finishReason: 'stop',
+      finishReason: "stop",
       timestamp: Date.now(),
-    } as StreamChunk
+    } as StreamChunk;
   } catch (error: unknown) {
-    const payload = toRunErrorPayload(error, 'Generation failed')
+    const payload = toRunErrorPayload(error, "Generation failed");
     yield {
       type: EventType.RUN_ERROR,
       runId,
@@ -64,6 +64,6 @@ export async function* streamGenerationResult<TResult>(
       // Deprecated nested form for backward compatibility
       error: payload,
       timestamp: Date.now(),
-    } as StreamChunk
+    } as StreamChunk;
   }
 }

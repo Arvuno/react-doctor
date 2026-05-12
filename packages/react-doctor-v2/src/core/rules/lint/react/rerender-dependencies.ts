@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { HOOKS_WITH_DEPS, isHookCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { HOOKS_WITH_DEPS, isHookCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rerenderDependencies = defineRule<Rule>({
   recommendation:

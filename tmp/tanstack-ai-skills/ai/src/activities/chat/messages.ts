@@ -5,7 +5,7 @@ import type {
   TextPart,
   ToolCallPart,
   UIMessage,
-} from '../../types'
+} from "../../types";
 // ===========================
 // Message Converters
 // ===========================
@@ -16,12 +16,12 @@ import type {
  */
 function isContentPart(part: MessagePart): part is ContentPart {
   return (
-    part.type === 'text' ||
-    part.type === 'image' ||
-    part.type === 'audio' ||
-    part.type === 'video' ||
-    part.type === 'document'
-  )
+    part.type === "text" ||
+    part.type === "image" ||
+    part.type === "audio" ||
+    part.type === "video" ||
+    part.type === "document"
+  );
 }
 
 /**
@@ -30,18 +30,16 @@ function isContentPart(part: MessagePart): part is ContentPart {
  * - All text parts → joined string (or null if empty)
  * - Mixed content → ContentPart array as-is
  */
-function collapseContentParts(
-  parts: Array<ContentPart>,
-): string | null | Array<ContentPart> {
-  if (parts.length === 0) return null
+function collapseContentParts(parts: Array<ContentPart>): string | null | Array<ContentPart> {
+  if (parts.length === 0) return null;
 
-  const allText = parts.every((p) => p.type === 'text')
+  const allText = parts.every((p) => p.type === "text");
   if (allText) {
-    const joined = parts.map((p) => p.content).join('')
-    return joined || null
+    const joined = parts.map((p) => p.content).join("");
+    return joined || null;
   }
 
-  return parts
+  return parts;
 }
 
 /**
@@ -49,12 +47,12 @@ function collapseContentParts(
  * Used when only the text portion is needed (e.g., tool result content).
  */
 function getTextContent(content: string | null | Array<ContentPart>): string {
-  if (content === null) return ''
-  if (typeof content === 'string') return content
+  if (content === null) return "";
+  if (typeof content === "string") return content;
   return content
-    .filter((part): part is TextPart => part.type === 'text')
+    .filter((part): part is TextPart => part.type === "text")
     .map((part) => part.content)
-    .join('')
+    .join("");
 }
 
 /**
@@ -63,17 +61,17 @@ function getTextContent(content: string | null | Array<ContentPart>): string {
 export function convertMessagesToModelMessages(
   messages: Array<UIMessage | ModelMessage>,
 ): Array<ModelMessage> {
-  const modelMessages: Array<ModelMessage> = []
+  const modelMessages: Array<ModelMessage> = [];
   for (const msg of messages) {
-    if ('parts' in msg) {
+    if ("parts" in msg) {
       // UIMessage - convert to ModelMessages
-      modelMessages.push(...uiMessageToModelMessages(msg))
+      modelMessages.push(...uiMessageToModelMessages(msg));
     } else {
       // Already ModelMessage
-      modelMessages.push(msg)
+      modelMessages.push(msg);
     }
   }
-  return modelMessages
+  return modelMessages;
 }
 
 /**
@@ -95,22 +93,20 @@ export function convertMessagesToModelMessages(
  * @param uiMessage - The UIMessage to convert
  * @returns An array of ModelMessages preserving part ordering
  */
-export function uiMessageToModelMessages(
-  uiMessage: UIMessage,
-): Array<ModelMessage> {
+export function uiMessageToModelMessages(uiMessage: UIMessage): Array<ModelMessage> {
   // Skip system messages - they're handled via systemPrompts, not ModelMessages
-  if (uiMessage.role === 'system') {
-    return []
+  if (uiMessage.role === "system") {
+    return [];
   }
 
   // For non-assistant messages (user), use the simpler path since they
   // don't have tool calls or tool results to interleave
-  if (uiMessage.role !== 'assistant') {
-    return [buildUserOrToolMessage(uiMessage)]
+  if (uiMessage.role !== "assistant") {
+    return [buildUserOrToolMessage(uiMessage)];
   }
 
   // For assistant messages, walk parts in order to preserve interleaving
-  return buildAssistantMessages(uiMessage)
+  return buildAssistantMessages(uiMessage);
 }
 
 /**
@@ -118,43 +114,43 @@ export function uiMessageToModelMessages(
  * Preserves ordering of text and multimodal content parts.
  */
 function buildUserOrToolMessage(uiMessage: UIMessage): ModelMessage {
-  const contentParts: Array<ContentPart> = []
+  const contentParts: Array<ContentPart> = [];
   for (const part of uiMessage.parts) {
     if (isContentPart(part)) {
-      contentParts.push(part)
+      contentParts.push(part);
     }
   }
 
   return {
-    role: uiMessage.role as 'user' | 'assistant' | 'tool',
+    role: uiMessage.role as "user" | "assistant" | "tool",
     content: collapseContentParts(contentParts),
-  }
+  };
 }
 
 // Accumulator for building an assistant segment (content + tool calls)
 interface AssistantSegment {
-  contentParts: Array<ContentPart>
+  contentParts: Array<ContentPart>;
   toolCalls: Array<{
-    id: string
-    type: 'function'
-    function: { name: string; arguments: string }
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
     /** Provider-specific metadata that round-trips with the tool call.
      * Untyped at this framework layer; adapters narrow it via their
      * `TToolCallMetadata` generic. */
-    metadata?: unknown
-  }>
+    metadata?: unknown;
+  }>;
 }
 
 function createSegment(): AssistantSegment {
-  return { contentParts: [], toolCalls: [] }
+  return { contentParts: [], toolCalls: [] };
 }
 
 function isToolCallIncluded(part: ToolCallPart): boolean {
   return (
-    part.state === 'input-complete' ||
-    part.state === 'approval-responded' ||
+    part.state === "input-complete" ||
+    part.state === "approval-responded" ||
     part.output !== undefined
-  )
+  );
 }
 
 /**
@@ -167,141 +163,139 @@ function isToolCallIncluded(part: ToolCallPart): boolean {
  * result is emitted as a tool message.
  */
 function buildAssistantMessages(uiMessage: UIMessage): Array<ModelMessage> {
-  const messageList: Array<ModelMessage> = []
-  let current = createSegment()
-  let pendingThinking: Array<{ content: string; signature?: string }> = []
+  const messageList: Array<ModelMessage> = [];
+  let current = createSegment();
+  let pendingThinking: Array<{ content: string; signature?: string }> = [];
 
   // Track emitted tool result IDs to avoid duplicates.
   // A tool call can have BOTH an explicit tool-result part AND an output
   // field on the tool-call part. We only want one per tool call ID.
-  const emittedToolResultIds = new Set<string>()
+  const emittedToolResultIds = new Set<string>();
 
   function flushSegment(): void {
-    const content = collapseContentParts(current.contentParts)
-    const hasContent = content !== null
-    const hasToolCalls = current.toolCalls.length > 0
+    const content = collapseContentParts(current.contentParts);
+    const hasContent = content !== null;
+    const hasToolCalls = current.toolCalls.length > 0;
 
     if (hasContent || hasToolCalls) {
       messageList.push({
-        role: 'assistant',
+        role: "assistant",
         content,
         ...(hasToolCalls && { toolCalls: current.toolCalls }),
         ...(pendingThinking.length > 0 && { thinking: pendingThinking }),
-      })
-      pendingThinking = []
+      });
+      pendingThinking = [];
     }
-    current = createSegment()
+    current = createSegment();
   }
 
   for (const part of uiMessage.parts) {
     switch (part.type) {
-      case 'text':
-      case 'image':
-      case 'audio':
-      case 'video':
-      case 'document':
-        current.contentParts.push(part)
-        break
+      case "text":
+      case "image":
+      case "audio":
+      case "video":
+      case "document":
+        current.contentParts.push(part);
+        break;
 
-      case 'tool-call':
+      case "tool-call":
         if (isToolCallIncluded(part)) {
           current.toolCalls.push({
             id: part.id,
-            type: 'function' as const,
+            type: "function" as const,
             function: {
               name: part.name,
               arguments: part.arguments,
             },
             ...(part.metadata !== undefined && { metadata: part.metadata }),
-          })
+          });
         }
-        break
+        break;
 
-      case 'tool-result':
+      case "tool-result":
         // Flush the current assistant segment before emitting the tool result
-        flushSegment()
+        flushSegment();
 
         // Emit the tool result
         if (
-          (part.state === 'complete' || part.state === 'error') &&
+          (part.state === "complete" || part.state === "error") &&
           !emittedToolResultIds.has(part.toolCallId)
         ) {
           messageList.push({
-            role: 'tool',
+            role: "tool",
             content: part.content,
             toolCallId: part.toolCallId,
-          })
-          emittedToolResultIds.add(part.toolCallId)
+          });
+          emittedToolResultIds.add(part.toolCallId);
         }
-        break
+        break;
 
-      case 'thinking':
+      case "thinking":
         if (part.content) {
           pendingThinking.push({
             content: part.content,
             ...(part.signature && { signature: part.signature }),
-          })
+          });
         }
-        break
+        break;
 
       default:
-        break
+        break;
     }
   }
 
   // Flush any remaining accumulated content
-  flushSegment()
+  flushSegment();
 
   // Emit tool results from client tool-call parts with output or approval,
   // but only if not already covered by an explicit tool-result part above.
   // These are appended at the end since they don't have explicit tool-result
   // parts in the parts array to trigger inline emission.
   for (const part of uiMessage.parts) {
-    if (part.type !== 'tool-call') continue
+    if (part.type !== "tool-call") continue;
 
     // Output takes priority — if the tool has already produced a result,
     // emit the concrete output regardless of approval metadata.
     if (part.output !== undefined && !emittedToolResultIds.has(part.id)) {
       messageList.push({
-        role: 'tool',
+        role: "tool",
         content: JSON.stringify(part.output),
         toolCallId: part.id,
-      })
-      emittedToolResultIds.add(part.id)
+      });
+      emittedToolResultIds.add(part.id);
     }
 
     // Approval response without output — emit approval status for iteration tracking
     if (
       part.output === undefined &&
-      part.state === 'approval-responded' &&
+      part.state === "approval-responded" &&
       part.approval?.approved !== undefined &&
       !emittedToolResultIds.has(part.id)
     ) {
-      const approved = part.approval.approved
+      const approved = part.approval.approved;
       messageList.push({
-        role: 'tool',
+        role: "tool",
         content: JSON.stringify({
           approved,
           ...(approved && { pendingExecution: true }),
-          message: approved
-            ? 'User approved this action'
-            : 'User denied this action',
+          message: approved ? "User approved this action" : "User denied this action",
         }),
         toolCallId: part.id,
-      })
-      emittedToolResultIds.add(part.id)
+      });
+      emittedToolResultIds.add(part.id);
     }
   }
 
   // If no messages were produced (e.g., empty parts), emit a minimal assistant message
   if (messageList.length === 0) {
     messageList.push({
-      role: 'assistant',
+      role: "assistant",
       content: null,
-    })
+    });
   }
 
-  return messageList
+  return messageList;
 }
 
 /**
@@ -316,45 +310,42 @@ function buildAssistantMessages(uiMessage: UIMessage): Array<ModelMessage> {
  * @param id - Optional ID for the UIMessage (generated if not provided)
  * @returns A UIMessage with parts
  */
-export function modelMessageToUIMessage(
-  modelMessage: ModelMessage,
-  id?: string,
-): UIMessage {
-  const parts: Array<MessagePart> = []
+export function modelMessageToUIMessage(modelMessage: ModelMessage, id?: string): UIMessage {
+  const parts: Array<MessagePart> = [];
 
-  if (modelMessage.role === 'assistant' && modelMessage.thinking?.length) {
+  if (modelMessage.role === "assistant" && modelMessage.thinking?.length) {
     for (const thinking of modelMessage.thinking) {
-      if (!thinking.content) continue
+      if (!thinking.content) continue;
       parts.push({
-        type: 'thinking',
+        type: "thinking",
         content: thinking.content,
         ...(thinking.signature && { signature: thinking.signature }),
-      })
+      });
     }
   }
 
   // Handle tool results (when role is "tool") - only produce tool-result part,
   // not a text part (the content IS the tool result, not display text)
-  if (modelMessage.role === 'tool' && modelMessage.toolCallId) {
+  if (modelMessage.role === "tool" && modelMessage.toolCallId) {
     parts.push({
-      type: 'tool-result',
+      type: "tool-result",
       toolCallId: modelMessage.toolCallId,
       content: getTextContent(modelMessage.content),
-      state: 'complete',
-    })
+      state: "complete",
+    });
   } else if (Array.isArray(modelMessage.content)) {
     // Multimodal content - preserve all content parts as MessageParts
     for (const part of modelMessage.content) {
-      parts.push(part)
+      parts.push(part);
     }
   } else {
     // String or null content
-    const textContent = getTextContent(modelMessage.content)
+    const textContent = getTextContent(modelMessage.content);
     if (textContent) {
       parts.push({
-        type: 'text',
+        type: "text",
         content: textContent,
-      })
+      });
     }
   }
 
@@ -362,21 +353,21 @@ export function modelMessageToUIMessage(
   if (modelMessage.toolCalls && modelMessage.toolCalls.length > 0) {
     for (const toolCall of modelMessage.toolCalls) {
       parts.push({
-        type: 'tool-call',
+        type: "tool-call",
         id: toolCall.id,
         name: toolCall.function.name,
         arguments: toolCall.function.arguments,
-        state: 'input-complete', // Model messages have complete arguments
+        state: "input-complete", // Model messages have complete arguments
         ...(toolCall.metadata !== undefined && { metadata: toolCall.metadata }),
-      })
+      });
     }
   }
 
   return {
     id: id || generateMessageId(),
-    role: modelMessage.role === 'tool' ? 'assistant' : modelMessage.role,
+    role: modelMessage.role === "tool" ? "assistant" : modelMessage.role,
     parts,
-  }
+  };
 }
 
 /**
@@ -387,45 +378,40 @@ export function modelMessageToUIMessage(
  * @param modelMessages - Array of ModelMessages to convert
  * @returns Array of UIMessages
  */
-export function modelMessagesToUIMessages(
-  modelMessages: Array<ModelMessage>,
-): Array<UIMessage> {
-  const uiMessages: Array<UIMessage> = []
-  let currentAssistantMessage: UIMessage | null = null
+export function modelMessagesToUIMessages(modelMessages: Array<ModelMessage>): Array<UIMessage> {
+  const uiMessages: Array<UIMessage> = [];
+  let currentAssistantMessage: UIMessage | null = null;
 
   for (const msg of modelMessages) {
-    if (msg.role === 'tool') {
+    if (msg.role === "tool") {
       // Tool result - merge into the last assistant message if possible
-      if (
-        currentAssistantMessage &&
-        currentAssistantMessage.role === 'assistant'
-      ) {
+      if (currentAssistantMessage && currentAssistantMessage.role === "assistant") {
         currentAssistantMessage.parts.push({
-          type: 'tool-result',
+          type: "tool-result",
           toolCallId: msg.toolCallId!,
           content: getTextContent(msg.content),
-          state: 'complete',
-        })
+          state: "complete",
+        });
       } else {
         // No assistant message to merge into, create a standalone one
-        const toolResultUIMessage = modelMessageToUIMessage(msg)
-        uiMessages.push(toolResultUIMessage)
+        const toolResultUIMessage = modelMessageToUIMessage(msg);
+        uiMessages.push(toolResultUIMessage);
       }
     } else {
       // Regular message
-      const uiMessage = modelMessageToUIMessage(msg)
-      uiMessages.push(uiMessage)
+      const uiMessage = modelMessageToUIMessage(msg);
+      uiMessages.push(uiMessage);
 
       // Track assistant messages for potential tool result merging
-      if (msg.role === 'assistant') {
-        currentAssistantMessage = uiMessage
+      if (msg.role === "assistant") {
+        currentAssistantMessage = uiMessage;
       } else {
-        currentAssistantMessage = null
+        currentAssistantMessage = null;
       }
     }
   }
 
-  return uiMessages
+  return uiMessages;
 }
 
 /**
@@ -440,19 +426,19 @@ export function normalizeToUIMessage(
   message: UIMessage | ModelMessage,
   generateId: () => string,
 ): UIMessage {
-  if ('parts' in message) {
+  if ("parts" in message) {
     // Already a UIMessage
     return {
       ...message,
       id: message.id || generateId(),
       createdAt: message.createdAt || new Date(),
-    }
+    };
   } else {
     // ModelMessage - convert to UIMessage
     return {
       ...modelMessageToUIMessage(message, generateId()),
       createdAt: new Date(),
-    }
+    };
   }
 }
 
@@ -460,5 +446,5 @@ export function normalizeToUIMessage(
  * Generate a unique message ID
  */
 export function generateMessageId(): string {
-  return `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`
+  return `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 }

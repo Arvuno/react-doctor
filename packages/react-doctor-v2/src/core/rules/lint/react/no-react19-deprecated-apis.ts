@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { REACT_19_DEPRECATED_MESSAGES, createDeprecatedReactImportRule } from "./_utils.js";
-import type { Rule } from "./_utils.js";
+import { REACT_19_DEPRECATED_MESSAGES, createDeprecatedReactImportRule } from "./utils/index.js";
+import type { Rule } from "./utils/index.js";
 
 export const noReact19DeprecatedApis = defineRule<Rule>(
   createDeprecatedReactImportRule({

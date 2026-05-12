@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { HEAVY_LIBRARIES } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { HEAVY_LIBRARIES } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const preferDynamicImport = defineRule<Rule>({
   recommendation:

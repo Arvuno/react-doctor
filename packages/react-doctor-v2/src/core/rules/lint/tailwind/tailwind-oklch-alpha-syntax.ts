@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { getLiteralString } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { getLiteralString } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const COMMA_ALPHA_OKLCH_PATTERN = /oklch\([^)]*,\s*(?:0?\.\d+|1(?:\.0+)?)\)/i;
 

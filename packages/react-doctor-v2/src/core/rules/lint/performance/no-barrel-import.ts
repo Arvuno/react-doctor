@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { BARREL_INDEX_SUFFIXES } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { BARREL_INDEX_SUFFIXES } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const noBarrelImport = defineRule<Rule>({
   recommendation:

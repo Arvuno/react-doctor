@@ -5,30 +5,22 @@
  * This is a self-contained module with implementation, types, and JSDoc.
  */
 
-import { devtoolsMiddleware } from '@tanstack/ai-event-client'
-import { stripToSpecMiddleware } from '../../strip-to-spec-middleware'
-import { streamToText } from '../../stream-to-response.js'
-import { resolveDebugOption } from '../../logger/resolve'
-import { LazyToolManager } from './tools/lazy-tool-manager'
-import {
-  MiddlewareAbortError,
-  ToolCallManager,
-  executeToolCalls,
-} from './tools/tool-calls'
+import { devtoolsMiddleware } from "@tanstack/ai-event-client";
+import { stripToSpecMiddleware } from "../../strip-to-spec-middleware";
+import { streamToText } from "../../stream-to-response.js";
+import { resolveDebugOption } from "../../logger/resolve";
+import { LazyToolManager } from "./tools/lazy-tool-manager";
+import { MiddlewareAbortError, ToolCallManager, executeToolCalls } from "./tools/tool-calls";
 import {
   convertSchemaToJsonSchema,
   isStandardSchema,
   parseWithStandardSchema,
-} from './tools/schema-converter'
-import { maxIterations as maxIterationsStrategy } from './agent-loop-strategies'
-import { convertMessagesToModelMessages } from './messages'
-import { MiddlewareRunner } from './middleware/compose'
-import type {
-  ApprovalRequest,
-  ClientToolRequest,
-  ToolResult,
-} from './tools/tool-calls'
-import type { AnyTextAdapter } from './adapter'
+} from "./tools/schema-converter";
+import { maxIterations as maxIterationsStrategy } from "./agent-loop-strategies";
+import { convertMessagesToModelMessages } from "./messages";
+import { MiddlewareRunner } from "./middleware/compose";
+import type { ApprovalRequest, ClientToolRequest, ToolResult } from "./tools/tool-calls";
+import type { AnyTextAdapter } from "./adapter";
 import type {
   AgentLoopStrategy,
   ConstrainedModelMessage,
@@ -45,23 +37,23 @@ import type {
   ToolCallArgsEvent,
   ToolCallEndEvent,
   ToolCallStartEvent,
-} from '../../types'
+} from "../../types";
 import type {
   ChatMiddleware,
   ChatMiddlewareConfig,
   ChatMiddlewareContext,
   ChatMiddlewarePhase,
-} from './middleware/types'
-import type { InternalLogger } from '../../logger/internal-logger'
-import type { DebugOption } from '../../logger/types'
-import type { ProviderTool } from '../../tools/provider-tool'
+} from "./middleware/types";
+import type { InternalLogger } from "../../logger/internal-logger";
+import type { DebugOption } from "../../logger/types";
+import type { ProviderTool } from "../../tools/provider-tool";
 
 // ===========================
 // Activity Kind
 // ===========================
 
 /** The adapter kind this activity handles */
-export const kind = 'text' as const
+export const kind = "text" as const;
 
 // ===========================
 // Activity Options Type
@@ -81,16 +73,16 @@ export interface TextActivityOptions<
   TStream extends boolean,
 > {
   /** The text adapter to use (created by a provider function like openaiText('gpt-4o')) */
-  adapter: TAdapter
+  adapter: TAdapter;
   /** Conversation messages - content types are constrained by the adapter's input modalities and metadata */
   messages?: Array<
     ConstrainedModelMessage<{
-      inputModalities: TAdapter['~types']['inputModalities']
-      messageMetadataByModality: TAdapter['~types']['messageMetadataByModality']
+      inputModalities: TAdapter["~types"]["inputModalities"];
+      messageMetadataByModality: TAdapter["~types"]["messageMetadataByModality"];
     }>
-  >
+  >;
   /** System prompts to prepend to the conversation */
-  systemPrompts?: TextOptions['systemPrompts']
+  systemPrompts?: TextOptions["systemPrompts"];
   /**
    * Tools for function calling (auto-executed when called).
    *
@@ -102,29 +94,29 @@ export interface TextActivityOptions<
    *    compile-time error on the array element.
    */
   tools?: Array<
-    | (Tool & { readonly '~toolKind'?: never })
-    | ProviderTool<string, TAdapter['~types']['toolCapabilities'][number]>
-  >
+    | (Tool & { readonly "~toolKind"?: never })
+    | ProviderTool<string, TAdapter["~types"]["toolCapabilities"][number]>
+  >;
   /** Controls the randomness of the output. Higher values make output more random. Range: [0.0, 2.0] */
-  temperature?: TextOptions['temperature']
+  temperature?: TextOptions["temperature"];
   /** Nucleus sampling parameter. The model considers tokens with topP probability mass. */
-  topP?: TextOptions['topP']
+  topP?: TextOptions["topP"];
   /** The maximum number of tokens to generate in the response. */
-  maxTokens?: TextOptions['maxTokens']
+  maxTokens?: TextOptions["maxTokens"];
   /** Additional metadata to attach to the request. */
-  metadata?: TextOptions['metadata']
+  metadata?: TextOptions["metadata"];
   /** Model-specific provider options (type comes from adapter) */
-  modelOptions?: TAdapter['~types']['providerOptions']
+  modelOptions?: TAdapter["~types"]["providerOptions"];
   /** AbortController for cancellation */
-  abortController?: TextOptions['abortController']
+  abortController?: TextOptions["abortController"];
   /** Strategy for controlling the agent loop */
-  agentLoopStrategy?: TextOptions['agentLoopStrategy']
+  agentLoopStrategy?: TextOptions["agentLoopStrategy"];
   /** Unique conversation identifier for tracking */
-  conversationId?: TextOptions['conversationId']
+  conversationId?: TextOptions["conversationId"];
   /** Thread/conversation ID for AG-UI protocol. Auto-generated if not provided. */
-  threadId?: TextOptions['threadId']
+  threadId?: TextOptions["threadId"];
   /** Run ID override for AG-UI protocol. Auto-generated by adapter if not provided. */
-  runId?: TextOptions['runId']
+  runId?: TextOptions["runId"];
   /**
    * Optional Standard Schema for structured output.
    * When provided, the activity will:
@@ -143,7 +135,7 @@ export interface TextActivityOptions<
    * // result is { name: string, age: number }
    * ```
    */
-  outputSchema?: TSchema
+  outputSchema?: TSchema;
   /**
    * Whether to stream the text result.
    * When true (default), returns an AsyncIterable<StreamChunk> for streaming output.
@@ -164,7 +156,7 @@ export interface TextActivityOptions<
    * // text is a string with the full response
    * ```
    */
-  stream?: TStream
+  stream?: TStream;
   /**
    * Optional middleware array for observing/transforming chat behavior.
    * Middleware hooks are called in array order. See {@link ChatMiddleware} for available hooks.
@@ -178,19 +170,19 @@ export interface TextActivityOptions<
    * })
    * ```
    */
-  middleware?: Array<ChatMiddleware>
+  middleware?: Array<ChatMiddleware>;
   /**
    * Opaque user-provided context value passed to middleware hooks.
    * Can be used to pass request-scoped data (e.g., user ID, request context).
    */
-  context?: unknown
+  context?: unknown;
   /**
    * Enable debug logging. Pass `true` to enable all categories with the default
    * console logger, `false` to silence everything, or a `DebugConfig` object for
    * granular control and/or a custom `Logger`. Defaults to `undefined`, which
    * means only the `errors` category is active.
    */
-  debug?: DebugOption
+  debug?: DebugOption;
 }
 
 // ===========================
@@ -217,7 +209,7 @@ export function createChatOptions<
 >(
   options: TextActivityOptions<TAdapter, TSchema, TStream>,
 ): TextActivityOptions<TAdapter, TSchema, TStream> {
-  return options
+  return options;
 }
 
 // ===========================
@@ -237,7 +229,7 @@ export type TextActivityResult<
   ? Promise<InferSchemaType<TSchema>>
   : TStream extends false
     ? Promise<string>
-    : AsyncIterable<StreamChunk>
+    : AsyncIterable<StreamChunk>;
 
 // ===========================
 // ChatEngine Implementation
@@ -247,110 +239,99 @@ interface TextEngineConfig<
   TAdapter extends AnyTextAdapter,
   TParams extends TextOptions<any, any> = TextOptions<any>,
 > {
-  adapter: TAdapter
-  systemPrompts?: Array<string>
-  params: TParams
-  middleware?: Array<ChatMiddleware>
-  context?: unknown
+  adapter: TAdapter;
+  systemPrompts?: Array<string>;
+  params: TParams;
+  middleware?: Array<ChatMiddleware>;
+  context?: unknown;
 }
 
-type ToolPhaseResult = 'continue' | 'stop' | 'wait'
-type CyclePhase = 'processText' | 'executeToolCalls'
+type ToolPhaseResult = "continue" | "stop" | "wait";
+type CyclePhase = "processText" | "executeToolCalls";
 
 class TextEngine<
   TAdapter extends AnyTextAdapter,
   TParams extends TextOptions<any, any> = TextOptions<any>,
 > {
-  private readonly adapter: TAdapter
-  private params: TParams
-  private systemPrompts: Array<string>
-  private tools: Array<Tool>
-  private readonly loopStrategy: AgentLoopStrategy
-  private toolCallManager: ToolCallManager
-  private readonly lazyToolManager: LazyToolManager
-  private readonly initialMessageCount: number
-  private readonly requestId: string
-  private readonly streamId: string
-  private readonly effectiveRequest?: Request | RequestInit
-  private readonly effectiveSignal?: AbortSignal
+  private readonly adapter: TAdapter;
+  private params: TParams;
+  private systemPrompts: Array<string>;
+  private tools: Array<Tool>;
+  private readonly loopStrategy: AgentLoopStrategy;
+  private toolCallManager: ToolCallManager;
+  private readonly lazyToolManager: LazyToolManager;
+  private readonly initialMessageCount: number;
+  private readonly requestId: string;
+  private readonly streamId: string;
+  private readonly effectiveRequest?: Request | RequestInit;
+  private readonly effectiveSignal?: AbortSignal;
 
-  private messages: Array<ModelMessage>
-  private iterationCount = 0
-  private lastFinishReason: string | null = null
-  private streamStartTime = 0
-  private totalChunkCount = 0
-  private currentMessageId: string | null = null
-  private accumulatedContent = ''
-  private accumulatedThinking: Array<{ content: string; signature?: string }> =
-    []
-  private currentThinkingContent = ''
-  private currentThinkingSignature = ''
-  private eventOptions?: Record<string, unknown>
-  private eventToolNames?: Array<string>
-  private finishedEvent: RunFinishedEvent | null = null
-  private earlyTermination = false
-  private toolPhase: ToolPhaseResult = 'continue'
-  private cyclePhase: CyclePhase = 'processText'
+  private messages: Array<ModelMessage>;
+  private iterationCount = 0;
+  private lastFinishReason: string | null = null;
+  private streamStartTime = 0;
+  private totalChunkCount = 0;
+  private currentMessageId: string | null = null;
+  private accumulatedContent = "";
+  private accumulatedThinking: Array<{ content: string; signature?: string }> = [];
+  private currentThinkingContent = "";
+  private currentThinkingSignature = "";
+  private eventOptions?: Record<string, unknown>;
+  private eventToolNames?: Array<string>;
+  private finishedEvent: RunFinishedEvent | null = null;
+  private earlyTermination = false;
+  private toolPhase: ToolPhaseResult = "continue";
+  private cyclePhase: CyclePhase = "processText";
   // Client state extracted from initial messages (before conversion to ModelMessage)
-  private readonly initialApprovals: Map<string, boolean>
-  private readonly initialClientToolResults: Map<string, any>
+  private readonly initialApprovals: Map<string, boolean>;
+  private readonly initialClientToolResults: Map<string, any>;
 
   // AG-UI protocol IDs
-  private threadId: string
-  private runIdOverride?: string
+  private threadId: string;
+  private runIdOverride?: string;
 
   // Middleware support
-  private readonly middlewareRunner: MiddlewareRunner
-  private readonly middlewareCtx: ChatMiddlewareContext
-  private readonly deferredPromises: Array<Promise<unknown>> = []
-  private abortReason?: string
-  private middlewareAbortController?: AbortController
-  private terminalHookCalled = false
+  private readonly middlewareRunner: MiddlewareRunner;
+  private readonly middlewareCtx: ChatMiddlewareContext;
+  private readonly deferredPromises: Array<Promise<unknown>> = [];
+  private abortReason?: string;
+  private middlewareAbortController?: AbortController;
+  private terminalHookCalled = false;
 
-  private readonly logger: InternalLogger
+  private readonly logger: InternalLogger;
 
-  constructor(
-    config: TextEngineConfig<TAdapter, TParams>,
-    logger: InternalLogger,
-  ) {
-    this.logger = logger
-    this.adapter = config.adapter
-    this.params = config.params
-    this.systemPrompts = config.params.systemPrompts || []
-    this.loopStrategy =
-      config.params.agentLoopStrategy || maxIterationsStrategy(5)
-    this.initialMessageCount = config.params.messages.length
+  constructor(config: TextEngineConfig<TAdapter, TParams>, logger: InternalLogger) {
+    this.logger = logger;
+    this.adapter = config.adapter;
+    this.params = config.params;
+    this.systemPrompts = config.params.systemPrompts || [];
+    this.loopStrategy = config.params.agentLoopStrategy || maxIterationsStrategy(5);
+    this.initialMessageCount = config.params.messages.length;
 
     // Extract client state (approvals, client tool results) from original messages BEFORE conversion
     // This preserves UIMessage parts data that would be lost during conversion to ModelMessage
-    const { approvals, clientToolResults } =
-      this.extractClientStateFromOriginalMessages(
-        config.params.messages as Array<any>,
-      )
-    this.initialApprovals = approvals
-    this.initialClientToolResults = clientToolResults
+    const { approvals, clientToolResults } = this.extractClientStateFromOriginalMessages(
+      config.params.messages as Array<any>,
+    );
+    this.initialApprovals = approvals;
+    this.initialClientToolResults = clientToolResults;
 
     // Convert messages to ModelMessage format (handles both UIMessage and ModelMessage input)
     // This ensures consistent internal format regardless of what the client sends
-    this.messages = convertMessagesToModelMessages(
-      config.params.messages as Array<any>,
-    )
+    this.messages = convertMessagesToModelMessages(config.params.messages as Array<any>);
 
     // Initialize lazy tool manager after messages are converted (needs message history for scanning)
-    this.lazyToolManager = new LazyToolManager(
-      config.params.tools || [],
-      this.messages,
-    )
-    this.tools = this.lazyToolManager.getActiveTools()
-    this.toolCallManager = new ToolCallManager(this.tools)
-    this.requestId = this.createId('chat')
-    this.streamId = this.createId('stream')
+    this.lazyToolManager = new LazyToolManager(config.params.tools || [], this.messages);
+    this.tools = this.lazyToolManager.getActiveTools();
+    this.toolCallManager = new ToolCallManager(this.tools);
+    this.requestId = this.createId("chat");
+    this.streamId = this.createId("stream");
     this.effectiveRequest = config.params.abortController
       ? { signal: config.params.abortController.signal }
-      : undefined
-    this.effectiveSignal = config.params.abortController?.signal
-    this.threadId = config.params.threadId || this.createId('thread')
-    this.runIdOverride = config.params.runId
+      : undefined;
+    this.effectiveSignal = config.params.abortController?.signal;
+    this.threadId = config.params.threadId || this.createId("thread");
+    this.runIdOverride = config.params.runId;
 
     // Initialize middleware — devtools first, strip-to-spec always last.
     // handleStreamChunk processes raw chunks BEFORE middleware, so internal
@@ -360,29 +341,29 @@ class TextEngine<
       devtoolsMiddleware(),
       ...(config.middleware || []),
       stripToSpecMiddleware(),
-    ]
-    this.middlewareRunner = new MiddlewareRunner(allMiddleware, logger)
-    this.middlewareAbortController = new AbortController()
+    ];
+    this.middlewareRunner = new MiddlewareRunner(allMiddleware, logger);
+    this.middlewareAbortController = new AbortController();
     this.middlewareCtx = {
       requestId: this.requestId,
       streamId: this.streamId,
       conversationId: config.params.conversationId,
-      phase: 'init' as ChatMiddlewarePhase,
+      phase: "init" as ChatMiddlewarePhase,
       iteration: 0,
       chunkIndex: 0,
       signal: this.effectiveSignal,
       abort: (reason?: string) => {
-        this.abortReason = reason
-        this.middlewareAbortController?.abort(reason)
+        this.abortReason = reason;
+        this.middlewareAbortController?.abort(reason);
       },
       context: config.context,
       defer: (promise: Promise<unknown>) => {
-        this.deferredPromises.push(promise)
+        this.deferredPromises.push(promise);
       },
       // Provider / adapter info
       provider: config.adapter.name,
       model: config.params.model,
-      source: 'server',
+      source: "server",
       streaming: true,
       // Config-derived (updated in beforeRun and applyMiddlewareConfig)
       systemPrompts: this.systemPrompts,
@@ -394,207 +375,202 @@ class TextEngine<
       hasTools: this.tools.length > 0,
       // Mutable per-iteration
       currentMessageId: null,
-      accumulatedContent: '',
+      accumulatedContent: "",
       // References
       messages: this.messages,
       createId: (prefix: string) => this.createId(prefix),
-    }
+    };
   }
 
   /** Get the accumulated content after the chat loop completes */
   getAccumulatedContent(): string {
-    return this.accumulatedContent
+    return this.accumulatedContent;
   }
 
   /** Get the final messages array after the chat loop completes */
   getMessages(): Array<ModelMessage> {
-    return this.messages
+    return this.messages;
   }
 
   async *run(): AsyncGenerator<StreamChunk> {
-    this.beforeRun()
-    this.logger.agentLoop('run started', {
+    this.beforeRun();
+    this.logger.agentLoop("run started", {
       conversationId: this.middlewareCtx.conversationId,
-    })
+    });
 
     try {
       // Run initial onConfig (phase = init)
-      this.middlewareCtx.phase = 'init'
-      const initialConfig = this.buildMiddlewareConfig()
+      this.middlewareCtx.phase = "init";
+      const initialConfig = this.buildMiddlewareConfig();
       const transformedConfig = await this.middlewareRunner.runOnConfig(
         this.middlewareCtx,
         initialConfig,
-      )
-      this.applyMiddlewareConfig(transformedConfig)
+      );
+      this.applyMiddlewareConfig(transformedConfig);
 
       // Run onStart (devtools middleware emits text:request:started and initial messages here)
-      await this.middlewareRunner.runOnStart(this.middlewareCtx)
+      await this.middlewareRunner.runOnStart(this.middlewareCtx);
 
-      const pendingPhase = yield* this.checkForPendingToolCalls()
-      if (pendingPhase === 'wait') {
-        return
+      const pendingPhase = yield* this.checkForPendingToolCalls();
+      if (pendingPhase === "wait") {
+        return;
       }
 
       do {
         if (this.earlyTermination || this.isCancelled()) {
-          return
+          return;
         }
 
         this.logger.agentLoop(`iteration=${this.middlewareCtx.iteration}`, {
           iteration: this.middlewareCtx.iteration,
-        })
+        });
 
-        await this.beginCycle()
+        await this.beginCycle();
 
-        if (this.cyclePhase === 'processText') {
+        if (this.cyclePhase === "processText") {
           // Run onConfig before each model call (phase = beforeModel)
-          this.middlewareCtx.phase = 'beforeModel'
-          this.middlewareCtx.iteration = this.iterationCount
-          const iterConfig = this.buildMiddlewareConfig()
+          this.middlewareCtx.phase = "beforeModel";
+          this.middlewareCtx.iteration = this.iterationCount;
+          const iterConfig = this.buildMiddlewareConfig();
           const transformedConfig = await this.middlewareRunner.runOnConfig(
             this.middlewareCtx,
             iterConfig,
-          )
-          this.applyMiddlewareConfig(transformedConfig)
+          );
+          this.applyMiddlewareConfig(transformedConfig);
 
-          yield* this.streamModelResponse()
+          yield* this.streamModelResponse();
         } else {
-          yield* this.processToolCalls()
+          yield* this.processToolCalls();
         }
 
-        this.endCycle()
-      } while (this.shouldContinue())
+        this.endCycle();
+      } while (this.shouldContinue());
 
-      this.logger.agentLoop('run finished', {
+      this.logger.agentLoop("run finished", {
         finishReason: this.lastFinishReason,
-      })
+      });
 
       // Call terminal onFinish hook (skip when waiting for client — stream is paused, not finished)
-      if (!this.terminalHookCalled && this.toolPhase !== 'wait') {
-        this.terminalHookCalled = true
+      if (!this.terminalHookCalled && this.toolPhase !== "wait") {
+        this.terminalHookCalled = true;
         await this.middlewareRunner.runOnFinish(this.middlewareCtx, {
           finishReason: this.lastFinishReason,
           duration: Date.now() - this.streamStartTime,
           content: this.accumulatedContent,
           usage: this.finishedEvent?.usage,
-        })
+        });
       }
     } catch (error: unknown) {
       if (!this.terminalHookCalled) {
-        this.terminalHookCalled = true
+        this.terminalHookCalled = true;
         if (error instanceof MiddlewareAbortError) {
           // Middleware abort decision — call onAbort, not onError
-          this.abortReason = error.message
+          this.abortReason = error.message;
           await this.middlewareRunner.runOnAbort(this.middlewareCtx, {
             reason: error.message,
             duration: Date.now() - this.streamStartTime,
-          })
+          });
         } else {
           // Genuine error — call onError
-          this.logger.errors('chat run failed', {
+          this.logger.errors("chat run failed", {
             error,
             conversationId: this.middlewareCtx.conversationId,
-          })
+          });
           await this.middlewareRunner.runOnError(this.middlewareCtx, {
             error,
             duration: Date.now() - this.streamStartTime,
-          })
+          });
         }
       }
       // Don't rethrow middleware abort errors — the run just stops gracefully
       if (!(error instanceof MiddlewareAbortError)) {
-        throw error
+        throw error;
       }
     } finally {
       // Check for abort terminal hook
       if (!this.terminalHookCalled && this.isCancelled()) {
-        this.terminalHookCalled = true
+        this.terminalHookCalled = true;
         await this.middlewareRunner.runOnAbort(this.middlewareCtx, {
           reason: this.abortReason,
           duration: Date.now() - this.streamStartTime,
-        })
+        });
       }
 
       // Await deferred promises (non-blocking side effects)
       if (this.deferredPromises.length > 0) {
-        await Promise.allSettled(this.deferredPromises)
+        await Promise.allSettled(this.deferredPromises);
       }
     }
   }
 
   private beforeRun(): void {
-    this.streamStartTime = Date.now()
-    const { tools, temperature, topP, maxTokens, metadata } = this.params
+    this.streamStartTime = Date.now();
+    const { tools, temperature, topP, maxTokens, metadata } = this.params;
 
     // Gather flattened options into an object for context
-    const options: Record<string, unknown> = {}
-    if (temperature !== undefined) options.temperature = temperature
-    if (topP !== undefined) options.topP = topP
-    if (maxTokens !== undefined) options.maxTokens = maxTokens
-    if (metadata !== undefined) options.metadata = metadata
+    const options: Record<string, unknown> = {};
+    if (temperature !== undefined) options.temperature = temperature;
+    if (topP !== undefined) options.topP = topP;
+    if (maxTokens !== undefined) options.maxTokens = maxTokens;
+    if (metadata !== undefined) options.metadata = metadata;
 
-    this.eventOptions = Object.keys(options).length > 0 ? options : undefined
-    this.eventToolNames = tools?.map((t) => t.name)
+    this.eventOptions = Object.keys(options).length > 0 ? options : undefined;
+    this.eventToolNames = tools?.map((t) => t.name);
 
     // Update middleware context with computed fields
-    this.middlewareCtx.options = this.eventOptions
-    this.middlewareCtx.toolNames = this.eventToolNames
+    this.middlewareCtx.options = this.eventOptions;
+    this.middlewareCtx.toolNames = this.eventToolNames;
   }
 
   private async beginCycle(): Promise<void> {
-    if (this.cyclePhase === 'processText') {
-      await this.beginIteration()
+    if (this.cyclePhase === "processText") {
+      await this.beginIteration();
     }
   }
 
   private endCycle(): void {
-    if (this.cyclePhase === 'processText') {
-      this.cyclePhase = 'executeToolCalls'
-      return
+    if (this.cyclePhase === "processText") {
+      this.cyclePhase = "executeToolCalls";
+      return;
     }
 
-    this.cyclePhase = 'processText'
-    this.iterationCount++
+    this.cyclePhase = "processText";
+    this.iterationCount++;
   }
 
   private async beginIteration(): Promise<void> {
-    this.currentMessageId = this.createId('msg')
-    this.accumulatedContent = ''
-    this.accumulatedThinking = []
-    this.currentThinkingContent = ''
-    this.currentThinkingSignature = ''
-    this.finishedEvent = null
+    this.currentMessageId = this.createId("msg");
+    this.accumulatedContent = "";
+    this.accumulatedThinking = [];
+    this.currentThinkingContent = "";
+    this.currentThinkingSignature = "";
+    this.finishedEvent = null;
 
     // Update mutable context fields
-    this.middlewareCtx.currentMessageId = this.currentMessageId
-    this.middlewareCtx.accumulatedContent = ''
+    this.middlewareCtx.currentMessageId = this.currentMessageId;
+    this.middlewareCtx.accumulatedContent = "";
 
     // Notify middleware of new iteration (devtools emits assistant message:created here)
     await this.middlewareRunner.runOnIteration(this.middlewareCtx, {
       iteration: this.iterationCount,
       messageId: this.currentMessageId,
-    })
+    });
   }
 
   private async *streamModelResponse(): AsyncGenerator<StreamChunk> {
-    const { temperature, topP, maxTokens, metadata, modelOptions } = this.params
-    const tools = this.tools
+    const { temperature, topP, maxTokens, metadata, modelOptions } = this.params;
+    const tools = this.tools;
 
     // Convert tool schemas to JSON Schema before passing to adapter
     const toolsWithJsonSchemas = tools.map((tool) => ({
       ...tool,
-      inputSchema: tool.inputSchema
-        ? convertSchemaToJsonSchema(tool.inputSchema)
-        : undefined,
-      outputSchema: tool.outputSchema
-        ? convertSchemaToJsonSchema(tool.outputSchema)
-        : undefined,
-    }))
+      inputSchema: tool.inputSchema ? convertSchemaToJsonSchema(tool.inputSchema) : undefined,
+      outputSchema: tool.outputSchema ? convertSchemaToJsonSchema(tool.outputSchema) : undefined,
+    }));
 
-    this.middlewareCtx.phase = 'modelStream'
+    this.middlewareCtx.phase = "modelStream";
 
-    const providerName =
-      (this.adapter as { provider?: string }).provider ?? this.adapter.name
+    const providerName = (this.adapter as { provider?: string }).provider ?? this.adapter.name;
     this.logger.request(
       `activity=chat provider=${providerName} model=${this.params.model} messages=${this.messages.length} tools=${this.tools.length} stream=true`,
       {
@@ -603,7 +579,7 @@ class TextEngine<
         messageCount: this.messages.length,
         toolCount: this.tools.length,
       },
-    )
+    );
 
     for await (const chunk of this.adapter.chatStream({
       model: this.params.model,
@@ -621,33 +597,30 @@ class TextEngine<
       runId: this.runIdOverride,
     })) {
       if (this.isCancelled()) {
-        break
+        break;
       }
 
-      this.totalChunkCount++
+      this.totalChunkCount++;
 
       // Process the original (unstripped) chunk for internal state management
       // BEFORE middleware, so fields like finishReason, delta, etc. are available
-      this.handleStreamChunk(chunk)
+      this.handleStreamChunk(chunk);
 
       // Pipe chunk through middleware (devtools middleware observes; strip-to-spec cleans)
-      const outputChunks = await this.middlewareRunner.runOnChunk(
-        this.middlewareCtx,
-        chunk,
-      )
+      const outputChunks = await this.middlewareRunner.runOnChunk(this.middlewareCtx, chunk);
       for (const outputChunk of outputChunks) {
-        this.logger.output(`type=${outputChunk.type}`, { chunk: outputChunk })
-        yield outputChunk
-        this.middlewareCtx.chunkIndex++
+        this.logger.output(`type=${outputChunk.type}`, { chunk: outputChunk });
+        yield outputChunk;
+        this.middlewareCtx.chunkIndex++;
       }
 
       // Handle usage via middleware
-      if (chunk.type === 'RUN_FINISHED' && chunk.usage) {
-        await this.middlewareRunner.runOnUsage(this.middlewareCtx, chunk.usage)
+      if (chunk.type === "RUN_FINISHED" && chunk.usage) {
+        await this.middlewareRunner.runOnUsage(this.middlewareCtx, chunk.usage);
       }
 
       if (this.earlyTermination) {
-        break
+        break;
       }
     }
   }
@@ -655,48 +628,48 @@ class TextEngine<
   private handleStreamChunk(chunk: StreamChunk): void {
     switch (chunk.type) {
       // AG-UI Events
-      case 'TEXT_MESSAGE_CONTENT':
-        this.handleTextMessageContentEvent(chunk)
-        break
-      case 'TOOL_CALL_START':
-        this.handleToolCallStartEvent(chunk)
-        break
-      case 'TOOL_CALL_ARGS':
-        this.handleToolCallArgsEvent(chunk)
-        break
-      case 'TOOL_CALL_END':
-        this.handleToolCallEndEvent(chunk)
-        break
-      case 'RUN_FINISHED':
-        this.handleRunFinishedEvent(chunk)
-        break
-      case 'RUN_ERROR':
-        this.handleRunErrorEvent(chunk)
-        break
-      case 'STEP_STARTED':
-        this.handleStepStartedEvent()
-        break
-      case 'STEP_FINISHED':
-        this.handleStepFinishedEvent(chunk)
-        break
+      case "TEXT_MESSAGE_CONTENT":
+        this.handleTextMessageContentEvent(chunk);
+        break;
+      case "TOOL_CALL_START":
+        this.handleToolCallStartEvent(chunk);
+        break;
+      case "TOOL_CALL_ARGS":
+        this.handleToolCallArgsEvent(chunk);
+        break;
+      case "TOOL_CALL_END":
+        this.handleToolCallEndEvent(chunk);
+        break;
+      case "RUN_FINISHED":
+        this.handleRunFinishedEvent(chunk);
+        break;
+      case "RUN_ERROR":
+        this.handleRunErrorEvent(chunk);
+        break;
+      case "STEP_STARTED":
+        this.handleStepStartedEvent();
+        break;
+      case "STEP_FINISHED":
+        this.handleStepFinishedEvent(chunk);
+        break;
 
-      case 'TOOL_CALL_RESULT':
+      case "TOOL_CALL_RESULT":
         // Tool result is already added to messages in buildToolResultChunks
-        break
+        break;
 
-      case 'REASONING_START':
-      case 'REASONING_MESSAGE_START':
-      case 'REASONING_MESSAGE_CONTENT':
-      case 'REASONING_MESSAGE_END':
-      case 'REASONING_END':
+      case "REASONING_START":
+      case "REASONING_MESSAGE_START":
+      case "REASONING_MESSAGE_CONTENT":
+      case "REASONING_MESSAGE_END":
+      case "REASONING_END":
         // Reasoning events are handled by StreamProcessor
-        break
+        break;
 
       default:
         // RUN_STARTED, TEXT_MESSAGE_START, TEXT_MESSAGE_END,
         // STATE_SNAPSHOT, STATE_DELTA, CUSTOM
         // - no special handling needed in chat activity
-        break
+        break;
     }
   }
 
@@ -706,34 +679,32 @@ class TextEngine<
 
   private handleTextMessageContentEvent(chunk: TextMessageContentEvent): void {
     if (chunk.content) {
-      this.accumulatedContent = chunk.content
+      this.accumulatedContent = chunk.content;
     } else {
-      this.accumulatedContent += chunk.delta
+      this.accumulatedContent += chunk.delta;
     }
-    this.middlewareCtx.accumulatedContent = this.accumulatedContent
+    this.middlewareCtx.accumulatedContent = this.accumulatedContent;
   }
 
   private handleToolCallStartEvent(chunk: ToolCallStartEvent): void {
-    this.toolCallManager.addToolCallStartEvent(chunk)
+    this.toolCallManager.addToolCallStartEvent(chunk);
   }
 
   private handleToolCallArgsEvent(chunk: ToolCallArgsEvent): void {
-    this.toolCallManager.addToolCallArgsEvent(chunk)
+    this.toolCallManager.addToolCallArgsEvent(chunk);
   }
 
   private handleToolCallEndEvent(chunk: ToolCallEndEvent): void {
-    this.toolCallManager.completeToolCall(chunk)
+    this.toolCallManager.completeToolCall(chunk);
   }
 
   private handleRunFinishedEvent(chunk: RunFinishedEvent): void {
-    this.finishedEvent = chunk
-    this.lastFinishReason = chunk.finishReason ?? null
+    this.finishedEvent = chunk;
+    this.lastFinishReason = chunk.finishReason ?? null;
   }
 
-  private handleRunErrorEvent(
-    _chunk: Extract<StreamChunk, { type: 'RUN_ERROR' }>,
-  ): void {
-    this.earlyTermination = true
+  private handleRunErrorEvent(_chunk: Extract<StreamChunk, { type: "RUN_ERROR" }>): void {
+    this.earlyTermination = true;
   }
 
   private finalizeCurrentThinkingStep(): void {
@@ -743,72 +714,61 @@ class TextEngine<
         ...(this.currentThinkingSignature && {
           signature: this.currentThinkingSignature,
         }),
-      })
-      this.currentThinkingContent = ''
-      this.currentThinkingSignature = ''
+      });
+      this.currentThinkingContent = "";
+      this.currentThinkingSignature = "";
     }
   }
 
   private handleStepStartedEvent(): void {
-    this.finalizeCurrentThinkingStep()
+    this.finalizeCurrentThinkingStep();
   }
 
-  private handleStepFinishedEvent(
-    chunk: Extract<StreamChunk, { type: 'STEP_FINISHED' }>,
-  ): void {
+  private handleStepFinishedEvent(chunk: Extract<StreamChunk, { type: "STEP_FINISHED" }>): void {
     if (chunk.delta) {
-      this.currentThinkingContent += chunk.delta
+      this.currentThinkingContent += chunk.delta;
     }
     if (chunk.signature) {
-      this.currentThinkingSignature = chunk.signature
+      this.currentThinkingSignature = chunk.signature;
     }
   }
 
-  private async *checkForPendingToolCalls(): AsyncGenerator<
-    StreamChunk,
-    ToolPhaseResult,
-    void
-  > {
-    const pendingToolCalls = this.getPendingToolCallsFromMessages()
+  private async *checkForPendingToolCalls(): AsyncGenerator<StreamChunk, ToolPhaseResult, void> {
+    const pendingToolCalls = this.getPendingToolCallsFromMessages();
     if (pendingToolCalls.length === 0) {
-      return 'continue'
+      return "continue";
     }
 
-    const finishEvent = this.createSyntheticFinishedEvent()
+    const finishEvent = this.createSyntheticFinishedEvent();
 
     // Handle undiscovered lazy tool calls with self-correcting error messages
-    const undiscoveredLazyResults: Array<ToolResult> = []
+    const undiscoveredLazyResults: Array<ToolResult> = [];
     const executablePendingCalls = pendingToolCalls.filter((tc) => {
       if (this.lazyToolManager.isUndiscoveredLazyTool(tc.function.name)) {
         undiscoveredLazyResults.push({
           toolCallId: tc.id,
           toolName: tc.function.name,
           result: {
-            error: this.lazyToolManager.getUndiscoveredToolError(
-              tc.function.name,
-            ),
+            error: this.lazyToolManager.getUndiscoveredToolError(tc.function.name),
           },
-          state: 'output-error',
-        })
-        return false
+          state: "output-error",
+        });
+        return false;
       }
-      return true
-    })
+      return true;
+    });
 
     if (undiscoveredLazyResults.length > 0) {
-      for (const chunk of this.buildToolResultChunks(
-        undiscoveredLazyResults,
-        finishEvent,
-      )) {
-        yield* this.pipeThroughMiddleware(chunk)
+      for (const chunk of this.buildToolResultChunks(undiscoveredLazyResults, finishEvent)) {
+        yield* this.pipeThroughMiddleware(chunk);
       }
     }
 
     if (executablePendingCalls.length === 0) {
-      return 'continue'
+      return "continue";
     }
 
-    const { approvals, clientToolResults } = this.collectClientState()
+    const { approvals, clientToolResults } = this.collectClientState();
 
     const generator = executeToolCalls(
       executablePendingCalls,
@@ -821,39 +781,33 @@ class TextEngine<
           this.logger.tools(`phase=before name=${toolCall.function.name}`, {
             name: toolCall.function.name,
             args,
-          })
+          });
           const hookCtx = {
             toolCall,
             tool,
             args,
             toolName: toolCall.function.name,
             toolCallId: toolCall.id,
-          }
-          return this.middlewareRunner.runOnBeforeToolCall(
-            this.middlewareCtx,
-            hookCtx,
-          )
+          };
+          return this.middlewareRunner.runOnBeforeToolCall(this.middlewareCtx, hookCtx);
         },
         onAfterToolCall: async (info) => {
           this.logger.tools(`phase=after name=${info.toolName}`, {
             name: info.toolName,
             result: info.result,
-          })
-          await this.middlewareRunner.runOnAfterToolCall(
-            this.middlewareCtx,
-            info,
-          )
+          });
+          await this.middlewareRunner.runOnAfterToolCall(this.middlewareCtx, info);
         },
       },
-    )
+    );
 
     // Consume the async generator, yielding custom events and collecting the return value
-    const executionResult = yield* this.drainToolCallGenerator(generator)
+    const executionResult = yield* this.drainToolCallGenerator(generator);
 
     // Check if middleware aborted during pending tool execution
     if (this.isMiddlewareAborted()) {
-      this.setToolPhase('stop')
-      return 'stop'
+      this.setToolPhase("stop");
+      return "stop";
     }
 
     // Notify middleware of tool phase completion (devtools emits aggregate events here)
@@ -862,13 +816,13 @@ class TextEngine<
       results: executionResult.results,
       needsApproval: executionResult.needsApproval,
       needsClientExecution: executionResult.needsClientExecution,
-    })
+    });
 
     // Build args lookup so buildToolResultChunks can emit TOOL_CALL_START +
     // TOOL_CALL_ARGS before TOOL_CALL_END during continuation re-executions.
-    const argsMap = new Map<string, string>()
+    const argsMap = new Map<string, string>();
     for (const tc of pendingToolCalls) {
-      argsMap.set(tc.id, tc.function.arguments)
+      argsMap.set(tc.id, tc.function.arguments);
     }
 
     if (
@@ -881,95 +835,87 @@ class TextEngine<
           finishEvent,
           argsMap,
         )) {
-          yield* this.pipeThroughMiddleware(chunk)
+          yield* this.pipeThroughMiddleware(chunk);
         }
       }
 
-      for (const chunk of this.buildApprovalChunks(
-        executionResult.needsApproval,
-        finishEvent,
-      )) {
-        yield* this.pipeThroughMiddleware(chunk)
+      for (const chunk of this.buildApprovalChunks(executionResult.needsApproval, finishEvent)) {
+        yield* this.pipeThroughMiddleware(chunk);
       }
 
       for (const chunk of this.buildClientToolChunks(
         executionResult.needsClientExecution,
         finishEvent,
       )) {
-        yield* this.pipeThroughMiddleware(chunk)
+        yield* this.pipeThroughMiddleware(chunk);
       }
 
-      this.setToolPhase('wait')
-      return 'wait'
+      this.setToolPhase("wait");
+      return "wait";
     }
 
     const toolResultChunks = this.buildToolResultChunks(
       executionResult.results,
       finishEvent,
       argsMap,
-    )
+    );
 
     for (const chunk of toolResultChunks) {
-      yield* this.pipeThroughMiddleware(chunk)
+      yield* this.pipeThroughMiddleware(chunk);
     }
 
-    return 'continue'
+    return "continue";
   }
 
   private async *processToolCalls(): AsyncGenerator<StreamChunk, void, void> {
     if (!this.shouldExecuteToolPhase()) {
-      this.setToolPhase('stop')
-      return
+      this.setToolPhase("stop");
+      return;
     }
 
-    const toolCalls = this.toolCallManager.getToolCalls()
-    const finishEvent = this.finishedEvent
+    const toolCalls = this.toolCallManager.getToolCalls();
+    const finishEvent = this.finishedEvent;
 
     if (!finishEvent || toolCalls.length === 0) {
-      this.setToolPhase('stop')
-      return
+      this.setToolPhase("stop");
+      return;
     }
 
-    this.addAssistantToolCallMessage(toolCalls)
+    this.addAssistantToolCallMessage(toolCalls);
 
     // Handle undiscovered lazy tool calls with self-correcting error messages
-    const undiscoveredLazyResults: Array<ToolResult> = []
+    const undiscoveredLazyResults: Array<ToolResult> = [];
     const executableToolCalls = toolCalls.filter((tc) => {
       if (this.lazyToolManager.isUndiscoveredLazyTool(tc.function.name)) {
         undiscoveredLazyResults.push({
           toolCallId: tc.id,
           toolName: tc.function.name,
           result: {
-            error: this.lazyToolManager.getUndiscoveredToolError(
-              tc.function.name,
-            ),
+            error: this.lazyToolManager.getUndiscoveredToolError(tc.function.name),
           },
-          state: 'output-error',
-        })
-        return false
+          state: "output-error",
+        });
+        return false;
       }
-      return true
-    })
+      return true;
+    });
 
     if (undiscoveredLazyResults.length > 0) {
-      const finishEvt = this.finishedEvent!
-      for (const chunk of this.buildToolResultChunks(
-        undiscoveredLazyResults,
-        finishEvt,
-      )) {
-        yield* this.pipeThroughMiddleware(chunk)
+      const finishEvt = this.finishedEvent!;
+      for (const chunk of this.buildToolResultChunks(undiscoveredLazyResults, finishEvt)) {
+        yield* this.pipeThroughMiddleware(chunk);
       }
     }
 
     if (executableToolCalls.length === 0) {
       // All tool calls were undiscovered lazy tools — errors emitted, continue loop
-      this.toolCallManager.clear()
-      this.setToolPhase('continue')
-      return
+      this.toolCallManager.clear();
+      this.setToolPhase("continue");
+      return;
     }
-    this.middlewareCtx.phase = 'beforeTools'
+    this.middlewareCtx.phase = "beforeTools";
 
-    const { approvals, clientToolResults } = this.collectClientState()
+    const { approvals, clientToolResults } = this.collectClientState();
 
     const generator = executeToolCalls(
       executableToolCalls,
@@ -982,41 +928,35 @@ class TextEngine<
           this.logger.tools(`phase=before name=${toolCall.function.name}`, {
             name: toolCall.function.name,
             args,
-          })
+          });
           const hookCtx = {
             toolCall,
             tool,
             args,
             toolName: toolCall.function.name,
             toolCallId: toolCall.id,
-          }
-          return this.middlewareRunner.runOnBeforeToolCall(
-            this.middlewareCtx,
-            hookCtx,
-          )
+          };
+          return this.middlewareRunner.runOnBeforeToolCall(this.middlewareCtx, hookCtx);
         },
         onAfterToolCall: async (info) => {
           this.logger.tools(`phase=after name=${info.toolName}`, {
             name: info.toolName,
             result: info.result,
-          })
-          await this.middlewareRunner.runOnAfterToolCall(
-            this.middlewareCtx,
-            info,
-          )
+          });
+          await this.middlewareRunner.runOnAfterToolCall(this.middlewareCtx, info);
         },
       },
-    )
+    );
 
     // Consume the async generator, yielding custom events and collecting the return value
-    const executionResult = yield* this.drainToolCallGenerator(generator)
+    const executionResult = yield* this.drainToolCallGenerator(generator);
 
-    this.middlewareCtx.phase = 'afterTools'
+    this.middlewareCtx.phase = "afterTools";
 
     // Check if middleware aborted during tool execution
     if (this.isMiddlewareAborted()) {
-      this.setToolPhase('stop')
-      return
+      this.setToolPhase("stop");
+      return;
     }
 
     // Notify middleware of tool phase completion (devtools emits aggregate events here)
@@ -1025,83 +965,74 @@ class TextEngine<
       results: executionResult.results,
       needsApproval: executionResult.needsApproval,
       needsClientExecution: executionResult.needsClientExecution,
-    })
+    });
 
     if (
       executionResult.needsApproval.length > 0 ||
       executionResult.needsClientExecution.length > 0
     ) {
       if (executionResult.results.length > 0) {
-        for (const chunk of this.buildToolResultChunks(
-          executionResult.results,
-          finishEvent,
-        )) {
-          yield* this.pipeThroughMiddleware(chunk)
+        for (const chunk of this.buildToolResultChunks(executionResult.results, finishEvent)) {
+          yield* this.pipeThroughMiddleware(chunk);
         }
       }
 
-      for (const chunk of this.buildApprovalChunks(
-        executionResult.needsApproval,
-        finishEvent,
-      )) {
-        yield* this.pipeThroughMiddleware(chunk)
+      for (const chunk of this.buildApprovalChunks(executionResult.needsApproval, finishEvent)) {
+        yield* this.pipeThroughMiddleware(chunk);
       }
 
       for (const chunk of this.buildClientToolChunks(
         executionResult.needsClientExecution,
         finishEvent,
       )) {
-        yield* this.pipeThroughMiddleware(chunk)
+        yield* this.pipeThroughMiddleware(chunk);
       }
 
-      this.setToolPhase('wait')
-      return
+      this.setToolPhase("wait");
+      return;
     }
 
-    const toolResultChunks = this.buildToolResultChunks(
-      executionResult.results,
-      finishEvent,
-    )
+    const toolResultChunks = this.buildToolResultChunks(executionResult.results, finishEvent);
 
     for (const chunk of toolResultChunks) {
-      yield* this.pipeThroughMiddleware(chunk)
+      yield* this.pipeThroughMiddleware(chunk);
     }
 
     // Refresh tools if lazy tools were discovered in this batch
     if (this.lazyToolManager.hasNewlyDiscoveredTools()) {
-      this.tools = this.lazyToolManager.getActiveTools()
-      this.toolCallManager = new ToolCallManager(this.tools)
-      this.setToolPhase('continue')
-      return
+      this.tools = this.lazyToolManager.getActiveTools();
+      this.toolCallManager = new ToolCallManager(this.tools);
+      this.setToolPhase("continue");
+      return;
     }
 
-    this.toolCallManager.clear()
+    this.toolCallManager.clear();
 
-    this.setToolPhase('continue')
+    this.setToolPhase("continue");
   }
 
   private shouldExecuteToolPhase(): boolean {
     return (
-      this.finishedEvent?.finishReason === 'tool_calls' &&
+      this.finishedEvent?.finishReason === "tool_calls" &&
       this.tools.length > 0 &&
       this.toolCallManager.hasToolCalls()
-    )
+    );
   }
 
   private addAssistantToolCallMessage(toolCalls: Array<ToolCall>): void {
-    this.finalizeCurrentThinkingStep()
+    this.finalizeCurrentThinkingStep();
 
     this.messages = [
       ...this.messages,
       {
-        role: 'assistant',
+        role: "assistant",
         content: this.accumulatedContent || null,
         toolCalls,
         ...(this.accumulatedThinking.length > 0 && {
           thinking: this.accumulatedThinking,
         }),
       },
-    ]
+    ];
   }
 
   /**
@@ -1109,91 +1040,85 @@ class TextEngine<
    * This is called in the constructor BEFORE converting to ModelMessage format,
    * because the parts array (which contains approval state) is lost during conversion.
    */
-  private extractClientStateFromOriginalMessages(
-    originalMessages: Array<any>,
-  ): {
-    approvals: Map<string, boolean>
-    clientToolResults: Map<string, any>
+  private extractClientStateFromOriginalMessages(originalMessages: Array<any>): {
+    approvals: Map<string, boolean>;
+    clientToolResults: Map<string, any>;
   } {
-    const approvals = new Map<string, boolean>()
-    const clientToolResults = new Map<string, any>()
+    const approvals = new Map<string, boolean>();
+    const clientToolResults = new Map<string, any>();
 
     for (const message of originalMessages) {
       // Check for UIMessage format (parts array) - extract client tool results and approvals
-      if (message.role === 'assistant' && message.parts) {
+      if (message.role === "assistant" && message.parts) {
         for (const part of message.parts) {
-          if (part.type === 'tool-call') {
+          if (part.type === "tool-call") {
             // Extract client tool results (tools without approval that have output)
             if (part.output !== undefined && !part.approval) {
-              clientToolResults.set(part.id, part.output)
+              clientToolResults.set(part.id, part.output);
             }
             // Extract approval responses from UIMessage format parts
             if (
               part.approval?.id &&
               part.approval?.approved !== undefined &&
-              part.state === 'approval-responded'
+              part.state === "approval-responded"
             ) {
-              approvals.set(part.approval.id, part.approval.approved)
+              approvals.set(part.approval.id, part.approval.approved);
             }
           }
         }
       }
     }
 
-    return { approvals, clientToolResults }
+    return { approvals, clientToolResults };
   }
 
   private collectClientState(): {
-    approvals: Map<string, boolean>
-    clientToolResults: Map<string, any>
+    approvals: Map<string, boolean>;
+    clientToolResults: Map<string, any>;
   } {
     // Start with the initial client state extracted from original messages
-    const approvals = new Map(this.initialApprovals)
-    const clientToolResults = new Map(this.initialClientToolResults)
+    const approvals = new Map(this.initialApprovals);
+    const clientToolResults = new Map(this.initialClientToolResults);
 
     // Also check current messages for any additional tool results (from server tools)
     for (const message of this.messages) {
       // Check for ModelMessage format (role: 'tool' messages contain tool results)
       // This handles results sent back from the client after executing client-side tools
-      if (message.role === 'tool' && message.toolCallId) {
+      if (message.role === "tool" && message.toolCallId) {
         // Parse content back to original output (was stringified by uiMessageToModelMessages)
-        let output: unknown
+        let output: unknown;
         try {
-          output = JSON.parse(message.content as string)
+          output = JSON.parse(message.content as string);
         } catch {
-          output = message.content
+          output = message.content;
         }
         // Skip approval response messages (they have pendingExecution marker)
         // These are NOT real client tool results — they are synthetic tool messages
         // created by uiMessageToModelMessages for approved-but-not-yet-executed tools.
         // Treating them as results would prevent the server from requesting actual
         // client-side execution after approval (see GitHub issue #225).
-        if (
-          output &&
-          typeof output === 'object' &&
-          (output as any).pendingExecution === true
-        ) {
-          continue
+        if (output && typeof output === "object" && (output as any).pendingExecution === true) {
+          continue;
         }
-        clientToolResults.set(message.toolCallId, output)
+        clientToolResults.set(message.toolCallId, output);
       }
     }
 
-    return { approvals, clientToolResults }
+    return { approvals, clientToolResults };
   }
 
   private buildApprovalChunks(
     approvals: Array<ApprovalRequest>,
     finishEvent: RunFinishedEvent,
   ): Array<StreamChunk> {
-    const chunks: Array<StreamChunk> = []
+    const chunks: Array<StreamChunk> = [];
 
     for (const approval of approvals) {
       chunks.push({
-        type: 'CUSTOM',
+        type: "CUSTOM",
         timestamp: Date.now(),
         model: finishEvent.model,
-        name: 'approval-requested',
+        name: "approval-requested",
         value: {
           toolCallId: approval.toolCallId,
           toolName: approval.toolName,
@@ -1203,33 +1128,33 @@ class TextEngine<
             needsApproval: true,
           },
         },
-      } as StreamChunk)
+      } as StreamChunk);
     }
 
-    return chunks
+    return chunks;
   }
 
   private buildClientToolChunks(
     clientRequests: Array<ClientToolRequest>,
     finishEvent: RunFinishedEvent,
   ): Array<StreamChunk> {
-    const chunks: Array<StreamChunk> = []
+    const chunks: Array<StreamChunk> = [];
 
     for (const clientTool of clientRequests) {
       chunks.push({
-        type: 'CUSTOM',
+        type: "CUSTOM",
         timestamp: Date.now(),
         model: finishEvent.model,
-        name: 'tool-input-available',
+        name: "tool-input-available",
         value: {
           toolCallId: clientTool.toolCallId,
           toolName: clientTool.toolName,
           input: clientTool.input,
         },
-      } as StreamChunk)
+      } as StreamChunk);
     }
 
-    return chunks
+    return chunks;
   }
 
   private buildToolResultChunks(
@@ -1237,54 +1162,54 @@ class TextEngine<
     finishEvent: RunFinishedEvent,
     argsMap?: Map<string, string>,
   ): Array<StreamChunk> {
-    const chunks: Array<StreamChunk> = []
+    const chunks: Array<StreamChunk> = [];
 
     for (const result of results) {
-      const content = JSON.stringify(result.result)
+      const content = JSON.stringify(result.result);
 
       // Emit TOOL_CALL_START + TOOL_CALL_ARGS before TOOL_CALL_END so that
       // the client can reconstruct the full tool call during continuations.
       if (argsMap) {
         chunks.push({
-          type: 'TOOL_CALL_START',
+          type: "TOOL_CALL_START",
           timestamp: Date.now(),
           model: finishEvent.model,
           toolCallId: result.toolCallId,
           toolCallName: result.toolName,
           toolName: result.toolName,
-        } as StreamChunk)
+        } as StreamChunk);
 
-        const args = argsMap.get(result.toolCallId) ?? '{}'
+        const args = argsMap.get(result.toolCallId) ?? "{}";
         chunks.push({
-          type: 'TOOL_CALL_ARGS',
+          type: "TOOL_CALL_ARGS",
           timestamp: Date.now(),
           model: finishEvent.model,
           toolCallId: result.toolCallId,
           delta: args,
           args,
-        } as StreamChunk)
+        } as StreamChunk);
       }
 
       chunks.push({
-        type: 'TOOL_CALL_END',
+        type: "TOOL_CALL_END",
         timestamp: Date.now(),
         model: finishEvent.model,
         toolCallId: result.toolCallId,
         toolCallName: result.toolName,
         toolName: result.toolName,
         result: content,
-      } as StreamChunk)
+      } as StreamChunk);
 
       // AG-UI spec TOOL_CALL_RESULT event
       chunks.push({
-        type: 'TOOL_CALL_RESULT',
+        type: "TOOL_CALL_RESULT",
         timestamp: Date.now(),
         model: finishEvent.model,
-        messageId: this.createId('tool-result'),
+        messageId: this.createId("tool-result"),
         toolCallId: result.toolCallId,
         content,
-        role: 'tool',
-      } as StreamChunk)
+        role: "tool",
+      } as StreamChunk);
 
       // If a placeholder tool message exists for this toolCallId (created by
       // uiMessageToModelMessages for an approval-responded part with no
@@ -1293,51 +1218,51 @@ class TextEngine<
       // blocks by tool_use_id keeping the first match, the placeholder wins
       // and the real result is dropped (see issue #532).
       const placeholderIdx = this.messages.findIndex((m) => {
-        if (m.role !== 'tool' || m.toolCallId !== result.toolCallId) {
-          return false
+        if (m.role !== "tool" || m.toolCallId !== result.toolCallId) {
+          return false;
         }
-        if (typeof m.content !== 'string') return false
+        if (typeof m.content !== "string") return false;
         try {
-          return JSON.parse(m.content)?.pendingExecution === true
+          return JSON.parse(m.content)?.pendingExecution === true;
         } catch {
-          return false
+          return false;
         }
-      })
+      });
 
       const newToolMessage: ModelMessage = {
-        role: 'tool',
+        role: "tool",
         content,
         toolCallId: result.toolCallId,
-      }
+      };
 
       if (placeholderIdx >= 0) {
         this.messages = [
           ...this.messages.slice(0, placeholderIdx),
           newToolMessage,
           ...this.messages.slice(placeholderIdx + 1),
-        ]
+        ];
       } else {
-        this.messages = [...this.messages, newToolMessage]
+        this.messages = [...this.messages, newToolMessage];
       }
     }
 
-    return chunks
+    return chunks;
   }
 
   private getPendingToolCallsFromMessages(): Array<ToolCall> {
     // Build a set of completed tool IDs, but exclude tools with pendingExecution marker
     // (these are approved tools that still need to execute)
-    const completedToolIds = new Set<string>()
+    const completedToolIds = new Set<string>();
 
     for (const message of this.messages) {
-      if (message.role === 'tool' && message.toolCallId) {
+      if (message.role === "tool" && message.toolCallId) {
         // Check if this is an approval response with pendingExecution marker
-        let hasPendingExecution = false
-        if (typeof message.content === 'string') {
+        let hasPendingExecution = false;
+        if (typeof message.content === "string") {
           try {
-            const parsed = JSON.parse(message.content)
+            const parsed = JSON.parse(message.content);
             if (parsed.pendingExecution === true) {
-              hasPendingExecution = true
+              hasPendingExecution = true;
             }
           } catch {
             // Not JSON, treat as regular tool result
@@ -1346,40 +1271,40 @@ class TextEngine<
 
         // Only mark as complete if NOT pending execution
         if (!hasPendingExecution) {
-          completedToolIds.add(message.toolCallId)
+          completedToolIds.add(message.toolCallId);
         }
       }
     }
 
-    const pending: Array<ToolCall> = []
+    const pending: Array<ToolCall> = [];
 
     for (const message of this.messages) {
-      if (message.role === 'assistant' && message.toolCalls) {
+      if (message.role === "assistant" && message.toolCalls) {
         for (const toolCall of message.toolCalls) {
           if (!completedToolIds.has(toolCall.id)) {
-            pending.push(toolCall)
+            pending.push(toolCall);
           }
         }
       }
     }
 
-    return pending
+    return pending;
   }
 
   private createSyntheticFinishedEvent(): RunFinishedEvent {
     return {
-      type: 'RUN_FINISHED',
-      runId: this.createId('pending'),
+      type: "RUN_FINISHED",
+      runId: this.createId("pending"),
       threadId: this.threadId,
       model: this.params.model,
       timestamp: Date.now(),
-      finishReason: 'tool_calls',
-    } as RunFinishedEvent
+      finishReason: "tool_calls",
+    } as RunFinishedEvent;
   }
 
   private shouldContinue(): boolean {
-    if (this.cyclePhase === 'executeToolCalls') {
-      return true
+    if (this.cyclePhase === "executeToolCalls") {
+      return true;
     }
 
     return (
@@ -1387,20 +1312,20 @@ class TextEngine<
         iterationCount: this.iterationCount,
         messages: this.messages,
         finishReason: this.lastFinishReason,
-      }) && this.toolPhase === 'continue'
-    )
+      }) && this.toolPhase === "continue"
+    );
   }
 
   private isAborted(): boolean {
-    return !!this.effectiveSignal?.aborted
+    return !!this.effectiveSignal?.aborted;
   }
 
   private isMiddlewareAborted(): boolean {
-    return !!this.middlewareAbortController?.signal.aborted
+    return !!this.middlewareAbortController?.signal.aborted;
   }
 
   private isCancelled(): boolean {
-    return this.isAborted() || this.isMiddlewareAborted()
+    return this.isAborted() || this.isMiddlewareAborted();
   }
 
   private buildMiddlewareConfig(): ChatMiddlewareConfig {
@@ -1413,13 +1338,13 @@ class TextEngine<
       maxTokens: this.params.maxTokens,
       metadata: this.params.metadata,
       modelOptions: this.params.modelOptions,
-    }
+    };
   }
 
   private applyMiddlewareConfig(config: ChatMiddlewareConfig): void {
-    this.messages = config.messages
-    this.systemPrompts = config.systemPrompts
-    this.tools = config.tools
+    this.messages = config.messages;
+    this.systemPrompts = config.systemPrompts;
+    this.tools = config.tools;
     this.params = {
       ...this.params,
       temperature: config.temperature,
@@ -1427,18 +1352,18 @@ class TextEngine<
       maxTokens: config.maxTokens,
       metadata: config.metadata,
       modelOptions: config.modelOptions,
-    }
+    };
 
     // Sync context fields that depend on config
-    this.middlewareCtx.messages = this.messages
-    this.middlewareCtx.systemPrompts = this.systemPrompts
-    this.middlewareCtx.hasTools = this.tools.length > 0
-    this.middlewareCtx.toolNames = this.tools.map((t) => t.name)
-    this.middlewareCtx.modelOptions = config.modelOptions
+    this.middlewareCtx.messages = this.messages;
+    this.middlewareCtx.systemPrompts = this.systemPrompts;
+    this.middlewareCtx.hasTools = this.tools.length > 0;
+    this.middlewareCtx.toolNames = this.tools.map((t) => t.name);
+    this.middlewareCtx.modelOptions = config.modelOptions;
   }
 
   private setToolPhase(phase: ToolPhaseResult): void {
-    this.toolPhase = phase
+    this.toolPhase = phase;
   }
 
   /**
@@ -1448,13 +1373,10 @@ class TextEngine<
   private async *pipeThroughMiddleware(
     chunk: StreamChunk,
   ): AsyncGenerator<StreamChunk, void, void> {
-    const outputChunks = await this.middlewareRunner.runOnChunk(
-      this.middlewareCtx,
-      chunk,
-    )
+    const outputChunks = await this.middlewareRunner.runOnChunk(this.middlewareCtx, chunk);
     for (const outputChunk of outputChunks) {
-      yield outputChunk
-      this.middlewareCtx.chunkIndex++
+      yield outputChunk;
+      this.middlewareCtx.chunkIndex++;
     }
   }
 
@@ -1466,44 +1388,41 @@ class TextEngine<
     generator: AsyncGenerator<
       CustomEvent,
       {
-        results: Array<ToolResult>
-        needsApproval: Array<ApprovalRequest>
-        needsClientExecution: Array<ClientToolRequest>
+        results: Array<ToolResult>;
+        needsApproval: Array<ApprovalRequest>;
+        needsClientExecution: Array<ClientToolRequest>;
       },
       void
     >,
   ): AsyncGenerator<
     StreamChunk,
     {
-      results: Array<ToolResult>
-      needsApproval: Array<ApprovalRequest>
-      needsClientExecution: Array<ClientToolRequest>
+      results: Array<ToolResult>;
+      needsApproval: Array<ApprovalRequest>;
+      needsClientExecution: Array<ClientToolRequest>;
     },
     void
   > {
-    let next = await generator.next()
+    let next = await generator.next();
     while (!next.done) {
-      yield* this.pipeThroughMiddleware(next.value)
-      next = await generator.next()
+      yield* this.pipeThroughMiddleware(next.value);
+      next = await generator.next();
     }
-    return next.value
+    return next.value;
   }
 
-  private createCustomEventChunk(
-    eventName: string,
-    value: Record<string, any>,
-  ): CustomEvent {
+  private createCustomEventChunk(eventName: string, value: Record<string, any>): CustomEvent {
     return {
-      type: 'CUSTOM',
+      type: "CUSTOM",
       timestamp: Date.now(),
       model: this.params.model,
       name: eventName,
       value,
-    } as CustomEvent
+    } as CustomEvent;
   }
 
   private createId(prefix: string): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 }
 
@@ -1576,37 +1495,27 @@ export function chat<
   TAdapter extends AnyTextAdapter,
   TSchema extends SchemaInput | undefined = undefined,
   TStream extends boolean = true,
->(
-  options: TextActivityOptions<TAdapter, TSchema, TStream>,
-): TextActivityResult<TSchema, TStream> {
-  const { outputSchema, stream } = options
+>(options: TextActivityOptions<TAdapter, TSchema, TStream>): TextActivityResult<TSchema, TStream> {
+  const { outputSchema, stream } = options;
 
   // If outputSchema is provided, run agentic structured output
   if (outputSchema) {
     return runAgenticStructuredOutput(
-      options as unknown as TextActivityOptions<
-        AnyTextAdapter,
-        SchemaInput,
-        boolean
-      >,
-    ) as TextActivityResult<TSchema, TStream>
+      options as unknown as TextActivityOptions<AnyTextAdapter, SchemaInput, boolean>,
+    ) as TextActivityResult<TSchema, TStream>;
   }
 
   // If stream is explicitly false, run non-streaming text
   if (stream === false) {
     return runNonStreamingText(
-      options as unknown as TextActivityOptions<
-        AnyTextAdapter,
-        undefined,
-        false
-      >,
-    ) as TextActivityResult<TSchema, TStream>
+      options as unknown as TextActivityOptions<AnyTextAdapter, undefined, false>,
+    ) as TextActivityResult<TSchema, TStream>;
   }
 
   // Otherwise, run streaming text (default)
   return runStreamingText(
     options as unknown as TextActivityOptions<AnyTextAdapter, undefined, true>,
-  ) as TextActivityResult<TSchema, TStream>
+  ) as TextActivityResult<TSchema, TStream>;
 }
 
 /**
@@ -1615,9 +1524,9 @@ export function chat<
 async function* runStreamingText(
   options: TextActivityOptions<AnyTextAdapter, undefined, true>,
 ): AsyncIterable<StreamChunk> {
-  const { adapter, middleware, context, debug, ...textOptions } = options
-  const model = adapter.model
-  const logger = resolveDebugOption(debug)
+  const { adapter, middleware, context, debug, ...textOptions } = options;
+  const model = adapter.model;
+  const logger = resolveDebugOption(debug);
 
   const engine = new TextEngine(
     {
@@ -1630,10 +1539,10 @@ async function* runStreamingText(
       context,
     },
     logger,
-  )
+  );
 
   for await (const chunk of engine.run()) {
-    yield chunk
+    yield chunk;
   }
 }
 
@@ -1647,9 +1556,9 @@ function runNonStreamingText(
   // Run the streaming text and collect all text using streamToText
   const stream = runStreamingText(
     options as unknown as TextActivityOptions<AnyTextAdapter, undefined, true>,
-  )
+  );
 
-  return streamToText(stream)
+  return streamToText(stream);
 }
 
 /**
@@ -1661,13 +1570,12 @@ function runNonStreamingText(
 async function runAgenticStructuredOutput<TSchema extends SchemaInput>(
   options: TextActivityOptions<AnyTextAdapter, TSchema, boolean>,
 ): Promise<InferSchemaType<TSchema>> {
-  const { adapter, outputSchema, middleware, context, debug, ...textOptions } =
-    options
-  const model = adapter.model
-  const logger = resolveDebugOption(debug)
+  const { adapter, outputSchema, middleware, context, debug, ...textOptions } = options;
+  const model = adapter.model;
+  const logger = resolveDebugOption(debug);
 
   if (!outputSchema) {
-    throw new Error('outputSchema is required for structured output')
+    throw new Error("outputSchema is required for structured output");
   }
 
   // Create the engine and run the agentic loop
@@ -1682,7 +1590,7 @@ async function runAgenticStructuredOutput<TSchema extends SchemaInput>(
       context,
     },
     logger,
-  )
+  );
 
   // Consume the stream to run the agentic loop
   for await (const _chunk of engine.run()) {
@@ -1690,24 +1598,19 @@ async function runAgenticStructuredOutput<TSchema extends SchemaInput>(
   }
 
   // Get the final messages from the engine (includes tool results)
-  const finalMessages = engine.getMessages()
+  const finalMessages = engine.getMessages();
 
   // Build text options for structured output, excluding tools since
   // the agentic loop is complete and we only need the final response
-  const {
-    tools: _tools,
-    agentLoopStrategy: _als,
-    ...structuredTextOptions
-  } = textOptions
+  const { tools: _tools, agentLoopStrategy: _als, ...structuredTextOptions } = textOptions;
 
   // Convert the schema to JSON Schema before passing to the adapter
-  const jsonSchema = convertSchemaToJsonSchema(outputSchema)
+  const jsonSchema = convertSchemaToJsonSchema(outputSchema);
   if (!jsonSchema) {
-    throw new Error('Failed to convert output schema to JSON Schema')
+    throw new Error("Failed to convert output schema to JSON Schema");
   }
 
-  const providerName =
-    (adapter as { provider?: string }).provider ?? adapter.name
+  const providerName = (adapter as { provider?: string }).provider ?? adapter.name;
   logger.request(
     `activity=chat-structured provider=${providerName} model=${model} messages=${finalMessages.length}`,
     {
@@ -1715,7 +1618,7 @@ async function runAgenticStructuredOutput<TSchema extends SchemaInput>(
       model,
       messageCount: finalMessages.length,
     },
-  )
+  );
 
   // Call the adapter's structured output method with the conversation context
   // The adapter receives JSON Schema and can apply vendor-specific patches
@@ -1727,18 +1630,15 @@ async function runAgenticStructuredOutput<TSchema extends SchemaInput>(
       logger,
     },
     outputSchema: jsonSchema,
-  })
+  });
 
   // Validate the result against the schema if it's a Standard Schema
   if (isStandardSchema(outputSchema)) {
-    return parseWithStandardSchema<InferSchemaType<TSchema>>(
-      outputSchema,
-      result.data,
-    )
+    return parseWithStandardSchema<InferSchemaType<TSchema>>(outputSchema, result.data);
   }
 
   // For plain JSON Schema, return the data as-is
-  return result.data as InferSchemaType<TSchema>
+  return result.data as InferSchemaType<TSchema>;
 }
 
 // Re-export adapter types
@@ -1747,5 +1647,5 @@ export type {
   TextAdapterConfig,
   StructuredOutputOptions,
   StructuredOutputResult,
-} from './adapter'
-export { BaseTextAdapter } from './adapter'
+} from "./adapter";
+export { BaseTextAdapter } from "./adapter";

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isSetterCall, isSetterIdentifier, walkAst, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isSetterCall, isSetterIdentifier, walkAst, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isZeroDelayTimer = (node: EsTreeNode): boolean => {
   if (!isNodeOfType(node.callee, "Identifier") || node.callee.name !== "setTimeout") return false;

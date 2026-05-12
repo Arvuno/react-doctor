@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
 const LIST_RENDER_METHODS = new Set(["map", "flatMap"]);
-import { isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const hasContentVisibilityStyle = (node: EsTreeNode): boolean => {
   for (const attribute of node.attributes ?? []) {

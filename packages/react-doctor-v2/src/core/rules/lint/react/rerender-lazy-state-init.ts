@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { TRIVIAL_INITIALIZER_NAMES, isHookCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { TRIVIAL_INITIALIZER_NAMES, isHookCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rerenderLazyStateInit = defineRule<Rule>({
   recommendation:

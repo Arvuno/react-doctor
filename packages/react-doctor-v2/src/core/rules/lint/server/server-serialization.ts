@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { DERIVING_ARRAY_METHODS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { DERIVING_ARRAY_METHODS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isUppercaseJsxElement = (node: EsTreeNode): boolean => {
   const name = node.name;

@@ -9,12 +9,12 @@ description: >
   execution progress via code_mode:* custom events in useChat.
 type: core
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/code-mode/code-mode.md'
-  - 'TanStack/ai:docs/code-mode/code-mode-isolates.md'
-  - 'TanStack/ai:docs/code-mode/code-mode-with-skills.md'
-  - 'TanStack/ai:docs/code-mode/client-integration.md'
+  - "TanStack/ai:docs/code-mode/code-mode.md"
+  - "TanStack/ai:docs/code-mode/code-mode-isolates.md"
+  - "TanStack/ai:docs/code-mode/code-mode-with-skills.md"
+  - "TanStack/ai:docs/code-mode/client-integration.md"
 ---
 
 > **Note**: This skill requires familiarity with ai-core and ai-core/chat-experience. Code Mode is always used on top of a chat experience.
@@ -24,23 +24,23 @@ sources:
 Complete Code Mode setup with Node.js isolate driver:
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
-import { createCodeModeTool } from '@tanstack/ai-code-mode'
-import { createNodeIsolateDriver } from '@tanstack/ai-isolate-node'
-import { toolDefinition } from '@tanstack/ai'
-import { z } from 'zod'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
+import { createCodeModeTool } from "@tanstack/ai-code-mode";
+import { createNodeIsolateDriver } from "@tanstack/ai-isolate-node";
+import { toolDefinition } from "@tanstack/ai";
+import { z } from "zod";
 
 // Define a tool that code can call
 const fetchWeather = toolDefinition({
-  name: 'fetchWeather',
-  description: 'Get current weather for a city',
+  name: "fetchWeather",
+  description: "Get current weather for a city",
   inputSchema: z.object({ city: z.string() }),
   outputSchema: z.object({ temp: z.number(), condition: z.string() }),
 }).server(async ({ city }) => {
-  const res = await fetch(`https://api.weather.com/${city}`)
-  return res.json()
-})
+  const res = await fetch(`https://api.weather.com/${city}`);
+  return res.json();
+});
 
 // Create code mode tool with Node isolate
 const codeModeTool = createCodeModeTool({
@@ -49,38 +49,38 @@ const codeModeTool = createCodeModeTool({
     timeout: 30000,
   }),
   tools: [fetchWeather],
-})
+});
 
 // Use in chat
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   tools: [codeModeTool],
-})
+});
 
-return toServerSentEventsResponse(stream)
+return toServerSentEventsResponse(stream);
 ```
 
 The recommended higher-level entry point is `createCodeMode()`, which returns both the tool and a matching system prompt:
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { createCodeMode } from '@tanstack/ai-code-mode'
-import { createNodeIsolateDriver } from '@tanstack/ai-isolate-node'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat } from "@tanstack/ai";
+import { createCodeMode } from "@tanstack/ai-code-mode";
+import { createNodeIsolateDriver } from "@tanstack/ai-isolate-node";
+import { openaiText } from "@tanstack/ai-openai";
 
 const { tool, systemPrompt } = createCodeMode({
   driver: createNodeIsolateDriver(),
   tools: [fetchWeather],
   timeout: 30_000,
-})
+});
 
 const stream = chat({
-  adapter: openaiText('gpt-4o'),
-  systemPrompts: ['You are a helpful assistant.', systemPrompt],
+  adapter: openaiText("gpt-4o"),
+  systemPrompts: ["You are a helpful assistant.", systemPrompt],
   tools: [tool],
   messages,
-})
+});
 ```
 
 `createCodeMode` calls `createCodeModeTool` and `createCodeModeSystemPrompt` internally. The system prompt includes generated TypeScript type stubs for each tool so the LLM writes correct calls.
@@ -94,38 +94,38 @@ Three drivers implement the `IsolateDriver` interface. All are interchangeable.
 **Node.js** (`createNodeIsolateDriver`) -- Full V8 with JIT. Fastest option. Requires `isolated-vm` native C++ addon.
 
 ```typescript
-import { createNodeIsolateDriver } from '@tanstack/ai-isolate-node'
+import { createNodeIsolateDriver } from "@tanstack/ai-isolate-node";
 
 const driver = createNodeIsolateDriver({
   memoryLimit: 128, // MB, default 128
   timeout: 30_000, // ms, default 30000
   // skipProbe: false -- set true only after verifying compatibility
-})
+});
 ```
 
 **QuickJS** (`createQuickJSIsolateDriver`) -- WASM-based, no native deps. Works in Node.js, browsers, Deno, Bun, and edge runtimes. Slower (interpreted, no JIT). Limited stdlib (no File I/O).
 
 ```typescript
-import { createQuickJSIsolateDriver } from '@tanstack/ai-isolate-quickjs'
+import { createQuickJSIsolateDriver } from "@tanstack/ai-isolate-quickjs";
 
 const driver = createQuickJSIsolateDriver({
   memoryLimit: 128, // MB, default 128
   timeout: 30_000, // ms, default 30000
   maxStackSize: 524288, // bytes, default 512 KiB
-})
+});
 ```
 
 **Cloudflare** (`createCloudflareIsolateDriver`) -- Edge execution via a deployed Cloudflare Worker. Requires a `workerUrl` pointing to your deployed worker. Network latency on each tool call.
 
 ```typescript
-import { createCloudflareIsolateDriver } from '@tanstack/ai-isolate-cloudflare'
+import { createCloudflareIsolateDriver } from "@tanstack/ai-isolate-cloudflare";
 
 const driver = createCloudflareIsolateDriver({
-  workerUrl: 'https://my-code-mode-worker.my-account.workers.dev',
+  workerUrl: "https://my-code-mode-worker.my-account.workers.dev",
   authorization: process.env.CODE_MODE_WORKER_SECRET,
   timeout: 30_000, // ms, default 30000
   maxToolRounds: 10, // max tool-call/result cycles, default 10
-})
+});
 ```
 
 | Driver     | Best for                    | Native deps     | Browser support | Performance          |
@@ -139,56 +139,55 @@ const driver = createCloudflareIsolateDriver({
 Skills let the LLM save reusable code snippets. On future requests, relevant skills are loaded and exposed as callable tools.
 
 ```typescript
-import { chat, maxIterations } from '@tanstack/ai'
-import { createNodeIsolateDriver } from '@tanstack/ai-isolate-node'
-import { codeModeWithSkills } from '@tanstack/ai-code-mode-skills'
-import { createFileSkillStorage } from '@tanstack/ai-code-mode-skills/storage'
+import { chat, maxIterations } from "@tanstack/ai";
+import { createNodeIsolateDriver } from "@tanstack/ai-isolate-node";
+import { codeModeWithSkills } from "@tanstack/ai-code-mode-skills";
+import { createFileSkillStorage } from "@tanstack/ai-code-mode-skills/storage";
 import {
   createDefaultTrustStrategy,
   createAlwaysTrustedStrategy,
   createCustomTrustStrategy,
-} from '@tanstack/ai-code-mode-skills'
-import { openaiText } from '@tanstack/ai-openai'
+} from "@tanstack/ai-code-mode-skills";
+import { openaiText } from "@tanstack/ai-openai";
 
 // Trust strategies control how skills earn trust through executions
 // Default: untrusted -> provisional (10+ runs, >=90%) -> trusted (100+ runs, >=95%)
 // Relaxed: untrusted -> provisional (3+ runs, >=80%) -> trusted (10+ runs, >=90%)
 // Always trusted: immediately trusted (dev/testing)
 // Custom: configurable thresholds
-const trustStrategy = createDefaultTrustStrategy()
+const trustStrategy = createDefaultTrustStrategy();
 
 // Storage options: file system (production) or memory (testing)
 const storage = createFileSkillStorage({
-  directory: './.skills',
+  directory: "./.skills",
   trustStrategy,
-})
+});
 
-const driver = createNodeIsolateDriver()
+const driver = createNodeIsolateDriver();
 
 // High-level API: automatic LLM-based skill selection
-const { toolsRegistry, systemPrompt, selectedSkills } =
-  await codeModeWithSkills({
-    config: {
-      driver,
-      tools: [myTool1, myTool2],
-      timeout: 60_000,
-      memoryLimit: 128,
-    },
-    adapter: openaiText('gpt-4o-mini'), // cheap model for skill selection
-    skills: {
-      storage,
-      maxSkillsInContext: 5,
-    },
-    messages,
-  })
+const { toolsRegistry, systemPrompt, selectedSkills } = await codeModeWithSkills({
+  config: {
+    driver,
+    tools: [myTool1, myTool2],
+    timeout: 60_000,
+    memoryLimit: 128,
+  },
+  adapter: openaiText("gpt-4o-mini"), // cheap model for skill selection
+  skills: {
+    storage,
+    maxSkillsInContext: 5,
+  },
+  messages,
+});
 
 const stream = chat({
-  adapter: openaiText('gpt-4o'),
+  adapter: openaiText("gpt-4o"),
   tools: toolsRegistry.getTools(),
   messages,
-  systemPrompts: ['You are a helpful assistant.', systemPrompt],
+  systemPrompts: ["You are a helpful assistant.", systemPrompt],
   agentLoopStrategy: maxIterations(15),
-})
+});
 ```
 
 The registry includes: `execute_typescript`, `search_skills`, `get_skill`, `register_skill`, and one tool per selected skill.
@@ -197,22 +196,22 @@ Custom trust strategy example:
 
 ```typescript
 const strategy = createCustomTrustStrategy({
-  initialLevel: 'untrusted',
+  initialLevel: "untrusted",
   provisionalThreshold: { executions: 5, successRate: 0.85 },
   trustedThreshold: { executions: 50, successRate: 0.95 },
-})
+});
 ```
 
 Storage implementations:
 
 ```typescript
 // File storage (production) -- persists skills as files on disk
-import { createFileSkillStorage } from '@tanstack/ai-code-mode-skills/storage'
-const fileStorage = createFileSkillStorage({ directory: './.skills' })
+import { createFileSkillStorage } from "@tanstack/ai-code-mode-skills/storage";
+const fileStorage = createFileSkillStorage({ directory: "./.skills" });
 
 // Memory storage (testing) -- in-memory, lost on restart
-import { createMemorySkillStorage } from '@tanstack/ai-code-mode-skills/storage'
-const memStorage = createMemorySkillStorage()
+import { createMemorySkillStorage } from "@tanstack/ai-code-mode-skills/storage";
+const memStorage = createMemorySkillStorage();
 ```
 
 ### 3. Client-Side Execution Progress Display
@@ -341,7 +340,7 @@ const codeModeTool = createCodeModeTool({
   driver,
   tools: [
     toolDefinition({
-      name: 'callApi',
+      name: "callApi",
       inputSchema: z.object({ url: z.string(), apiKey: z.string() }),
       outputSchema: z.any(),
     }).server(async ({ url, apiKey }) =>
@@ -350,7 +349,7 @@ const codeModeTool = createCodeModeTool({
       }),
     ),
   ],
-})
+});
 ```
 
 Right:
@@ -360,7 +359,7 @@ const codeModeTool = createCodeModeTool({
   driver,
   tools: [
     toolDefinition({
-      name: 'callApi',
+      name: "callApi",
       inputSchema: z.object({ url: z.string() }),
       outputSchema: z.any(),
     }).server(async ({ url }) =>
@@ -369,7 +368,7 @@ const codeModeTool = createCodeModeTool({
       }),
     ),
   ],
-})
+});
 ```
 
 Source: docs/code-mode/code-mode.md
@@ -381,13 +380,13 @@ LLM-generated code may contain infinite loops. The default timeout is 30s, but d
 Wrong:
 
 ```typescript
-const driver = createNodeIsolateDriver({ timeout: 0 })
+const driver = createNodeIsolateDriver({ timeout: 0 });
 ```
 
 Right:
 
 ```typescript
-const driver = createNodeIsolateDriver({ timeout: 30_000 })
+const driver = createNodeIsolateDriver({ timeout: 30_000 });
 ```
 
 Source: ai-code-mode source (default timeout in CodeModeToolConfig)
@@ -397,14 +396,11 @@ Source: ai-code-mode source (default timeout in CodeModeToolConfig)
 `isolated-vm` requires native module compilation. An incompatible build (wrong Node.js version, missing build tools) causes segfaults that no JS error handling can catch. The driver runs a subprocess probe by default. Never set `skipProbe: true` unless you have independently verified compatibility. Use `probeIsolatedVm()` to check before creating the driver.
 
 ```typescript
-import {
-  createNodeIsolateDriver,
-  probeIsolatedVm,
-} from '@tanstack/ai-isolate-node'
+import { createNodeIsolateDriver, probeIsolatedVm } from "@tanstack/ai-isolate-node";
 
-const probe = probeIsolatedVm()
+const probe = probeIsolatedVm();
 if (!probe.compatible) {
-  console.error('isolated-vm not compatible:', probe.error)
+  console.error("isolated-vm not compatible:", probe.error);
   // Fall back to QuickJS
 }
 

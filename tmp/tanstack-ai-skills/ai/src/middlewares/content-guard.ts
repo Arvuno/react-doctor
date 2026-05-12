@@ -1,28 +1,25 @@
-import type {
-  ChatMiddleware,
-  ChatMiddlewareContext,
-} from '../activities/chat/middleware/types'
-import type { StreamChunk } from '../types'
+import type { ChatMiddleware, ChatMiddlewareContext } from "../activities/chat/middleware/types";
+import type { StreamChunk } from "../types";
 
 /**
  * A content guard rule — either a regex pattern with replacement, or a transform function.
  */
 export type ContentGuardRule =
   | { pattern: RegExp; replacement: string }
-  | { fn: (text: string) => string }
+  | { fn: (text: string) => string };
 
 /**
  * Information passed to the onFiltered callback.
  */
 export interface ContentFilteredInfo {
   /** The message ID being filtered */
-  messageId: string
+  messageId: string;
   /** The original text before filtering */
-  original: string
+  original: string;
   /** The filtered text after rules applied */
-  filtered: string
+  filtered: string;
   /** Which strategy was used */
-  strategy: 'delta' | 'buffered'
+  strategy: "delta" | "buffered";
 }
 
 /**
@@ -34,7 +31,7 @@ export interface ContentGuardMiddlewareOptions {
    * with a replacement string, or a custom transform function.
    * Rules are applied in order. Each rule receives the output of the previous.
    */
-  rules: Array<ContentGuardRule>
+  rules: Array<ContentGuardRule>;
 
   /**
    * Matching strategy:
@@ -45,7 +42,7 @@ export interface ContentGuardMiddlewareOptions {
    *
    * @default 'buffered'
    */
-  strategy?: 'delta' | 'buffered'
+  strategy?: "delta" | "buffered";
 
   /**
    * Number of characters to hold back before emitting (buffered strategy only).
@@ -54,33 +51,33 @@ export interface ContentGuardMiddlewareOptions {
    *
    * @default 50
    */
-  bufferSize?: number
+  bufferSize?: number;
 
   /**
    * If true, drop the entire chunk when any rule changes the content.
    * @default false
    */
-  blockOnMatch?: boolean
+  blockOnMatch?: boolean;
 
   /**
    * Callback when content is filtered by any rule.
    */
-  onFiltered?: (info: ContentFilteredInfo) => void
+  onFiltered?: (info: ContentFilteredInfo) => void;
 }
 
 /**
  * Apply all rules to a string, returning the transformed result.
  */
 function applyRules(text: string, rules: Array<ContentGuardRule>): string {
-  let result = text
+  let result = text;
   for (const rule of rules) {
-    if ('pattern' in rule) {
-      result = result.replace(rule.pattern, rule.replacement)
+    if ("pattern" in rule) {
+      result = result.replace(rule.pattern, rule.replacement);
     } else {
-      result = rule.fn(result)
+      result = rule.fn(result);
     }
   }
-  return result
+  return result;
 }
 
 /**
@@ -98,21 +95,19 @@ function applyRules(text: string, rules: Array<ContentGuardRule>): string {
  * })
  * ```
  */
-export function contentGuardMiddleware(
-  options: ContentGuardMiddlewareOptions,
-): ChatMiddleware {
+export function contentGuardMiddleware(options: ContentGuardMiddlewareOptions): ChatMiddleware {
   const {
     rules,
-    strategy = 'buffered',
+    strategy = "buffered",
     bufferSize = 50,
     blockOnMatch = false,
     onFiltered,
-  } = options
+  } = options;
 
-  if (strategy === 'delta') {
-    return createDeltaStrategy(rules, blockOnMatch, onFiltered)
+  if (strategy === "delta") {
+    return createDeltaStrategy(rules, blockOnMatch, onFiltered);
   }
-  return createBufferedStrategy(rules, bufferSize, blockOnMatch, onFiltered)
+  return createBufferedStrategy(rules, bufferSize, blockOnMatch, onFiltered);
 }
 
 function createDeltaStrategy(
@@ -121,34 +116,34 @@ function createDeltaStrategy(
   onFiltered?: (info: ContentFilteredInfo) => void,
 ): ChatMiddleware {
   return {
-    name: 'content-guard',
+    name: "content-guard",
 
     onChunk(_ctx: ChatMiddlewareContext, chunk: StreamChunk) {
-      if (chunk.type !== 'TEXT_MESSAGE_CONTENT') return
+      if (chunk.type !== "TEXT_MESSAGE_CONTENT") return;
 
-      const original = chunk.delta
-      const filtered = applyRules(original, rules)
+      const original = chunk.delta;
+      const filtered = applyRules(original, rules);
 
-      if (filtered === original) return // unchanged, pass through
+      if (filtered === original) return; // unchanged, pass through
 
       if (onFiltered) {
         onFiltered({
           messageId: chunk.messageId,
           original,
           filtered,
-          strategy: 'delta',
-        })
+          strategy: "delta",
+        });
       }
 
-      if (blockOnMatch) return null // drop chunk
+      if (blockOnMatch) return null; // drop chunk
 
       return {
         ...chunk,
         delta: filtered,
         content: undefined,
-      } as StreamChunk
+      } as StreamChunk;
     },
-  }
+  };
 }
 
 function createBufferedStrategy(
@@ -157,20 +152,20 @@ function createBufferedStrategy(
   blockOnMatch: boolean,
   onFiltered?: (info: ContentFilteredInfo) => void,
 ): ChatMiddleware {
-  let rawAccumulated = ''
-  let emittedFilteredLength = 0
-  let lastMessageId = ''
+  let rawAccumulated = "";
+  let emittedFilteredLength = 0;
+  let lastMessageId = "";
 
   function resetState() {
-    rawAccumulated = ''
-    emittedFilteredLength = 0
-    lastMessageId = ''
+    rawAccumulated = "";
+    emittedFilteredLength = 0;
+    lastMessageId = "";
   }
 
   function flushBuffer(): StreamChunk | null {
-    if (rawAccumulated.length === 0) return null
+    if (rawAccumulated.length === 0) return null;
 
-    const filtered = applyRules(rawAccumulated, rules)
+    const filtered = applyRules(rawAccumulated, rules);
 
     if (blockOnMatch && filtered !== rawAccumulated) {
       if (onFiltered) {
@@ -178,73 +173,73 @@ function createBufferedStrategy(
           messageId: lastMessageId,
           original: rawAccumulated,
           filtered,
-          strategy: 'buffered',
-        })
+          strategy: "buffered",
+        });
       }
-      resetState()
-      return null
+      resetState();
+      return null;
     }
 
-    const remaining = filtered.slice(emittedFilteredLength)
+    const remaining = filtered.slice(emittedFilteredLength);
     if (remaining.length > 0) {
       if (filtered !== rawAccumulated && onFiltered) {
         onFiltered({
           messageId: lastMessageId,
           original: rawAccumulated,
           filtered,
-          strategy: 'buffered',
-        })
+          strategy: "buffered",
+        });
       }
 
       const flushed = {
-        type: 'TEXT_MESSAGE_CONTENT',
+        type: "TEXT_MESSAGE_CONTENT",
         messageId: lastMessageId,
         delta: remaining,
         content: filtered,
         timestamp: Date.now(),
-      } as StreamChunk
+      } as StreamChunk;
 
-      resetState()
-      return flushed
+      resetState();
+      return flushed;
     }
 
-    resetState()
-    return null
+    resetState();
+    return null;
   }
 
   return {
-    name: 'content-guard',
+    name: "content-guard",
 
     onStart() {
-      resetState()
+      resetState();
     },
 
     onChunk(_ctx: ChatMiddlewareContext, chunk: StreamChunk) {
       // Flush buffer on stream end events
-      if (chunk.type === 'TEXT_MESSAGE_END' || chunk.type === 'RUN_FINISHED') {
-        const flushed = flushBuffer()
-        if (flushed) return [flushed, chunk]
-        return // pass through end event
+      if (chunk.type === "TEXT_MESSAGE_END" || chunk.type === "RUN_FINISHED") {
+        const flushed = flushBuffer();
+        if (flushed) return [flushed, chunk];
+        return; // pass through end event
       }
 
-      if (chunk.type !== 'TEXT_MESSAGE_CONTENT') return // pass through
+      if (chunk.type !== "TEXT_MESSAGE_CONTENT") return; // pass through
 
       // Flush buffer on message boundary change
-      const pending: Array<StreamChunk> = []
+      const pending: Array<StreamChunk> = [];
       if (lastMessageId && chunk.messageId !== lastMessageId) {
-        const flushed = flushBuffer()
-        if (flushed) pending.push(flushed)
+        const flushed = flushBuffer();
+        if (flushed) pending.push(flushed);
       }
 
-      rawAccumulated += chunk.delta
-      lastMessageId = chunk.messageId
+      rawAccumulated += chunk.delta;
+      lastMessageId = chunk.messageId;
 
       // Apply rules to full accumulated text, buffer in filtered space
-      const filtered = applyRules(rawAccumulated, rules)
-      const safeFilteredEnd = Math.max(0, filtered.length - bufferSize)
+      const filtered = applyRules(rawAccumulated, rules);
+      const safeFilteredEnd = Math.max(0, filtered.length - bufferSize);
 
       if (safeFilteredEnd <= emittedFilteredLength) {
-        return pending.length > 0 ? pending : null
+        return pending.length > 0 ? pending : null;
       }
 
       if (blockOnMatch && filtered !== rawAccumulated) {
@@ -253,33 +248,33 @@ function createBufferedStrategy(
             messageId: chunk.messageId,
             original: rawAccumulated,
             filtered,
-            strategy: 'buffered',
-          })
+            strategy: "buffered",
+          });
         }
-        return pending.length > 0 ? pending : null
+        return pending.length > 0 ? pending : null;
       }
 
-      const newDelta = filtered.slice(emittedFilteredLength, safeFilteredEnd)
+      const newDelta = filtered.slice(emittedFilteredLength, safeFilteredEnd);
 
       if (filtered !== rawAccumulated && onFiltered) {
         onFiltered({
           messageId: chunk.messageId,
           original: rawAccumulated,
           filtered,
-          strategy: 'buffered',
-        })
+          strategy: "buffered",
+        });
       }
 
-      emittedFilteredLength = safeFilteredEnd
+      emittedFilteredLength = safeFilteredEnd;
 
       const emitChunk = {
         ...chunk,
         delta: newDelta,
         content: filtered.slice(0, safeFilteredEnd),
-      } as StreamChunk
+      } as StreamChunk;
 
-      pending.push(emitChunk)
-      return pending.length === 1 ? pending[0]! : pending
+      pending.push(emitChunk);
+      return pending.length === 1 ? pending[0]! : pending;
     },
-  }
+  };
 }

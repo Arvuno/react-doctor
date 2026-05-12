@@ -1,14 +1,14 @@
-import type { AudioGenerationOptions, AudioGenerationResult } from '../../types'
+import type { AudioGenerationOptions, AudioGenerationResult } from "../../types";
 
 /**
  * Configuration for audio generation adapter instances
  */
 export interface AudioAdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
-  headers?: Record<string, string>
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -26,32 +26,32 @@ export interface AudioAdapter<
   TProviderOptions extends object = Record<string, unknown>,
 > {
   /** Discriminator for adapter kind - used to determine API shape */
-  readonly kind: 'audio'
+  readonly kind: "audio";
   /** Adapter name identifier */
-  readonly name: string
+  readonly name: string;
   /** The model this adapter is configured for */
-  readonly model: TModel
+  readonly model: TModel;
 
   /**
    * @internal Type-only properties for inference. Not assigned at runtime.
    */
-  '~types': {
-    providerOptions: TProviderOptions
-  }
+  "~types": {
+    providerOptions: TProviderOptions;
+  };
 
   /**
    * Generate audio from a text prompt
    */
   generateAudio: (
     options: AudioGenerationOptions<TProviderOptions>,
-  ) => Promise<AudioGenerationResult>
+  ) => Promise<AudioGenerationResult>;
 }
 
 /**
  * An AudioAdapter with any/unknown type parameters.
  * Useful as a constraint in generic functions and interfaces.
  */
-export type AnyAudioAdapter = AudioAdapter<any, any>
+export type AnyAudioAdapter = AudioAdapter<any, any>;
 
 /**
  * Abstract base class for audio generation adapters.
@@ -63,27 +63,27 @@ export abstract class BaseAudioAdapter<
   TModel extends string = string,
   TProviderOptions extends object = Record<string, unknown>,
 > implements AudioAdapter<TModel, TProviderOptions> {
-  readonly kind = 'audio' as const
-  abstract readonly name: string
-  readonly model: TModel
+  readonly kind = "audio" as const;
+  abstract readonly name: string;
+  readonly model: TModel;
 
   // Type-only property - never assigned at runtime
-  declare '~types': {
-    providerOptions: TProviderOptions
-  }
+  declare "~types": {
+    providerOptions: TProviderOptions;
+  };
 
-  protected config: AudioAdapterConfig
+  protected config: AudioAdapterConfig;
 
   constructor(model: TModel, config: AudioAdapterConfig = {}) {
-    this.config = config
-    this.model = model
+    this.config = config;
+    this.model = model;
   }
 
   abstract generateAudio(
     options: AudioGenerationOptions<TProviderOptions>,
-  ): Promise<AudioGenerationResult>
+  ): Promise<AudioGenerationResult>;
 
   protected generateId(): string {
-    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
 }

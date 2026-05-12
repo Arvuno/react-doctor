@@ -17,7 +17,7 @@ Groq currently only has a text adapter (no image, TTS, etc.).
 ## Import
 
 ```typescript
-import { groqText } from '@tanstack/ai-groq'
+import { groqText } from "@tanstack/ai-groq";
 ```
 
 ## Key Chat Models
@@ -39,16 +39,16 @@ Guard models: `meta-llama/llama-guard-4-12b`, `meta-llama/llama-prompt-guard-2-8
 
 ```typescript
 chat({
-  adapter: groqText('llama-3.3-70b-versatile'),
+  adapter: groqText("llama-3.3-70b-versatile"),
   messages,
   modelOptions: {
     // Reasoning
-    reasoning_effort: 'medium', // 'none' | 'default' | 'low' | 'medium' | 'high'
-    reasoning_format: 'parsed', // 'hidden' | 'raw' | 'parsed' (mutually exclusive with include_reasoning)
+    reasoning_effort: "medium", // 'none' | 'default' | 'low' | 'medium' | 'high'
+    reasoning_format: "parsed", // 'hidden' | 'raw' | 'parsed' (mutually exclusive with include_reasoning)
     include_reasoning: true, // mutually exclusive with reasoning_format
     // Response format
     response_format: {
-      type: 'json_schema',
+      type: "json_schema",
       json_schema: {
         /* ... */
       },
@@ -59,32 +59,32 @@ chat({
     frequency_penalty: 0.5,
     presence_penalty: 0.5,
     seed: 42,
-    stop: ['\n\n'],
+    stop: ["\n\n"],
     // Token limits
     max_completion_tokens: 8192,
     // Tool calling
-    tool_choice: 'auto',
+    tool_choice: "auto",
     parallel_tool_calls: true,
     disable_tool_validation: false,
     // Citations
-    citation_options: 'enabled',
+    citation_options: "enabled",
     // Documents for context
-    documents: [{ text: '...' }],
+    documents: [{ text: "..." }],
     // Search settings (for web search tool)
     search_settings: {
       /* SearchSettings */
     },
     // Service tier
-    service_tier: 'auto', // 'auto' | 'on_demand' | 'flex' | 'performance'
+    service_tier: "auto", // 'auto' | 'on_demand' | 'flex' | 'performance'
     // Metadata
-    metadata: { session: 'abc' },
+    metadata: { session: "abc" },
     // Logging
     logprobs: true,
     top_logprobs: 5,
     // User tracking
-    user: 'user-123',
+    user: "user-123",
   },
-})
+});
 ```
 
 ## Environment Variable

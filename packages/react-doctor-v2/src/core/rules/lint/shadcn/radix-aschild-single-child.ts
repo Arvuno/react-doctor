@@ -1,6 +1,11 @@
 import { defineRule } from "../../registry.js";
-import { getJsxName, getMeaningfulJsxChildren, hasTruthyAsChild, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import {
+  getJsxName,
+  getMeaningfulJsxChildren,
+  hasTruthyAsChild,
+  isNodeOfType,
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const radixAschildSingleChild = defineRule<Rule>({
   recommendation:

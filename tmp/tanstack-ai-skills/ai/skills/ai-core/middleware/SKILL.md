@@ -8,9 +8,9 @@ description: >
   execution order. NOT onEnd/onFinish callbacks on chat() — use middleware.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/advanced/middleware.md'
+  - "TanStack/ai:docs/advanced/middleware.md"
 ---
 
 # Middleware
@@ -20,28 +20,28 @@ sources:
 ## Setup — Analytics Tracking Middleware
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   middleware: [
     {
       onStart: (ctx) => {
-        console.log('Chat started:', ctx.model)
+        console.log("Chat started:", ctx.model);
       },
       onFinish: (ctx) => {
-        trackAnalytics({ model: ctx.model, tokens: ctx.usage })
+        trackAnalytics({ model: ctx.model, tokens: ctx.usage });
       },
       onError: (ctx) => {
-        reportError(ctx.error)
+        reportError(ctx.error);
       },
     },
   ],
-})
+});
 
-return toServerSentEventsResponse(stream)
+return toServerSentEventsResponse(stream);
 ```
 
 ## Hooks Reference
@@ -75,25 +75,21 @@ Use `onStart`, `onFinish`, `onUsage`, and `onError` for comprehensive observabil
 Use `ctx.defer()` for non-blocking async side effects that should not block the stream.
 
 ```typescript
-import {
-  chat,
-  toServerSentEventsResponse,
-  type ChatMiddleware,
-} from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toServerSentEventsResponse, type ChatMiddleware } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 const analytics: ChatMiddleware = {
-  name: 'analytics',
+  name: "analytics",
   onStart: (ctx) => {
-    console.log(`[${ctx.requestId}] Chat started — model: ${ctx.model}`)
+    console.log(`[${ctx.requestId}] Chat started — model: ${ctx.model}`);
   },
   onUsage: (ctx, usage) => {
-    console.log(`[${ctx.requestId}] Tokens: ${usage.totalTokens}`)
+    console.log(`[${ctx.requestId}] Tokens: ${usage.totalTokens}`);
   },
   onFinish: (ctx, info) => {
     ctx.defer(
-      fetch('/api/analytics', {
-        method: 'POST',
+      fetch("/api/analytics", {
+        method: "POST",
         body: JSON.stringify({
           requestId: ctx.requestId,
           model: ctx.model,
@@ -102,29 +98,29 @@ const analytics: ChatMiddleware = {
           finishReason: info.finishReason,
         }),
       }),
-    )
+    );
   },
   onError: (ctx, info) => {
     ctx.defer(
-      fetch('/api/errors', {
-        method: 'POST',
+      fetch("/api/errors", {
+        method: "POST",
         body: JSON.stringify({
           requestId: ctx.requestId,
           error: String(info.error),
           duration: info.duration,
         }),
       }),
-    )
+    );
   },
-}
+};
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   middleware: [analytics],
-})
+});
 
-return toServerSentEventsResponse(stream)
+return toServerSentEventsResponse(stream);
 ```
 
 ### Pattern 2: Tool Interception Middleware
@@ -134,34 +130,34 @@ Use `onAfterToolCall` to log results and timing. The first middleware that retur
 non-void decision from `onBeforeToolCall` short-circuits remaining middleware for that call.
 
 ```typescript
-import type { ChatMiddleware } from '@tanstack/ai'
+import type { ChatMiddleware } from "@tanstack/ai";
 
 const toolGuard: ChatMiddleware = {
-  name: 'tool-guard',
+  name: "tool-guard",
   onBeforeToolCall: (ctx, hookCtx) => {
     // Block dangerous tools
-    if (hookCtx.toolName === 'deleteDatabase') {
-      return { type: 'abort', reason: 'Dangerous operation blocked' }
+    if (hookCtx.toolName === "deleteDatabase") {
+      return { type: "abort", reason: "Dangerous operation blocked" };
     }
 
     // Enforce default arguments
-    if (hookCtx.toolName === 'search' && !hookCtx.args.limit) {
+    if (hookCtx.toolName === "search" && !hookCtx.args.limit) {
       return {
-        type: 'transformArgs',
+        type: "transformArgs",
         args: { ...hookCtx.args, limit: 10 },
-      }
+      };
     }
 
     // Return void to continue normally
   },
   onAfterToolCall: (ctx, info) => {
     if (info.ok) {
-      console.log(`${info.toolName} completed in ${info.duration}ms`)
+      console.log(`${info.toolName} completed in ${info.duration}ms`);
     } else {
-      console.error(`${info.toolName} failed:`, info.error)
+      console.error(`${info.toolName} failed:`, info.error);
     }
   },
-}
+};
 ```
 
 **`onBeforeToolCall` decision types:**
@@ -179,34 +175,34 @@ Middleware executes in array order (left-to-right). Ordering matters for hooks t
 pipe or short-circuit:
 
 ```typescript
-import { chat, type ChatMiddleware } from '@tanstack/ai'
-import { toolCacheMiddleware } from '@tanstack/ai/middlewares'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, type ChatMiddleware } from "@tanstack/ai";
+import { toolCacheMiddleware } from "@tanstack/ai/middlewares";
+import { openaiText } from "@tanstack/ai-openai";
 
 const logging: ChatMiddleware = {
-  name: 'logging',
+  name: "logging",
   onStart: (ctx) => console.log(`[${ctx.requestId}] started`),
   onChunk: (ctx, chunk) => {
-    console.log(`[${ctx.requestId}] chunk: ${chunk.type}`)
+    console.log(`[${ctx.requestId}] chunk: ${chunk.type}`);
   },
   onFinish: (ctx, info) => {
-    console.log(`[${ctx.requestId}] done in ${info.duration}ms`)
+    console.log(`[${ctx.requestId}] done in ${info.duration}ms`);
   },
-}
+};
 
 const configTransform: ChatMiddleware = {
-  name: 'config-transform',
+  name: "config-transform",
   onConfig: (ctx, config) => {
-    if (ctx.phase === 'init') {
+    if (ctx.phase === "init") {
       return {
-        systemPrompts: [...config.systemPrompts, 'Always respond in JSON.'],
-      }
+        systemPrompts: [...config.systemPrompts, "Always respond in JSON."],
+      };
     }
   },
-}
+};
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   tools: [weatherTool, stockTool],
   middleware: [
@@ -214,7 +210,7 @@ const stream = chat({
     configTransform, // Transforms config second
     toolCacheMiddleware({ ttl: 60_000 }), // Caches tool results third
   ],
-})
+});
 ```
 
 **Composition rules by hook:**
@@ -234,8 +230,8 @@ const stream = chat({
 Caches tool call results by name + arguments. Import from `@tanstack/ai/middlewares`:
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { toolCacheMiddleware } from '@tanstack/ai/middlewares'
+import { chat } from "@tanstack/ai";
+import { toolCacheMiddleware } from "@tanstack/ai/middlewares";
 
 const stream = chat({
   adapter,
@@ -245,10 +241,10 @@ const stream = chat({
     toolCacheMiddleware({
       ttl: 60_000, // Cache entries expire after 60 seconds
       maxSize: 50, // Max 50 entries (LRU eviction)
-      toolNames: ['getWeather'], // Only cache specific tools
+      toolNames: ["getWeather"], // Only cache specific tools
     }),
   ],
-})
+});
 ```
 
 Options: `maxSize` (default 100), `ttl` (default Infinity), `toolNames` (default all),
@@ -262,22 +258,22 @@ Options: `maxSize` (default 100), `ttl` (default Infinity), `toolNames` (default
 ```typescript
 // WRONG -- mutating the chunk object directly
 const broken: ChatMiddleware = {
-  name: 'broken',
+  name: "broken",
   onChunk: (ctx, chunk) => {
-    chunk.delta = 'modified' // Mutation does nothing; chunk is not modified in-place
+    chunk.delta = "modified"; // Mutation does nothing; chunk is not modified in-place
   },
-}
+};
 
 // CORRECT -- return a new chunk to replace the original
 const correct: ChatMiddleware = {
-  name: 'correct',
+  name: "correct",
   onChunk: (ctx, chunk) => {
-    if (chunk.type === 'TEXT_MESSAGE_CONTENT') {
-      return { ...chunk, delta: chunk.delta.replace(/secret/g, '[REDACTED]') }
+    if (chunk.type === "TEXT_MESSAGE_CONTENT") {
+      return { ...chunk, delta: chunk.delta.replace(/secret/g, "[REDACTED]") };
     }
     // Return void to pass through unchanged
   },
-}
+};
 ```
 
 Middleware `onChunk` hooks are functional transforms. Return a new chunk, an array
@@ -291,38 +287,38 @@ Source: docs/advanced/middleware.md
 ```typescript
 // WRONG -- unhandled error kills the entire streaming response
 const fragile: ChatMiddleware = {
-  name: 'fragile-analytics',
+  name: "fragile-analytics",
   onFinish: async (ctx, info) => {
     // If this fetch fails, the stream breaks
-    await fetch('/api/analytics', {
-      method: 'POST',
+    await fetch("/api/analytics", {
+      method: "POST",
       body: JSON.stringify({ duration: info.duration }),
-    })
+    });
   },
-}
+};
 
 // CORRECT -- wrap in try-catch and/or use ctx.defer()
 const resilient: ChatMiddleware = {
-  name: 'resilient-analytics',
+  name: "resilient-analytics",
   onFinish: (ctx, info) => {
     // Option 1: defer (non-blocking, errors are isolated)
     ctx.defer(
-      fetch('/api/analytics', {
-        method: 'POST',
+      fetch("/api/analytics", {
+        method: "POST",
         body: JSON.stringify({ duration: info.duration }),
       }),
-    )
+    );
   },
   onChunk: (ctx, chunk) => {
     // Option 2: try-catch for synchronous/critical hooks
     try {
-      logChunk(chunk)
+      logChunk(chunk);
     } catch (err) {
-      console.error('Logging failed:', err)
+      console.error("Logging failed:", err);
     }
     // Return void to pass through
   },
-}
+};
 ```
 
 Wrap all middleware hooks in try-catch to prevent analytics or logging failures

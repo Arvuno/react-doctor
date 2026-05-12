@@ -1,18 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { getClassNameLiteral, getTailwindTokenGroup, tokenizeClassName } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext, TailwindTokenGroup } from "./_utils.js";
-
-const findConflictingToken = (classNameValue: string): TailwindTokenGroup | null => {
-  const seenGroups = new Map<string, string>();
-  for (const token of tokenizeClassName(classNameValue)) {
-    const groupedToken = getTailwindTokenGroup(token);
-    if (!groupedToken) continue;
-    const previousToken = seenGroups.get(groupedToken.group);
-    if (previousToken && previousToken !== groupedToken.token) return groupedToken;
-    seenGroups.set(groupedToken.group, groupedToken.token);
-  }
-  return null;
-};
+import { findClassNameLiteral, findTailwindClassConflict } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const tailwindNoConflictingClasses = defineRule<Rule>({
   recommendation:
@@ -25,13 +13,13 @@ export const tailwindNoConflictingClasses = defineRule<Rule>({
   ],
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNode) {
-      const classNameValue = getClassNameLiteral(node);
-      if (!classNameValue) return;
-      const conflictingToken = findConflictingToken(classNameValue);
-      if (!conflictingToken) return;
+      const classNameLiteral = findClassNameLiteral(node);
+      if (!classNameLiteral) return;
+      const conflict = findTailwindClassConflict(classNameLiteral.value);
+      if (!conflict) return;
       context.report({
-        node,
-        message: `Tailwind class "${conflictingToken.token}" conflicts with another ${conflictingToken.group} utility in the same className - remove the overridden class`,
+        node: classNameLiteral.attribute,
+        message: `Tailwind class "${conflict.token}" conflicts with earlier "${conflict.previousToken}" ${conflict.group} utility - remove the overridden class`,
       });
     },
   }),

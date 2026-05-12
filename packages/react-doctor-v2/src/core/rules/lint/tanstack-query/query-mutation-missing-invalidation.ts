@@ -4,8 +4,8 @@ import {
   TANSTACK_MUTATION_HOOKS,
   isNodeOfType,
   walkAst,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const queryMutationMissingInvalidation = defineRule<Rule>({
   recommendation:

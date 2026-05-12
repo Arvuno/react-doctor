@@ -1,5 +1,5 @@
-import type { ChatMiddleware } from './activities/chat/middleware/types'
-import type { StreamChunk } from './types'
+import type { ChatMiddleware } from "./activities/chat/middleware/types";
+import type { StreamChunk } from "./types";
 
 /**
  * Strip only the deprecated nested `error` object from RUN_ERROR events.
@@ -12,14 +12,11 @@ import type { StreamChunk } from './types'
  */
 export function stripToSpec(chunk: StreamChunk): StreamChunk {
   // Only strip the deprecated nested error object from RUN_ERROR
-  if (
-    (chunk as StreamChunk & { type: string }).type === 'RUN_ERROR' &&
-    'error' in chunk
-  ) {
-    const { error: _deprecated, ...rest } = chunk as Record<string, unknown>
-    return rest as StreamChunk
+  if ((chunk as StreamChunk & { type: string }).type === "RUN_ERROR" && "error" in chunk) {
+    const { error: _deprecated, ...rest } = chunk as Record<string, unknown>;
+    return rest as StreamChunk;
   }
-  return chunk
+  return chunk;
 }
 
 /**
@@ -29,9 +26,9 @@ export function stripToSpec(chunk: StreamChunk): StreamChunk {
  */
 export function stripToSpecMiddleware(): ChatMiddleware {
   return {
-    name: 'strip-to-spec',
+    name: "strip-to-spec",
     onChunk(_ctx, chunk) {
-      return stripToSpec(chunk)
+      return stripToSpec(chunk);
     },
-  }
+  };
 }

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { OG_ROUTE_PATTERN, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { OG_ROUTE_PATTERN, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoImgElement = defineRule<Rule>({
   recommendation:

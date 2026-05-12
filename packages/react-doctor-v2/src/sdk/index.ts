@@ -1,4 +1,22 @@
 export {
+  clearReactDoctorConfigCache,
+  loadReactDoctorConfig,
+  resolveConfigRootDirectory,
+} from "../core/config.js";
+export {
+  calculateReactDoctorScore,
+  buildReactDoctorJsonReport,
+  summarizeReactDoctorResult,
+} from "../core/reports.js";
+export {
+  discoverReactProject,
+  parseReactMajorVersion,
+  toOxlintProjectInfo,
+} from "../core/project.js";
+export { filterReactDoctorIssues } from "../core/diagnostics.js";
+export { OXLINT_CHECK_ID, runOxlint } from "../core/runners/oxlint.js";
+export type { RunOxlintOptions } from "../core/runners/oxlint.js";
+export {
   ReactDoctorError,
   ReactDoctorCancelledError,
   ReactDoctorConfigError,
@@ -28,8 +46,11 @@ export {
   BUILTIN_OXLINT_RULES,
   BUILTIN_REACT_OXLINT_RULES,
   CURATED_OXLINT_RULES,
+  DEAD_CODE_RULE_ID,
+  DEPENDENCIES_RULE_ID,
   GLOBAL_REACT_DOCTOR_OXLINT_RULES,
   NEXTJS_OXLINT_RULES,
+  REACT_ARCHITECTURE_RULE_ID,
   REACT_COMPILER_OXLINT_RULES,
   REACT_DOCTOR_CUSTOM_OXLINT_RULES,
   REACT_DOCTOR_OXLINT_PLUGIN_NAMESPACE,
@@ -72,12 +93,20 @@ export type {
   ReactDoctorCheckResult,
   ReactDoctorIssue,
   ReactDoctorIssueSource,
+  ReactDoctorConfig,
+  ReactDoctorFailOnLevel,
+  ReactDoctorIgnoreConfig,
+  ReactDoctorIgnoreOverride,
+  ReactDoctorJsonReport,
+  ReactDoctorJsonReportSummary,
   ReactDoctorResult,
   ReactDoctorRuleSelection,
   ReactDoctorScore,
+  ReactProjectFramework,
   ReactProjectInfo,
   SourceLocation,
 } from "../core/types.js";
+export { reactDoctorEslintPlugin } from "../eslint-plugin.js";
 export { clearCaches, diagnose } from "./compat.js";
 export type {
   Diagnostic,

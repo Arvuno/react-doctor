@@ -1,4 +1,4 @@
-import type { Tool } from '../types'
+import type { Tool } from "../types";
 
 /**
  * A provider-specific tool produced by an adapter-package factory
@@ -16,10 +16,7 @@ import type { Tool } from '../types'
  * @template TKind - Canonical tool-kind string matching the provider's
  *   `supports.tools` entries (e.g. `'web_search'`, `'code_execution'`).
  */
-export interface ProviderTool<
-  TProvider extends string,
-  TKind extends string,
-> extends Tool {
-  readonly '~provider': TProvider
-  readonly '~toolKind': TKind
+export interface ProviderTool<TProvider extends string, TKind extends string> extends Tool {
+  readonly "~provider": TProvider;
+  readonly "~toolKind": TKind;
 }

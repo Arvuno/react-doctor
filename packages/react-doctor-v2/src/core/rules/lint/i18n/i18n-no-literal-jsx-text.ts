@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { hasLetters, isInsideIgnoredTextElement } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { hasLetters, isInsideIgnoredTextElement } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const i18nNoLiteralJsxText = defineRule<Rule>({
   recommendation:

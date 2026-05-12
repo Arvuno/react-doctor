@@ -1,12 +1,24 @@
-export { default as reactDoctorOxlintPlugin } from "./plugin.js";
 export {
+  ALL_REACT_DOCTOR_OXLINT_RULE_KEYS,
+  BUILTIN_A11Y_OXLINT_RULES,
   BUILTIN_OXLINT_RULES,
+  BUILTIN_REACT_OXLINT_RULES,
+  CURATED_OXLINT_RULES,
+  GLOBAL_REACT_DOCTOR_OXLINT_RULES,
+  NEXTJS_OXLINT_RULES,
+  REACT_COMPILER_OXLINT_RULES,
+  REACT_DOCTOR_CUSTOM_OXLINT_RULES,
+  REACT_NATIVE_OXLINT_RULES,
+  TANSTACK_QUERY_OXLINT_RULES,
+  TANSTACK_START_OXLINT_RULES,
   buildReactDoctorOxlintCapabilities,
   createReactDoctorOxlintConfig,
   reactPeerRangeMinMajor,
   shouldEnableReactDoctorOxlintRule,
 } from "./config.js";
+export { reactDoctorOxlintPlugin } from "./rules.js";
 export type {
+  OxlintRuleSeverityMap,
   ReactDoctorOxlintConfigOptions,
   ReactDoctorOxlintFramework,
   ReactDoctorOxlintGeneratedConfig,
@@ -21,24 +33,10 @@ export type {
   RuleExample as OxlintRuleExample,
   RulePlugin as OxlintRulePlugin,
   RuleVisitors as OxlintRuleVisitors,
-} from "./utils.js";
+} from "./utils/index.js";
 export {
   REACT_DOCTOR_OXLINT_PLUGIN_NAMESPACE,
   REACT_DOCTOR_OXLINT_RULE_ID_PREFIX,
   reactDoctorOxlintRuleMetadata,
 } from "./metadata.js";
 export type { OxlintRuleMetadata } from "./metadata.js";
-export {
-  ALL_REACT_DOCTOR_OXLINT_RULE_KEYS,
-  BUILTIN_A11Y_OXLINT_RULES,
-  BUILTIN_REACT_OXLINT_RULES,
-  CURATED_OXLINT_RULES,
-  GLOBAL_REACT_DOCTOR_OXLINT_RULES,
-  NEXTJS_OXLINT_RULES,
-  REACT_COMPILER_OXLINT_RULES,
-  REACT_DOCTOR_CUSTOM_OXLINT_RULES,
-  REACT_NATIVE_OXLINT_RULES,
-  TANSTACK_QUERY_OXLINT_RULES,
-  TANSTACK_START_OXLINT_RULES,
-} from "./presets.js";
-export type { OxlintRuleSeverityMap } from "./presets.js";

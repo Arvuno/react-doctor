@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { MUTABLE_CONTAINER_CONSTRUCTORS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { MUTABLE_CONTAINER_CONSTRUCTORS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const serverCacheLru = defineRule<Rule>({
   recommendation:

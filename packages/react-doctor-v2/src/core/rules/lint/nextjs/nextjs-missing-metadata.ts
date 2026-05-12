@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { INTERNAL_PAGE_PATH_PATTERN, PAGE_FILE_PATTERN, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { INTERNAL_PAGE_PATH_PATTERN, PAGE_FILE_PATTERN, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsMissingMetadata = defineRule<Rule>({
   recommendation:

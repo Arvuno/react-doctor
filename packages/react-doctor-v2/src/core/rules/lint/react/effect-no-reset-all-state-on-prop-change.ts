@@ -9,8 +9,8 @@ import {
   isHookCall,
   walkInsideStatementBlocks,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isUndefinedValue = (node: EsTreeNode | undefined): boolean =>
   !node || (isNodeOfType(node, "Identifier") && node.name === "undefined");

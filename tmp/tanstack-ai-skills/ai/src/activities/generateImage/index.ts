@@ -5,20 +5,20 @@
  * This is a self-contained module with implementation, types, and JSDoc.
  */
 
-import { aiEventClient } from '@tanstack/ai-event-client'
-import { streamGenerationResult } from '../stream-generation-result.js'
-import { resolveDebugOption } from '../../logger/resolve'
-import type { InternalLogger } from '../../logger/internal-logger'
-import type { DebugOption } from '../../logger/types'
-import type { ImageAdapter } from './adapter'
-import type { ImageGenerationResult, StreamChunk } from '../../types'
+import { aiEventClient } from "@tanstack/ai-event-client";
+import { streamGenerationResult } from "../stream-generation-result.js";
+import { resolveDebugOption } from "../../logger/resolve";
+import type { InternalLogger } from "../../logger/internal-logger";
+import type { DebugOption } from "../../logger/types";
+import type { ImageAdapter } from "./adapter";
+import type { ImageGenerationResult, StreamChunk } from "../../types";
 
 // ===========================
 // Activity Kind
 // ===========================
 
 /** The adapter kind this activity handles */
-export const kind = 'image' as const
+export const kind = "image" as const;
 
 // ===========================
 // Type Extraction Helpers
@@ -38,7 +38,7 @@ export type ImageProviderOptionsForModel<TAdapter, TModel extends string> =
         TModel extends keyof ModelOptions
         ? ModelOptions[TModel]
         : BaseOptions
-    : object
+    : object;
 
 /**
  * Extract model-specific size options from an ImageAdapter via ~types.
@@ -53,7 +53,7 @@ export type ImageSizeForModel<TAdapter, TModel extends string> =
         TModel extends keyof SizeByName
         ? SizeByName[TModel]
         : string
-    : string
+    : string;
 
 // ===========================
 // Activity Options Type
@@ -71,13 +71,13 @@ export type ImageActivityOptions<
   TStream extends boolean = false,
 > = {
   /** The image adapter to use (must be created with a model) */
-  adapter: TAdapter & { kind: typeof kind }
+  adapter: TAdapter & { kind: typeof kind };
   /** Text description of the desired image(s) */
-  prompt: string
+  prompt: string;
   /** Number of images to generate (default: 1) */
-  numberOfImages?: number
+  numberOfImages?: number;
   /** Image size in WIDTHxHEIGHT format (e.g., "1024x1024") */
-  size?: ImageSizeForModel<TAdapter, TAdapter['model']>
+  size?: ImageSizeForModel<TAdapter, TAdapter["model"]>;
   /**
    * Whether to stream the image generation result.
    * When true, returns an AsyncIterable<StreamChunk> for streaming transport.
@@ -85,26 +85,26 @@ export type ImageActivityOptions<
    *
    * @default false
    */
-  stream?: TStream
+  stream?: TStream;
   /**
    * Enable debug logging. Pass `true` to enable all categories, `false` to
    * silence everything including errors, or a `DebugConfig` object for granular
    * control and/or a custom `Logger`.
    */
-  debug?: DebugOption
-} & ({} extends ImageProviderOptionsForModel<TAdapter, TAdapter['model']>
+  debug?: DebugOption;
+} & ({} extends ImageProviderOptionsForModel<TAdapter, TAdapter["model"]>
   ? {
       /** Provider-specific options for image generation */ modelOptions?: ImageProviderOptionsForModel<
         TAdapter,
-        TAdapter['model']
-      >
+        TAdapter["model"]
+      >;
     }
   : {
       /** Provider-specific options for image generation */ modelOptions: ImageProviderOptionsForModel<
         TAdapter,
-        TAdapter['model']
-      >
-    })
+        TAdapter["model"]
+      >;
+    });
 
 // ===========================
 // Activity Result Type
@@ -115,13 +115,12 @@ export type ImageActivityOptions<
  * - If stream is true: AsyncIterable<StreamChunk>
  * - Otherwise: Promise<ImageGenerationResult>
  */
-export type ImageActivityResult<TStream extends boolean = false> =
-  TStream extends true
-    ? AsyncIterable<StreamChunk>
-    : Promise<ImageGenerationResult>
+export type ImageActivityResult<TStream extends boolean = false> = TStream extends true
+  ? AsyncIterable<StreamChunk>
+  : Promise<ImageGenerationResult>;
 
 function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // ===========================
@@ -176,34 +175,28 @@ function createId(prefix: string): string {
 export function generateImage<
   TAdapter extends ImageAdapter<string, any, any, any>,
   TStream extends boolean = false,
->(
-  options: ImageActivityOptions<TAdapter, TStream>,
-): ImageActivityResult<TStream> {
+>(options: ImageActivityOptions<TAdapter, TStream>): ImageActivityResult<TStream> {
   if (options.stream) {
-    return streamGenerationResult(() =>
-      runGenerateImage(options),
-    ) as ImageActivityResult<TStream>
+    return streamGenerationResult(() => runGenerateImage(options)) as ImageActivityResult<TStream>;
   }
 
-  return runGenerateImage(options) as ImageActivityResult<TStream>
+  return runGenerateImage(options) as ImageActivityResult<TStream>;
 }
 
 /**
  * Internal implementation of image generation (always non-streaming).
  * Contains all devtools event emission logic.
  */
-async function runGenerateImage<
-  TAdapter extends ImageAdapter<string, any, any, any>,
->(
+async function runGenerateImage<TAdapter extends ImageAdapter<string, any, any, any>>(
   options: ImageActivityOptions<TAdapter, boolean>,
 ): Promise<ImageGenerationResult> {
-  const { adapter, stream: _stream, debug: _debug, ...rest } = options
-  const model = adapter.model
-  const requestId = createId('image')
-  const startTime = Date.now()
-  const logger: InternalLogger = resolveDebugOption(options.debug)
+  const { adapter, stream: _stream, debug: _debug, ...rest } = options;
+  const model = adapter.model;
+  const requestId = createId("image");
+  const startTime = Date.now();
+  const logger: InternalLogger = resolveDebugOption(options.debug);
 
-  aiEventClient.emit('image:request:started', {
+  aiEventClient.emit("image:request:started", {
     requestId,
     provider: adapter.name,
     model,
@@ -212,18 +205,18 @@ async function runGenerateImage<
     size: rest.size,
     modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
     timestamp: startTime,
-  })
+  });
 
   logger.request(`activity=generateImage provider=${adapter.name}`, {
     provider: adapter.name,
     model,
-  })
+  });
 
   try {
-    const result = await adapter.generateImages({ ...rest, model, logger })
-    const duration = Date.now() - startTime
+    const result = await adapter.generateImages({ ...rest, model, logger });
+    const duration = Date.now() - startTime;
 
-    aiEventClient.emit('image:request:completed', {
+    aiEventClient.emit("image:request:completed", {
       requestId,
       provider: adapter.name,
       model,
@@ -234,29 +227,29 @@ async function runGenerateImage<
       duration,
       modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
       timestamp: Date.now(),
-    })
+    });
 
     if (result.usage) {
-      aiEventClient.emit('image:usage', {
+      aiEventClient.emit("image:usage", {
         requestId,
         model,
         usage: result.usage,
         modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
         timestamp: Date.now(),
-      })
+      });
     }
 
     logger.output(`activity=generateImage count=${result.images.length}`, {
       count: result.images.length,
-    })
+    });
 
-    return result
+    return result;
   } catch (error) {
-    logger.errors('generateImage activity failed', {
+    logger.errors("generateImage activity failed", {
       error,
-      source: 'generateImage',
-    })
-    throw error
+      source: "generateImage",
+    });
+    throw error;
   }
 }
 
@@ -270,16 +263,10 @@ async function runGenerateImage<
 export function createImageOptions<
   TAdapter extends ImageAdapter<string, any, any, any>,
   TStream extends boolean = false,
->(
-  options: ImageActivityOptions<TAdapter, TStream>,
-): ImageActivityOptions<TAdapter, TStream> {
-  return options
+>(options: ImageActivityOptions<TAdapter, TStream>): ImageActivityOptions<TAdapter, TStream> {
+  return options;
 }
 
 // Re-export adapter types
-export type {
-  ImageAdapter,
-  ImageAdapterConfig,
-  AnyImageAdapter,
-} from './adapter'
-export { BaseImageAdapter } from './adapter'
+export type { ImageAdapter, ImageAdapterConfig, AnyImageAdapter } from "./adapter";
+export { BaseImageAdapter } from "./adapter";

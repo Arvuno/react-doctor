@@ -4,17 +4,17 @@ import type {
   Modality,
   StreamChunk,
   TextOptions,
-} from '../../types'
+} from "../../types";
 
 /**
  * Configuration for adapter instances
  */
 export interface TextAdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
-  headers?: Record<string, string>
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -27,9 +27,9 @@ export interface TextAdapterConfig {
  */
 export interface StructuredOutputOptions<TProviderOptions extends object> {
   /** Text options for the request */
-  chatOptions: TextOptions<TProviderOptions>
+  chatOptions: TextOptions<TProviderOptions>;
   /** JSON Schema for structured output - already converted from Zod in the ai layer */
-  outputSchema: JSONSchema
+  outputSchema: JSONSchema;
 }
 
 /**
@@ -37,9 +37,9 @@ export interface StructuredOutputOptions<TProviderOptions extends object> {
  */
 export interface StructuredOutputResult<T = unknown> {
   /** The parsed data conforming to the schema */
-  data: T
+  data: T;
   /** The raw text response from the model before parsing */
-  rawText: string
+  rawText: string;
 }
 
 /**
@@ -65,29 +65,27 @@ export interface TextAdapter<
   TToolCallMetadata = unknown,
 > {
   /** Discriminator for adapter kind */
-  readonly kind: 'text'
+  readonly kind: "text";
   /** Provider name identifier (e.g., 'openai', 'anthropic') */
-  readonly name: string
+  readonly name: string;
   /** The model this adapter is configured for */
-  readonly model: TModel
+  readonly model: TModel;
 
   /**
    * @internal Type-only properties for inference. Not assigned at runtime.
    */
-  '~types': {
-    providerOptions: TProviderOptions
-    inputModalities: TInputModalities
-    messageMetadataByModality: TMessageMetadataByModality
-    toolCapabilities: TToolCapabilities
-    toolCallMetadata: TToolCallMetadata
-  }
+  "~types": {
+    providerOptions: TProviderOptions;
+    inputModalities: TInputModalities;
+    messageMetadataByModality: TMessageMetadataByModality;
+    toolCapabilities: TToolCapabilities;
+    toolCallMetadata: TToolCallMetadata;
+  };
 
   /**
    * Stream text completions from the model
    */
-  chatStream: (
-    options: TextOptions<TProviderOptions>,
-  ) => AsyncIterable<StreamChunk>
+  chatStream: (options: TextOptions<TProviderOptions>) => AsyncIterable<StreamChunk>;
 
   /**
    * Generate structured output using the provider's native structured output API.
@@ -99,14 +97,14 @@ export interface TextAdapter<
    */
   structuredOutput: (
     options: StructuredOutputOptions<TProviderOptions>,
-  ) => Promise<StructuredOutputResult<unknown>>
+  ) => Promise<StructuredOutputResult<unknown>>;
 }
 
 /**
  * A TextAdapter with any/unknown type parameters.
  * Useful as a constraint in generic functions and interfaces.
  */
-export type AnyTextAdapter = TextAdapter<any, any, any, any, any, any>
+export type AnyTextAdapter = TextAdapter<any, any, any, any, any, any>;
 
 /**
  * Abstract base class for text adapters.
@@ -129,29 +127,27 @@ export abstract class BaseTextAdapter<
   TToolCapabilities,
   TToolCallMetadata
 > {
-  readonly kind = 'text' as const
-  abstract readonly name: string
-  readonly model: TModel
+  readonly kind = "text" as const;
+  abstract readonly name: string;
+  readonly model: TModel;
 
   // Type-only property - never assigned at runtime
-  declare '~types': {
-    providerOptions: TProviderOptions
-    inputModalities: TInputModalities
-    messageMetadataByModality: TMessageMetadataByModality
-    toolCapabilities: TToolCapabilities
-    toolCallMetadata: TToolCallMetadata
-  }
+  declare "~types": {
+    providerOptions: TProviderOptions;
+    inputModalities: TInputModalities;
+    messageMetadataByModality: TMessageMetadataByModality;
+    toolCapabilities: TToolCapabilities;
+    toolCallMetadata: TToolCallMetadata;
+  };
 
-  protected config: TextAdapterConfig
+  protected config: TextAdapterConfig;
 
   constructor(config: TextAdapterConfig = {}, model: TModel) {
-    this.config = config
-    this.model = model
+    this.config = config;
+    this.model = model;
   }
 
-  abstract chatStream(
-    options: TextOptions<TProviderOptions>,
-  ): AsyncIterable<StreamChunk>
+  abstract chatStream(options: TextOptions<TProviderOptions>): AsyncIterable<StreamChunk>;
 
   /**
    * Generate structured output using the provider's native structured output API.
@@ -159,9 +155,9 @@ export abstract class BaseTextAdapter<
    */
   abstract structuredOutput(
     options: StructuredOutputOptions<TProviderOptions>,
-  ): Promise<StructuredOutputResult<unknown>>
+  ): Promise<StructuredOutputResult<unknown>>;
 
   protected generateId(): string {
-    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
 }

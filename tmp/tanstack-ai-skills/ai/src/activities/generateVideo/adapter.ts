@@ -3,7 +3,7 @@ import type {
   VideoJobResult,
   VideoStatusResult,
   VideoUrlResult,
-} from '../../types'
+} from "../../types";
 
 /**
  * Configuration for video adapter instances
@@ -11,11 +11,11 @@ import type {
  * @experimental Video generation is an experimental feature and may change.
  */
 export interface VideoAdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
-  headers?: Record<string, string>
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -39,20 +39,20 @@ export interface VideoAdapter<
   TModelSizeByName extends Record<string, string> = Record<string, string>,
 > {
   /** Discriminator for adapter kind - used to determine API shape */
-  readonly kind: 'video'
+  readonly kind: "video";
   /** Adapter name identifier */
-  readonly name: string
+  readonly name: string;
   /** The model this adapter is configured for */
-  readonly model: TModel
+  readonly model: TModel;
 
   /**
    * @internal Type-only properties for inference. Not assigned at runtime.
    */
-  '~types': {
-    providerOptions: TProviderOptions
-    modelProviderOptionsByName: TModelProviderOptionsByName
-    modelSizeByName: TModelSizeByName
-  }
+  "~types": {
+    providerOptions: TProviderOptions;
+    modelProviderOptionsByName: TModelProviderOptionsByName;
+    modelSizeByName: TModelSizeByName;
+  };
 
   /**
    * Create a new video generation job.
@@ -60,25 +60,25 @@ export interface VideoAdapter<
    */
   createVideoJob: (
     options: VideoGenerationOptions<TProviderOptions, TModelSizeByName[TModel]>,
-  ) => Promise<VideoJobResult>
+  ) => Promise<VideoJobResult>;
 
   /**
    * Get the current status of a video generation job.
    */
-  getVideoStatus: (jobId: string) => Promise<VideoStatusResult>
+  getVideoStatus: (jobId: string) => Promise<VideoStatusResult>;
 
   /**
    * Get the URL to download/view the generated video.
    * Should only be called after status is 'completed'.
    */
-  getVideoUrl: (jobId: string) => Promise<VideoUrlResult>
+  getVideoUrl: (jobId: string) => Promise<VideoUrlResult>;
 }
 
 /**
  * A VideoAdapter with any/unknown type parameters.
  * Useful as a constraint in generic functions and interfaces.
  */
-export type AnyVideoAdapter = VideoAdapter<any, any, any, any>
+export type AnyVideoAdapter = VideoAdapter<any, any, any, any>;
 
 /**
  * Abstract base class for video generation adapters.
@@ -93,39 +93,34 @@ export abstract class BaseVideoAdapter<
   TProviderOptions extends object = Record<string, unknown>,
   TModelProviderOptionsByName extends Record<string, any> = Record<string, any>,
   TModelSizeByName extends Record<string, string> = Record<string, string>,
-> implements VideoAdapter<
-  TModel,
-  TProviderOptions,
-  TModelProviderOptionsByName,
-  TModelSizeByName
-> {
-  readonly kind = 'video' as const
-  abstract readonly name: string
-  readonly model: TModel
+> implements VideoAdapter<TModel, TProviderOptions, TModelProviderOptionsByName, TModelSizeByName> {
+  readonly kind = "video" as const;
+  abstract readonly name: string;
+  readonly model: TModel;
 
   // Type-only property - never assigned at runtime
-  declare '~types': {
-    providerOptions: TProviderOptions
-    modelProviderOptionsByName: TModelProviderOptionsByName
-    modelSizeByName: TModelSizeByName
-  }
+  declare "~types": {
+    providerOptions: TProviderOptions;
+    modelProviderOptionsByName: TModelProviderOptionsByName;
+    modelSizeByName: TModelSizeByName;
+  };
 
-  protected config: VideoAdapterConfig
+  protected config: VideoAdapterConfig;
 
   constructor(config: VideoAdapterConfig = {}, model: TModel) {
-    this.config = config
-    this.model = model
+    this.config = config;
+    this.model = model;
   }
 
   abstract createVideoJob(
     options: VideoGenerationOptions<TProviderOptions, TModelSizeByName[TModel]>,
-  ): Promise<VideoJobResult>
+  ): Promise<VideoJobResult>;
 
-  abstract getVideoStatus(jobId: string): Promise<VideoStatusResult>
+  abstract getVideoStatus(jobId: string): Promise<VideoStatusResult>;
 
-  abstract getVideoUrl(jobId: string): Promise<VideoUrlResult>
+  abstract getVideoUrl(jobId: string): Promise<VideoUrlResult>;
 
   protected generateId(): string {
-    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
 }

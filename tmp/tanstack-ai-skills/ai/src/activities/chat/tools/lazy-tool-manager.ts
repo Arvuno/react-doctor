@@ -1,7 +1,7 @@
-import { convertSchemaToJsonSchema } from './schema-converter'
-import type { Tool } from '../../../types'
+import { convertSchemaToJsonSchema } from "./schema-converter";
+import type { Tool } from "../../../types";
 
-const DISCOVERY_TOOL_NAME = '__lazy__tool__discovery__'
+const DISCOVERY_TOOL_NAME = "__lazy__tool__discovery__";
 
 /**
  * Manages lazy tool discovery for the chat agent loop.
@@ -11,51 +11,51 @@ const DISCOVERY_TOOL_NAME = '__lazy__tool__discovery__'
  * by name, receiving their full descriptions and schemas on demand.
  */
 export class LazyToolManager {
-  private readonly eagerTools: ReadonlyArray<Tool>
-  private readonly lazyToolMap: Map<string, Tool>
-  private readonly discoveredTools: Set<string>
-  private hasNewDiscoveries: boolean
-  private readonly discoveryTool: Tool | null
+  private readonly eagerTools: ReadonlyArray<Tool>;
+  private readonly lazyToolMap: Map<string, Tool>;
+  private readonly discoveredTools: Set<string>;
+  private hasNewDiscoveries: boolean;
+  private readonly discoveryTool: Tool | null;
 
   constructor(
     tools: ReadonlyArray<Tool>,
     messages: ReadonlyArray<{
-      role: string
-      content?: any
+      role: string;
+      content?: any;
       toolCalls?: Array<{
-        id: string
-        type: string
-        function: { name: string; arguments: string }
-      }>
-      toolCallId?: string
+        id: string;
+        type: string;
+        function: { name: string; arguments: string };
+      }>;
+      toolCallId?: string;
     }>,
   ) {
-    const eager: Array<Tool> = []
-    this.lazyToolMap = new Map()
-    this.discoveredTools = new Set()
-    this.hasNewDiscoveries = false
+    const eager: Array<Tool> = [];
+    this.lazyToolMap = new Map();
+    this.discoveredTools = new Set();
+    this.hasNewDiscoveries = false;
 
     // Separate tools into eager and lazy
     for (const tool of tools) {
       if (tool.lazy) {
-        this.lazyToolMap.set(tool.name, tool)
+        this.lazyToolMap.set(tool.name, tool);
       } else {
-        eager.push(tool)
+        eager.push(tool);
       }
     }
-    this.eagerTools = eager
+    this.eagerTools = eager;
 
     // If no lazy tools, no discovery tool needed
     if (this.lazyToolMap.size === 0) {
-      this.discoveryTool = null
-      return
+      this.discoveryTool = null;
+      return;
     }
 
     // Scan message history to pre-populate discoveredTools
-    this.scanMessageHistory(messages)
+    this.scanMessageHistory(messages);
 
     // Create the synthetic discovery tool
-    this.discoveryTool = this.createDiscoveryTool()
+    this.discoveryTool = this.createDiscoveryTool();
   }
 
   /**
@@ -64,48 +64,45 @@ export class LazyToolManager {
    * Resets the hasNewDiscoveries flag.
    */
   getActiveTools(): Array<Tool> {
-    this.hasNewDiscoveries = false
+    this.hasNewDiscoveries = false;
 
-    const active: Array<Tool> = [...this.eagerTools]
+    const active: Array<Tool> = [...this.eagerTools];
 
     // Add discovered lazy tools
     for (const name of this.discoveredTools) {
-      const tool = this.lazyToolMap.get(name)
+      const tool = this.lazyToolMap.get(name);
       if (tool) {
-        active.push(tool)
+        active.push(tool);
       }
     }
 
     // Add discovery tool if there are still undiscovered lazy tools
-    if (
-      this.discoveryTool &&
-      this.discoveredTools.size < this.lazyToolMap.size
-    ) {
-      active.push(this.discoveryTool)
+    if (this.discoveryTool && this.discoveredTools.size < this.lazyToolMap.size) {
+      active.push(this.discoveryTool);
     }
 
-    return active
+    return active;
   }
 
   /**
    * Returns whether new tools have been discovered since the last getActiveTools() call.
    */
   hasNewlyDiscoveredTools(): boolean {
-    return this.hasNewDiscoveries
+    return this.hasNewDiscoveries;
   }
 
   /**
    * Returns true if the given name is a lazy tool that has not yet been discovered.
    */
   isUndiscoveredLazyTool(name: string): boolean {
-    return this.lazyToolMap.has(name) && !this.discoveredTools.has(name)
+    return this.lazyToolMap.has(name) && !this.discoveredTools.has(name);
   }
 
   /**
    * Returns a helpful error message for when an undiscovered lazy tool is called.
    */
   getUndiscoveredToolError(name: string): string {
-    return `Error: Tool '${name}' must be discovered first. Call ${DISCOVERY_TOOL_NAME} with toolNames: ['${name}'] to discover it.`
+    return `Error: Tool '${name}' must be discovered first. Call ${DISCOVERY_TOOL_NAME} with toolNames: ['${name}'] to discover it.`;
   }
 
   /**
@@ -115,52 +112,42 @@ export class LazyToolManager {
    */
   private scanMessageHistory(
     messages: ReadonlyArray<{
-      role: string
-      content?: any
+      role: string;
+      content?: any;
       toolCalls?: Array<{
-        id: string
-        type: string
-        function: { name: string; arguments: string }
-      }>
-      toolCallId?: string
+        id: string;
+        type: string;
+        function: { name: string; arguments: string };
+      }>;
+      toolCallId?: string;
     }>,
   ): void {
     // Collect tool call IDs for discovery tool invocations
-    const discoveryCallIds = new Set<string>()
+    const discoveryCallIds = new Set<string>();
 
     for (const msg of messages) {
-      if (msg.role === 'assistant' && msg.toolCalls) {
+      if (msg.role === "assistant" && msg.toolCalls) {
         for (const tc of msg.toolCalls) {
           if (tc.function.name === DISCOVERY_TOOL_NAME) {
-            discoveryCallIds.add(tc.id)
+            discoveryCallIds.add(tc.id);
           }
         }
       }
     }
 
-    if (discoveryCallIds.size === 0) return
+    if (discoveryCallIds.size === 0) return;
 
     // Find corresponding tool result messages
     for (const msg of messages) {
-      if (
-        msg.role === 'tool' &&
-        msg.toolCallId &&
-        discoveryCallIds.has(msg.toolCallId)
-      ) {
+      if (msg.role === "tool" && msg.toolCallId && discoveryCallIds.has(msg.toolCallId)) {
         try {
           const content =
-            typeof msg.content === 'string'
-              ? msg.content
-              : JSON.stringify(msg.content)
-          const parsed = JSON.parse(content)
+            typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+          const parsed = JSON.parse(content);
           if (parsed && Array.isArray(parsed.tools)) {
             for (const tool of parsed.tools) {
-              if (
-                tool &&
-                typeof tool.name === 'string' &&
-                this.lazyToolMap.has(tool.name)
-              ) {
-                this.discoveredTools.add(tool.name)
+              if (tool && typeof tool.name === "string" && this.lazyToolMap.has(tool.name)) {
+                this.discoveredTools.add(tool.name);
               }
             }
           }
@@ -177,78 +164,78 @@ export class LazyToolManager {
    */
   private createDiscoveryTool(): Tool {
     const undiscoveredNames = (): Array<string> => {
-      const names: Array<string> = []
+      const names: Array<string> = [];
       for (const [name] of this.lazyToolMap) {
         if (!this.discoveredTools.has(name)) {
-          names.push(name)
+          names.push(name);
         }
       }
-      return names
-    }
+      return names;
+    };
 
-    const lazyToolMap = this.lazyToolMap
+    const lazyToolMap = this.lazyToolMap;
 
     // Build the static description with all lazy tool names
-    const allLazyNames = Array.from(this.lazyToolMap.keys())
-    const description = `You have access to additional tools that can be discovered. Available tools: [${allLazyNames.join(', ')}]. Call this tool with a list of tool names to discover their full descriptions and argument schemas before using them.`
+    const allLazyNames = Array.from(this.lazyToolMap.keys());
+    const description = `You have access to additional tools that can be discovered. Available tools: [${allLazyNames.join(", ")}]. Call this tool with a list of tool names to discover their full descriptions and argument schemas before using them.`;
 
     // Use the arrow function to capture `this` context
-    const manager = this
+    const manager = this;
 
     return {
       name: DISCOVERY_TOOL_NAME,
       description,
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
           toolNames: {
-            type: 'array',
-            items: { type: 'string' },
+            type: "array",
+            items: { type: "string" },
             description:
-              'List of tool names to discover. Each name must match one of the available tools.',
+              "List of tool names to discover. Each name must match one of the available tools.",
           },
         },
-        required: ['toolNames'],
+        required: ["toolNames"],
       },
       execute: (args: { toolNames: Array<string> }) => {
         const tools: Array<{
-          name: string
-          description: string
-          inputSchema?: any
-        }> = []
-        const errors: Array<string> = []
+          name: string;
+          description: string;
+          inputSchema?: any;
+        }> = [];
+        const errors: Array<string> = [];
 
         for (const name of args.toolNames) {
-          const tool = lazyToolMap.get(name)
+          const tool = lazyToolMap.get(name);
           if (tool) {
-            manager.discoveredTools.add(name)
-            manager.hasNewDiscoveries = true
+            manager.discoveredTools.add(name);
+            manager.hasNewDiscoveries = true;
             const jsonSchema = tool.inputSchema
               ? convertSchemaToJsonSchema(tool.inputSchema)
-              : undefined
+              : undefined;
             tools.push({
               name: tool.name,
               description: tool.description,
               ...(jsonSchema ? { inputSchema: jsonSchema } : {}),
-            })
+            });
           } else {
             errors.push(
-              `Unknown tool: '${name}'. Available tools: [${undiscoveredNames().join(', ')}]`,
-            )
+              `Unknown tool: '${name}'. Available tools: [${undiscoveredNames().join(", ")}]`,
+            );
           }
         }
 
         const result: {
-          tools: typeof tools
-          errors?: Array<string>
-        } = { tools }
+          tools: typeof tools;
+          errors?: Array<string>;
+        } = { tools };
 
         if (errors.length > 0) {
-          result.errors = errors
+          result.errors = errors;
         }
 
-        return result
+        return result;
       },
-    }
+    };
   }
 }

@@ -1,4 +1,5 @@
 import { ReactDoctorInvalidConfigError, toReactDoctorErrorInfo } from "../errors.js";
+import type { CodebaseAnalysisResult } from "./codebase/analyzer/index.js";
 import type { ReactDoctorCheckResult, ReactDoctorRuleSelection } from "../types.js";
 import type { ReactDoctorRule, ReactDoctorRuleMetadata } from "./types.js";
 
@@ -29,8 +30,11 @@ export interface ReactDoctorRuleRegistry {
 
 export interface RunRulesContext {
   rootDirectory: string;
+  includePaths?: string[];
+  excludePatterns?: string[];
   selection?: ReactDoctorRuleSelection;
   signal?: AbortSignal;
+  getCodebaseAnalysis?: () => Promise<CodebaseAnalysisResult>;
 }
 
 const toRuleMap = (rules: ReactDoctorRule[]): Map<string, ReactDoctorRule> => {
@@ -84,7 +88,10 @@ const runRule = async (
     context.signal?.throwIfAborted();
     const result = await rule.run({
       rootDirectory: context.rootDirectory,
+      includePaths: context.includePaths,
+      excludePatterns: context.excludePatterns,
       signal: context.signal,
+      getCodebaseAnalysis: context.getCodebaseAnalysis,
     });
 
     return {

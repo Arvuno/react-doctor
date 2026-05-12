@@ -5,13 +5,8 @@
  * These are used by StreamProcessor to manage the message array.
  */
 
-import type {
-  ThinkingPart,
-  ToolCallPart,
-  ToolResultPart,
-  UIMessage,
-} from '../../../types'
-import type { ToolCallState, ToolResultState } from './types'
+import type { ThinkingPart, ToolCallPart, ToolResultPart, UIMessage } from "../../../types";
+import type { ToolCallState, ToolResultState } from "./types";
 
 /**
  * Update or add a text part to a message.
@@ -26,22 +21,22 @@ export function updateTextPart(
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
-    const lastPart = parts.length > 0 ? parts[parts.length - 1] : null
+    const parts = [...msg.parts];
+    const lastPart = parts.length > 0 ? parts[parts.length - 1] : null;
 
-    if (lastPart && lastPart.type === 'text') {
+    if (lastPart && lastPart.type === "text") {
       // Update the last text part (continuing same text segment)
-      parts[parts.length - 1] = { type: 'text', content }
+      parts[parts.length - 1] = { type: "text", content };
     } else {
       // Create new text part (starting new text segment after tool calls/results)
-      parts.push({ type: 'text', content })
+      parts.push({ type: "text", content });
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -51,31 +46,31 @@ export function updateToolCallPart(
   messages: Array<UIMessage>,
   messageId: string,
   toolCall: {
-    id: string
-    name: string
-    arguments: string
-    state: ToolCallState
-    metadata?: Record<string, unknown>
+    id: string;
+    name: string;
+    arguments: string;
+    state: ToolCallState;
+    metadata?: Record<string, unknown>;
   },
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const existing = parts.find(
-      (p): p is ToolCallPart => p.type === 'tool-call' && p.id === toolCall.id,
-    )
+      (p): p is ToolCallPart => p.type === "tool-call" && p.id === toolCall.id,
+    );
 
     // Carry forward metadata from either the new toolCall or the existing
     // part. Once the adapter has emitted metadata for a tool call (e.g.
     // Gemini's thoughtSignature on TOOL_CALL_START) we must not lose it on
     // subsequent updates that don't re-supply it.
-    const metadata = toolCall.metadata ?? existing?.metadata
+    const metadata = toolCall.metadata ?? existing?.metadata;
 
     const toolCallPart: ToolCallPart = {
-      type: 'tool-call',
+      type: "tool-call",
       id: toolCall.id,
       name: toolCall.name,
       arguments: toolCall.arguments,
@@ -84,18 +79,18 @@ export function updateToolCallPart(
       ...(existing?.approval && { approval: { ...existing.approval } }),
       ...(existing?.output !== undefined && { output: existing.output }),
       ...(metadata !== undefined && { metadata }),
-    }
+    };
 
     if (existing) {
       // Update existing tool call
-      parts[parts.indexOf(existing)] = toolCallPart
+      parts[parts.indexOf(existing)] = toolCallPart;
     } else {
       // Add new tool call at the end (preserve natural streaming order)
-      parts.push(toolCallPart)
+      parts.push(toolCallPart);
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -111,31 +106,30 @@ export function updateToolResultPart(
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const resultPartIndex = parts.findIndex(
-      (p): p is ToolResultPart =>
-        p.type === 'tool-result' && p.toolCallId === toolCallId,
-    )
+      (p): p is ToolResultPart => p.type === "tool-result" && p.toolCallId === toolCallId,
+    );
 
     const toolResultPart: ToolResultPart = {
-      type: 'tool-result',
+      type: "tool-result",
       toolCallId,
       content,
       state,
       ...(error && { error }),
-    }
+    };
 
     if (resultPartIndex >= 0) {
-      parts[resultPartIndex] = toolResultPart
+      parts[resultPartIndex] = toolResultPart;
     } else {
-      parts.push(toolResultPart)
+      parts.push(toolResultPart);
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -149,24 +143,24 @@ export function updateToolCallApproval(
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const toolCallPart = parts.find(
-      (p): p is ToolCallPart => p.type === 'tool-call' && p.id === toolCallId,
-    )
+      (p): p is ToolCallPart => p.type === "tool-call" && p.id === toolCallId,
+    );
 
     if (toolCallPart) {
-      toolCallPart.state = 'approval-requested'
+      toolCallPart.state = "approval-requested";
       toolCallPart.approval = {
         id: approvalId,
         needsApproval: true,
-      }
+      };
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -180,20 +174,20 @@ export function updateToolCallState(
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const toolCallPart = parts.find(
-      (p): p is ToolCallPart => p.type === 'tool-call' && p.id === toolCallId,
-    )
+      (p): p is ToolCallPart => p.type === "tool-call" && p.id === toolCallId,
+    );
 
     if (toolCallPart) {
-      toolCallPart.state = state
+      toolCallPart.state = state;
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -208,22 +202,22 @@ export function updateToolCallWithOutput(
   errorText?: string,
 ): Array<UIMessage> {
   return messages.map((msg) => {
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const toolCallPart = parts.find(
-      (p): p is ToolCallPart => p.type === 'tool-call' && p.id === toolCallId,
-    )
+      (p): p is ToolCallPart => p.type === "tool-call" && p.id === toolCallId,
+    );
 
     if (toolCallPart) {
-      toolCallPart.output = errorText ? { error: errorText } : output
+      toolCallPart.output = errorText ? { error: errorText } : output;
       if (state) {
-        toolCallPart.state = state
+        toolCallPart.state = state;
       } else {
-        toolCallPart.state = 'input-complete'
+        toolCallPart.state = "input-complete";
       }
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -236,19 +230,18 @@ export function updateToolCallApprovalResponse(
   approved: boolean,
 ): Array<UIMessage> {
   return messages.map((msg) => {
-    const parts = [...msg.parts]
+    const parts = [...msg.parts];
     const toolCallPart = parts.find(
-      (p): p is ToolCallPart =>
-        p.type === 'tool-call' && p.approval?.id === approvalId,
-    )
+      (p): p is ToolCallPart => p.type === "tool-call" && p.approval?.id === approvalId,
+    );
 
     if (toolCallPart && toolCallPart.approval) {
-      toolCallPart.approval.approved = approved
-      toolCallPart.state = 'approval-responded'
+      toolCallPart.approval.approved = approved;
+      toolCallPart.state = "approval-responded";
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }
 
 /**
@@ -264,29 +257,27 @@ export function updateThinkingPart(
 ): Array<UIMessage> {
   return messages.map((msg) => {
     if (msg.id !== messageId) {
-      return msg
+      return msg;
     }
 
-    const parts = [...msg.parts]
-    const thinkingPartIndex = parts.findIndex(
-      (p) => p.type === 'thinking' && p.stepId === stepId,
-    )
+    const parts = [...msg.parts];
+    const thinkingPartIndex = parts.findIndex((p) => p.type === "thinking" && p.stepId === stepId);
 
     const thinkingPart: ThinkingPart = {
-      type: 'thinking',
+      type: "thinking",
       content,
       stepId,
       ...(signature && { signature }),
-    }
+    };
 
     if (thinkingPartIndex >= 0) {
       // Update existing thinking part for this step
-      parts[thinkingPartIndex] = thinkingPart
+      parts[thinkingPartIndex] = thinkingPart;
     } else {
       // Add new thinking part at the end (preserve natural streaming order)
-      parts.push(thinkingPart)
+      parts.push(thinkingPart);
     }
 
-    return { ...msg, parts }
-  })
+    return { ...msg, parts };
+  });
 }

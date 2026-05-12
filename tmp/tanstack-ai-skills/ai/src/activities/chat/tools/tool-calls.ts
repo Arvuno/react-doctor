@@ -1,4 +1,4 @@
-import { isStandardSchema, parseWithStandardSchema } from './schema-converter'
+import { isStandardSchema, parseWithStandardSchema } from "./schema-converter";
 import type {
   CustomEvent,
   ModelMessage,
@@ -9,17 +9,14 @@ import type {
   ToolCallEndEvent,
   ToolCallStartEvent,
   ToolExecutionContext,
-} from '../../../types'
-import type {
-  AfterToolCallInfo,
-  BeforeToolCallDecision,
-} from '../middleware/types'
+} from "../../../types";
+import type { AfterToolCallInfo, BeforeToolCallDecision } from "../middleware/types";
 
 function safeJsonParse(value: string): unknown {
   try {
-    return JSON.parse(value)
+    return JSON.parse(value);
   } catch {
-    return value
+    return value;
   }
 }
 
@@ -32,8 +29,8 @@ export interface ToolExecutionMiddlewareHooks {
     toolCall: ToolCall,
     tool: Tool | undefined,
     args: unknown,
-  ) => Promise<BeforeToolCallDecision>
-  onAfterToolCall?: (info: AfterToolCallInfo) => Promise<void>
+  ) => Promise<BeforeToolCallDecision>;
+  onAfterToolCall?: (info: AfterToolCallInfo) => Promise<void>;
 }
 
 /**
@@ -41,8 +38,8 @@ export interface ToolExecutionMiddlewareHooks {
  */
 export class MiddlewareAbortError extends Error {
   constructor(reason: string) {
-    super(reason)
-    this.name = 'MiddlewareAbortError'
+    super(reason);
+    this.name = "MiddlewareAbortError";
   }
 }
 
@@ -81,30 +78,30 @@ export class MiddlewareAbortError extends Error {
  * ```
  */
 export class ToolCallManager {
-  private toolCallsMap = new Map<number, ToolCall>()
-  private tools: ReadonlyArray<Tool>
+  private toolCallsMap = new Map<number, ToolCall>();
+  private tools: ReadonlyArray<Tool>;
 
   constructor(tools: ReadonlyArray<Tool>) {
-    this.tools = tools
+    this.tools = tools;
   }
 
   /**
    * Add a TOOL_CALL_START event to begin tracking a tool call (AG-UI)
    */
   addToolCallStartEvent(event: ToolCallStartEvent): void {
-    const index = event.index ?? this.toolCallsMap.size
+    const index = event.index ?? this.toolCallsMap.size;
     const runtimeEvent = event as Partial<ToolCallStartEvent> &
-      Pick<ToolCallStartEvent, 'toolName'>
-    const name = runtimeEvent.toolCallName ?? runtimeEvent.toolName
+      Pick<ToolCallStartEvent, "toolName">;
+    const name = runtimeEvent.toolCallName ?? runtimeEvent.toolName;
     this.toolCallsMap.set(index, {
       id: event.toolCallId,
-      type: 'function',
+      type: "function",
       function: {
         name,
-        arguments: '',
+        arguments: "",
       },
       ...(event.metadata !== undefined && { metadata: event.metadata }),
-    })
+    });
   }
 
   /**
@@ -114,8 +111,8 @@ export class ToolCallManager {
     // Find the tool call by ID
     for (const [, toolCall] of this.toolCallsMap.entries()) {
       if (toolCall.id === event.toolCallId) {
-        toolCall.function.arguments += event.delta
-        break
+        toolCall.function.arguments += event.delta;
+        break;
       }
     }
   }
@@ -129,11 +126,10 @@ export class ToolCallManager {
       if (toolCall.id === event.toolCallId) {
         if (event.input !== undefined) {
           // Normalize null/non-object to {} (e.g. Anthropic empty tool_use blocks)
-          const normalized =
-            event.input && typeof event.input === 'object' ? event.input : {}
-          toolCall.function.arguments = JSON.stringify(normalized)
+          const normalized = event.input && typeof event.input === "object" ? event.input : {};
+          toolCall.function.arguments = JSON.stringify(normalized);
         }
-        break
+        break;
       }
     }
   }
@@ -142,7 +138,7 @@ export class ToolCallManager {
    * Check if there are any complete tool calls to execute
    */
   hasToolCalls(): boolean {
-    return this.getToolCalls().length > 0
+    return this.getToolCalls().length > 0;
   }
 
   /**
@@ -151,7 +147,7 @@ export class ToolCallManager {
   getToolCalls(): Array<ToolCall> {
     return Array.from(this.toolCallsMap.values()).filter(
       (tc) => tc.id && tc.function.name && tc.function.name.trim().length > 0,
-    )
+    );
   }
 
   /**
@@ -162,44 +158,40 @@ export class ToolCallManager {
   async *executeTools(
     finishEvent: RunFinishedEvent,
   ): AsyncGenerator<ToolCallEndEvent, Array<ModelMessage>, void> {
-    const toolCallsArray = this.getToolCalls()
-    const toolResults: Array<ModelMessage> = []
+    const toolCallsArray = this.getToolCalls();
+    const toolResults: Array<ModelMessage> = [];
 
     for (const toolCall of toolCallsArray) {
-      const tool = this.tools.find((t) => t.name === toolCall.function.name)
+      const tool = this.tools.find((t) => t.name === toolCall.function.name);
 
-      let toolResultContent: string
+      let toolResultContent: string;
       if (tool?.execute) {
         try {
           // Parse arguments (normalize null/non-object to {} for empty tool_use blocks)
-          let args: unknown
+          let args: unknown;
           try {
-            const argsString = toolCall.function.arguments.trim() || '{}'
-            const parsed = JSON.parse(argsString)
-            args = parsed && typeof parsed === 'object' ? parsed : {}
+            const argsString = toolCall.function.arguments.trim() || "{}";
+            const parsed = JSON.parse(argsString);
+            args = parsed && typeof parsed === "object" ? parsed : {};
           } catch (parseError) {
             throw new Error(
               `Failed to parse tool arguments as JSON: ${toolCall.function.arguments}`,
-            )
+            );
           }
 
           // Validate input against inputSchema (for Standard Schema compliant schemas)
           if (tool.inputSchema && isStandardSchema(tool.inputSchema)) {
             try {
-              args = parseWithStandardSchema(tool.inputSchema, args)
+              args = parseWithStandardSchema(tool.inputSchema, args);
             } catch (validationError: unknown) {
               const message =
-                validationError instanceof Error
-                  ? validationError.message
-                  : 'Validation failed'
-              throw new Error(
-                `Input validation failed for tool ${tool.name}: ${message}`,
-              )
+                validationError instanceof Error ? validationError.message : "Validation failed";
+              throw new Error(`Input validation failed for tool ${tool.name}: ${message}`);
             }
           }
 
           // Execute the tool
-          let result = await tool.execute(args)
+          let result = await tool.execute(args);
 
           // Validate output against outputSchema if provided (for Standard Schema compliant schemas)
           if (
@@ -209,90 +201,84 @@ export class ToolCallManager {
             result !== null
           ) {
             try {
-              result = parseWithStandardSchema(tool.outputSchema, result)
+              result = parseWithStandardSchema(tool.outputSchema, result);
             } catch (validationError: unknown) {
               const message =
-                validationError instanceof Error
-                  ? validationError.message
-                  : 'Validation failed'
-              throw new Error(
-                `Output validation failed for tool ${tool.name}: ${message}`,
-              )
+                validationError instanceof Error ? validationError.message : "Validation failed";
+              throw new Error(`Output validation failed for tool ${tool.name}: ${message}`);
             }
           }
 
-          toolResultContent =
-            typeof result === 'string' ? result : JSON.stringify(result)
+          toolResultContent = typeof result === "string" ? result : JSON.stringify(result);
         } catch (error: unknown) {
           // If tool execution fails, add error message
-          const message =
-            error instanceof Error ? error.message : 'Unknown error'
-          toolResultContent = `Error executing tool: ${message}`
+          const message = error instanceof Error ? error.message : "Unknown error";
+          toolResultContent = `Error executing tool: ${message}`;
         }
       } else {
         // Tool doesn't have execute function, add placeholder
-        toolResultContent = `Tool ${toolCall.function.name} does not have an execute function`
+        toolResultContent = `Tool ${toolCall.function.name} does not have an execute function`;
       }
 
       // Emit TOOL_CALL_END event
       yield {
-        type: 'TOOL_CALL_END',
+        type: "TOOL_CALL_END",
         toolCallId: toolCall.id,
         toolCallName: toolCall.function.name,
         toolName: toolCall.function.name,
         model: finishEvent.model,
         timestamp: Date.now(),
         result: toolResultContent,
-      } as ToolCallEndEvent
+      } as ToolCallEndEvent;
 
       // Add tool result message
       toolResults.push({
-        role: 'tool',
+        role: "tool",
         content: toolResultContent,
         toolCallId: toolCall.id,
-      })
+      });
     }
 
-    return toolResults
+    return toolResults;
   }
 
   /**
    * Clear the tool calls map for the next iteration
    */
   clear(): void {
-    this.toolCallsMap.clear()
+    this.toolCallsMap.clear();
   }
 }
 
 export interface ToolResult {
-  toolCallId: string
-  toolName: string
-  result: any
-  state?: 'output-available' | 'output-error'
+  toolCallId: string;
+  toolName: string;
+  result: any;
+  state?: "output-available" | "output-error";
   /** Duration of tool execution in milliseconds (only for server-executed tools) */
-  duration?: number
+  duration?: number;
 }
 
 export interface ApprovalRequest {
-  toolCallId: string
-  toolName: string
-  input: any
-  approvalId: string
+  toolCallId: string;
+  toolName: string;
+  input: any;
+  approvalId: string;
 }
 
 export interface ClientToolRequest {
-  toolCallId: string
-  toolName: string
-  input: any
+  toolCallId: string;
+  toolName: string;
+  input: any;
 }
 
 interface ExecuteToolCallsResult {
   /** Tool results ready to send to LLM */
-  results: Array<ToolResult>
+  results: Array<ToolResult>;
   /** Tools that need user approval before execution */
-  needsApproval: Array<ApprovalRequest>
+  needsApproval: Array<ApprovalRequest>;
   /** Tools that need client-side execution */
-  needsClientExecution: Array<ClientToolRequest>
+  needsClientExecution: Array<ClientToolRequest>;
 }
 
 /**
@@ -305,32 +291,29 @@ async function* executeWithEventPolling<T>(
   pendingEvents: Array<CustomEvent>,
 ): AsyncGenerator<CustomEvent, T, void> {
   // Use an object to track mutable state across the async boundary
-  const state = { done: false, result: undefined as T }
+  const state = { done: false, result: undefined as T };
   const executionWithFlag = executionPromise.then((r) => {
-    state.done = true
-    state.result = r
-    return r
-  })
+    state.done = true;
+    state.result = r;
+    return r;
+  });
 
   while (!state.done) {
     // Wait for either the execution to complete or a short timeout
-    await Promise.race([
-      executionWithFlag,
-      new Promise((resolve) => setTimeout(resolve, 10)),
-    ])
+    await Promise.race([executionWithFlag, new Promise((resolve) => setTimeout(resolve, 10))]);
 
     // Flush any pending events
     while (pendingEvents.length > 0) {
-      yield pendingEvents.shift()!
+      yield pendingEvents.shift()!;
     }
   }
 
   // Final flush in case events were emitted right at completion
   while (pendingEvents.length > 0) {
-    yield pendingEvents.shift()!
+    yield pendingEvents.shift()!;
   }
 
-  return state.result
+  return state.result;
 }
 
 /**
@@ -348,29 +331,26 @@ async function applyBeforeToolCallDecision(
   results: Array<ToolResult>,
 ): Promise<{ proceed: true; input: unknown } | { proceed: false }> {
   if (!middlewareHooks.onBeforeToolCall) {
-    return { proceed: true, input }
+    return { proceed: true, input };
   }
 
-  const decision = await middlewareHooks.onBeforeToolCall(toolCall, tool, input)
+  const decision = await middlewareHooks.onBeforeToolCall(toolCall, tool, input);
   if (!decision) {
-    return { proceed: true, input }
+    return { proceed: true, input };
   }
 
-  if (decision.type === 'abort') {
-    throw new MiddlewareAbortError(decision.reason || 'Aborted by middleware')
+  if (decision.type === "abort") {
+    throw new MiddlewareAbortError(decision.reason || "Aborted by middleware");
   }
 
-  if (decision.type === 'skip') {
-    const skipResult = decision.result
+  if (decision.type === "skip") {
+    const skipResult = decision.result;
     results.push({
       toolCallId: toolCall.id,
       toolName,
-      result:
-        typeof skipResult === 'string'
-          ? safeJsonParse(skipResult)
-          : skipResult || null,
+      result: typeof skipResult === "string" ? safeJsonParse(skipResult) : skipResult || null,
       duration: 0,
-    })
+    });
     if (middlewareHooks.onAfterToolCall) {
       await middlewareHooks.onAfterToolCall({
         toolCall,
@@ -380,12 +360,12 @@ async function applyBeforeToolCallDecision(
         ok: true,
         duration: 0,
         result: skipResult,
-      })
+      });
     }
-    return { proceed: false }
+    return { proceed: false };
   }
 
-  return { proceed: true, input: decision.args }
+  return { proceed: true, input: decision.args };
 }
 
 /**
@@ -402,15 +382,15 @@ async function* executeServerTool(
   results: Array<ToolResult>,
   middlewareHooks?: ToolExecutionMiddlewareHooks,
 ): AsyncGenerator<CustomEvent, void, void> {
-  const startTime = Date.now()
+  const startTime = Date.now();
   try {
-    const executionPromise = Promise.resolve(tool.execute!(input, context))
-    let result = yield* executeWithEventPolling(executionPromise, pendingEvents)
-    const duration = Date.now() - startTime
+    const executionPromise = Promise.resolve(tool.execute!(input, context));
+    let result = yield* executeWithEventPolling(executionPromise, pendingEvents);
+    const duration = Date.now() - startTime;
 
     // Flush remaining events
     while (pendingEvents.length > 0) {
-      yield pendingEvents.shift()!
+      yield pendingEvents.shift()!;
     }
 
     // Validate output against outputSchema if provided
@@ -420,18 +400,17 @@ async function* executeServerTool(
       result !== undefined &&
       result !== null
     ) {
-      result = parseWithStandardSchema(tool.outputSchema, result)
+      result = parseWithStandardSchema(tool.outputSchema, result);
     }
 
-    const finalResult =
-      typeof result === 'string' ? safeJsonParse(result) : result || null
+    const finalResult = typeof result === "string" ? safeJsonParse(result) : result || null;
 
     results.push({
       toolCallId: toolCall.id,
       toolName,
       result: finalResult,
       duration,
-    })
+    });
 
     if (middlewareHooks?.onAfterToolCall) {
       await middlewareHooks.onAfterToolCall({
@@ -442,28 +421,28 @@ async function* executeServerTool(
         ok: true,
         duration,
         result: finalResult,
-      })
+      });
     }
   } catch (error: unknown) {
-    const duration = Date.now() - startTime
+    const duration = Date.now() - startTime;
 
     // Flush remaining events
     while (pendingEvents.length > 0) {
-      yield pendingEvents.shift()!
+      yield pendingEvents.shift()!;
     }
 
     if (error instanceof MiddlewareAbortError) {
-      throw error
+      throw error;
     }
 
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    const message = error instanceof Error ? error.message : "Unknown error";
     results.push({
       toolCallId: toolCall.id,
       toolName,
       result: { error: message },
-      state: 'output-error',
+      state: "output-error",
       duration,
-    })
+    });
 
     if (middlewareHooks?.onAfterToolCall) {
       await middlewareHooks.onAfterToolCall({
@@ -474,7 +453,7 @@ async function* executeServerTool(
         ok: false,
         duration,
         error,
-      })
+      });
     }
   }
 }
@@ -499,32 +478,29 @@ export async function* executeToolCalls(
   tools: ReadonlyArray<Tool>,
   approvals: Map<string, boolean> = new Map(),
   clientResults: Map<string, any> = new Map(),
-  createCustomEventChunk?: (
-    eventName: string,
-    value: Record<string, any>,
-  ) => CustomEvent,
+  createCustomEventChunk?: (eventName: string, value: Record<string, any>) => CustomEvent,
   middlewareHooks?: ToolExecutionMiddlewareHooks,
 ): AsyncGenerator<CustomEvent, ExecuteToolCallsResult, void> {
-  const results: Array<ToolResult> = []
-  const needsApproval: Array<ApprovalRequest> = []
-  const needsClientExecution: Array<ClientToolRequest> = []
+  const results: Array<ToolResult> = [];
+  const needsApproval: Array<ApprovalRequest> = [];
+  const needsClientExecution: Array<ClientToolRequest> = [];
 
   // Create tool lookup map
-  const toolMap = new Map<string, Tool>()
+  const toolMap = new Map<string, Tool>();
   for (const tool of tools) {
-    toolMap.set(tool.name, tool)
+    toolMap.set(tool.name, tool);
   }
 
   // Batch gating: when any tool in the batch still needs an approval decision,
   // defer all execution so side effects don't happen before the user decides.
   const hasPendingApprovals = toolCalls.some((tc) => {
-    const t = toolMap.get(tc.function.name)
-    return t?.needsApproval && !approvals.has(`approval_${tc.id}`)
-  })
+    const t = toolMap.get(tc.function.name);
+    return t?.needsApproval && !approvals.has(`approval_${tc.id}`);
+  });
 
   for (const toolCall of toolCalls) {
-    const tool = toolMap.get(toolCall.function.name)
-    const toolName = toolCall.function.name
+    const tool = toolMap.get(toolCall.function.name);
+    const toolName = toolCall.function.name;
 
     if (!tool) {
       // Unknown tool - return error
@@ -532,55 +508,53 @@ export async function* executeToolCalls(
         toolCallId: toolCall.id,
         toolName,
         result: { error: `Unknown tool: ${toolName}` },
-        state: 'output-error',
-      })
-      continue
+        state: "output-error",
+      });
+      continue;
     }
 
     // Skip non-pending tools while approvals are outstanding
     if (hasPendingApprovals) {
       if (!tool.needsApproval || approvals.has(`approval_${toolCall.id}`)) {
-        continue
+        continue;
       }
     }
 
     // Parse arguments, throwing error if invalid JSON
-    let input: unknown = {}
-    const argsStr = toolCall.function.arguments.trim() || '{}'
+    let input: unknown = {};
+    const argsStr = toolCall.function.arguments.trim() || "{}";
     if (argsStr) {
       try {
-        const parsed = JSON.parse(argsStr)
+        const parsed = JSON.parse(argsStr);
         // Normalize null/non-object to {} (e.g. Anthropic empty tool_use blocks)
-        input = parsed && typeof parsed === 'object' ? parsed : {}
+        input = parsed && typeof parsed === "object" ? parsed : {};
       } catch (parseError) {
         // If parsing fails, throw error to fail fast
-        throw new Error(`Failed to parse tool arguments as JSON: ${argsStr}`)
+        throw new Error(`Failed to parse tool arguments as JSON: ${argsStr}`);
       }
     }
 
     // Validate input against inputSchema (for Standard Schema compliant schemas)
     if (tool.inputSchema && isStandardSchema(tool.inputSchema)) {
       try {
-        input = parseWithStandardSchema(tool.inputSchema, input)
+        input = parseWithStandardSchema(tool.inputSchema, input);
       } catch (validationError: unknown) {
         const message =
-          validationError instanceof Error
-            ? validationError.message
-            : 'Validation failed'
+          validationError instanceof Error ? validationError.message : "Validation failed";
         results.push({
           toolCallId: toolCall.id,
           toolName,
           result: {
             error: `Input validation failed for tool ${tool.name}: ${message}`,
           },
-          state: 'output-error',
-        })
-        continue
+          state: "output-error",
+        });
+        continue;
       }
     }
 
     // Create a ToolExecutionContext for this tool call with event emission
-    const pendingEvents: Array<CustomEvent> = []
+    const pendingEvents: Array<CustomEvent> = [];
     const context: ToolExecutionContext = {
       toolCallId: toolCall.id,
       emitCustomEvent: (eventName: string, value: Record<string, any>) => {
@@ -590,20 +564,20 @@ export async function* executeToolCalls(
               ...value,
               toolCallId: toolCall.id,
             }),
-          )
+          );
         }
       },
-    }
+    };
 
     // CASE 1: Client-side tool (no execute function)
     if (!tool.execute) {
       // Check if tool needs approval
       if (tool.needsApproval) {
-        const approvalId = `approval_${toolCall.id}`
+        const approvalId = `approval_${toolCall.id}`;
 
         // Check if approval decision exists
         if (approvals.has(approvalId)) {
-          const approved = approvals.get(approvalId)
+          const approved = approvals.get(approvalId);
 
           if (approved) {
             // Approved - check if client has executed
@@ -612,23 +586,23 @@ export async function* executeToolCalls(
                 toolCallId: toolCall.id,
                 toolName,
                 result: clientResults.get(toolCall.id),
-              })
+              });
             } else {
               // Approved but not executed yet - request client execution
               needsClientExecution.push({
                 toolCallId: toolCall.id,
                 toolName,
                 input,
-              })
+              });
             }
           } else {
             // User declined
             results.push({
               toolCallId: toolCall.id,
               toolName,
-              result: { error: 'User declined tool execution' },
-              state: 'output-error',
-            })
+              result: { error: "User declined tool execution" },
+              state: "output-error",
+            });
           }
         } else {
           // Need approval first
@@ -637,7 +611,7 @@ export async function* executeToolCalls(
             toolName: toolCall.function.name,
             input,
             approvalId,
-          })
+          });
         }
       } else {
         // No approval needed - check if client has executed
@@ -646,26 +620,26 @@ export async function* executeToolCalls(
             toolCallId: toolCall.id,
             toolName,
             result: clientResults.get(toolCall.id),
-          })
+          });
         } else {
           // Request client execution
           needsClientExecution.push({
             toolCallId: toolCall.id,
             toolName,
             input,
-          })
+          });
         }
       }
-      continue
+      continue;
     }
 
     // CASE 2: Server tool with approval required
     if (tool.needsApproval) {
-      const approvalId = `approval_${toolCall.id}`
+      const approvalId = `approval_${toolCall.id}`;
 
       // Check if approval decision exists
       if (approvals.has(approvalId)) {
-        const approved = approvals.get(approvalId)
+        const approved = approvals.get(approvalId);
 
         if (approved) {
           // Apply middleware before-hook for approved tools
@@ -677,9 +651,9 @@ export async function* executeToolCalls(
               toolName,
               middlewareHooks,
               results,
-            )
-            if (!decision.proceed) continue
-            input = decision.input
+            );
+            if (!decision.proceed) continue;
+            input = decision.input;
           }
 
           yield* executeServerTool(
@@ -691,15 +665,15 @@ export async function* executeToolCalls(
             pendingEvents,
             results,
             middlewareHooks,
-          )
+          );
         } else {
           // User declined
           results.push({
             toolCallId: toolCall.id,
             toolName,
-            result: { error: 'User declined tool execution' },
-            state: 'output-error',
-          })
+            result: { error: "User declined tool execution" },
+            state: "output-error",
+          });
         }
       } else {
         // Need approval
@@ -708,9 +682,9 @@ export async function* executeToolCalls(
           toolName,
           input,
           approvalId,
-        })
+        });
       }
-      continue
+      continue;
     }
 
     // CASE 3: Normal server tool - execute immediately
@@ -722,9 +696,9 @@ export async function* executeToolCalls(
         toolName,
         middlewareHooks,
         results,
-      )
-      if (!decision.proceed) continue
-      input = decision.input
+      );
+      if (!decision.proceed) continue;
+      input = decision.input;
     }
 
     yield* executeServerTool(
@@ -736,8 +710,8 @@ export async function* executeToolCalls(
       pendingEvents,
       results,
       middlewareHooks,
-    )
+    );
   }
 
-  return { results, needsApproval, needsClientExecution }
+  return { results, needsApproval, needsClientExecution };
 }

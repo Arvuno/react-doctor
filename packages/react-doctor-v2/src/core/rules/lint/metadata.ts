@@ -1,6 +1,6 @@
-import reactDoctorOxlintPlugin from "./plugin.js";
-import { REACT_DOCTOR_CUSTOM_OXLINT_RULES } from "./presets.js";
-import type { OxlintRuleSeverityMap } from "./presets.js";
+import { REACT_DOCTOR_CUSTOM_OXLINT_RULES } from "./config.js";
+import { reactDoctorOxlintRules } from "./rules.js";
+import type { OxlintRuleSeverityMap } from "./config.js";
 import type { ReactDoctorRuleMetadata } from "../types.js";
 
 export interface OxlintRuleMetadata extends ReactDoctorRuleMetadata {
@@ -28,12 +28,11 @@ const toReactDoctorSeverity = (
   return "warning";
 };
 
-export const reactDoctorOxlintRuleMetadata: OxlintRuleMetadata[] = Object.keys(
-  reactDoctorOxlintPlugin.rules,
+export const reactDoctorOxlintRuleMetadata: OxlintRuleMetadata[] = Object.entries(
+  reactDoctorOxlintRules,
 )
-  .sort()
-  .map((ruleName) => {
-    const rule = reactDoctorOxlintPlugin.rules[ruleName];
+  .sort(([ruleName], [nextRuleName]) => ruleName.localeCompare(nextRuleName))
+  .map(([ruleName, rule]) => {
     const oxlintRuleKey = `${REACT_DOCTOR_OXLINT_PLUGIN_NAMESPACE}/${ruleName}`;
     const severity = REACT_DOCTOR_CUSTOM_OXLINT_RULES[oxlintRuleKey] ?? "warn";
 

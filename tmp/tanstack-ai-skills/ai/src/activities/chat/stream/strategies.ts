@@ -4,14 +4,14 @@
  * Strategies for controlling when text updates are emitted to the UI
  */
 
-import type { ChunkStrategy } from './types'
+import type { ChunkStrategy } from "./types";
 
 /**
  * Immediate Strategy - emit on every chunk (default behavior)
  */
 export class ImmediateStrategy implements ChunkStrategy {
   shouldEmit(_chunk: string, _accumulated: string): boolean {
-    return true
+    return true;
   }
 }
 
@@ -20,10 +20,10 @@ export class ImmediateStrategy implements ChunkStrategy {
  * Useful for natural text flow in UI
  */
 export class PunctuationStrategy implements ChunkStrategy {
-  private punctuation = /[.,!?;:\n]/
+  private punctuation = /[.,!?;:\n]/;
 
   shouldEmit(chunk: string, _accumulated: string): boolean {
-    return this.punctuation.test(chunk)
+    return this.punctuation.test(chunk);
   }
 }
 
@@ -32,21 +32,21 @@ export class PunctuationStrategy implements ChunkStrategy {
  * Useful for reducing UI update frequency
  */
 export class BatchStrategy implements ChunkStrategy {
-  private chunkCount = 0
+  private chunkCount = 0;
 
   constructor(private batchSize: number = 5) {}
 
   shouldEmit(_chunk: string, _accumulated: string): boolean {
-    this.chunkCount++
+    this.chunkCount++;
     if (this.chunkCount >= this.batchSize) {
-      this.chunkCount = 0
-      return true
+      this.chunkCount = 0;
+      return true;
     }
-    return false
+    return false;
   }
 
   reset(): void {
-    this.chunkCount = 0
+    this.chunkCount = 0;
   }
 }
 
@@ -57,7 +57,7 @@ export class BatchStrategy implements ChunkStrategy {
 export class WordBoundaryStrategy implements ChunkStrategy {
   shouldEmit(chunk: string, _accumulated: string): boolean {
     // Emit if chunk ends with whitespace
-    return /\s$/.test(chunk)
+    return /\s$/.test(chunk);
   }
 }
 
@@ -69,10 +69,10 @@ export class CompositeStrategy implements ChunkStrategy {
   constructor(private strategies: Array<ChunkStrategy>) {}
 
   shouldEmit(chunk: string, accumulated: string): boolean {
-    return this.strategies.some((s) => s.shouldEmit(chunk, accumulated))
+    return this.strategies.some((s) => s.shouldEmit(chunk, accumulated));
   }
 
   reset(): void {
-    this.strategies.forEach((s) => s.reset?.())
+    this.strategies.forEach((s) => s.reset?.());
   }
 }

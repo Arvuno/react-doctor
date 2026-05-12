@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { TANSTACK_SERVER_FN_FILE_PATTERN, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { TANSTACK_SERVER_FN_FILE_PATTERN, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const tanstackStartNoDynamicServerFnImport = defineRule<Rule>({
   recommendation:

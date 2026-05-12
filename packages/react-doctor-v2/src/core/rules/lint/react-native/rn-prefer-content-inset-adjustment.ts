@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { SCROLLVIEW_NAMES, resolveJsxElementName, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { SCROLLVIEW_NAMES, resolveJsxElementName, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnPreferContentInsetAdjustment = defineRule<Rule>({
   recommendation:

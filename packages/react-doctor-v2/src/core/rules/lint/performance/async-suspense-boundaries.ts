@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
-import { isComponentAssignment, isUppercaseName } from "../react/_utils.js";
-import { isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isComponentAssignment, isUppercaseName } from "../react/utils/index.js";
+import { isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const containsJsxSuspense = (node: EsTreeNode): boolean => {
   let foundSuspense = false;

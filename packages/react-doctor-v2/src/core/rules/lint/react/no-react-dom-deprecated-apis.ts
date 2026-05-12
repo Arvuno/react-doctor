@@ -3,8 +3,8 @@ import {
   REACT_DOM_DEPRECATED_MESSAGES,
   createDeprecatedReactImportRule,
   reportTestUtilsImports,
-} from "./_utils.js";
-import type { Rule } from "./_utils.js";
+} from "./utils/index.js";
+import type { Rule } from "./utils/index.js";
 
 export const noReactDomDeprecatedApis = defineRule<Rule>(
   createDeprecatedReactImportRule({

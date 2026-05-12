@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { EXECUTABLE_SCRIPT_TYPES, findJsxAttribute, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { EXECUTABLE_SCRIPT_TYPES, findJsxAttribute, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoNativeScript = defineRule<Rule>({
   recommendation:

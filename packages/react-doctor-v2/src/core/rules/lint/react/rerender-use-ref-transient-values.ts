@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
-import { HIGH_FREQUENCY_DOM_EVENTS, handlerCallsSetState } from "../performance/_utils.js";
-import { isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { HIGH_FREQUENCY_DOM_EVENTS, handlerCallsSetState } from "../performance/utils/index.js";
+import { isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const eventNameFromAttribute = (attributeName: string): string | null => {
   if (!attributeName.startsWith("on")) return null;

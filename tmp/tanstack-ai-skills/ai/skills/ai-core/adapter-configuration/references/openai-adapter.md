@@ -21,9 +21,9 @@
 ## Import
 
 ```typescript
-import { openaiText } from '@tanstack/ai-openai'
-import { openaiImage } from '@tanstack/ai-openai'
-import { openaiSpeech } from '@tanstack/ai-openai'
+import { openaiText } from "@tanstack/ai-openai";
+import { openaiImage } from "@tanstack/ai-openai";
+import { openaiSpeech } from "@tanstack/ai-openai";
 ```
 
 ## Key Chat Models
@@ -41,43 +41,43 @@ import { openaiSpeech } from '@tanstack/ai-openai'
 
 ```typescript
 chat({
-  adapter: openaiText('gpt-5.4'),
+  adapter: openaiText("gpt-5.4"),
   messages,
   modelOptions: {
     // Reasoning (effort levels: none, minimal, low, medium, high)
     reasoning: {
-      effort: 'high',
-      summary: 'auto', // 'auto' | 'detailed'
+      effort: "high",
+      summary: "auto", // 'auto' | 'detailed'
     },
     // Service tier
-    service_tier: 'auto', // 'auto' | 'default' | 'flex' | 'priority'
+    service_tier: "auto", // 'auto' | 'default' | 'flex' | 'priority'
     // Response storage
     store: true,
     // Truncation strategy
-    truncation: 'auto', // 'auto' | 'disabled'
+    truncation: "auto", // 'auto' | 'disabled'
     // Tool calling
     max_tool_calls: 10,
     parallel_tool_calls: true,
-    tool_choice: 'auto', // 'auto' | 'none' | 'required'
+    tool_choice: "auto", // 'auto' | 'none' | 'required'
     // Structured output
     text: {
       /* ResponseTextConfig */
     },
     // Metadata (max 16 key-value pairs)
-    metadata: { session_id: 'abc' },
+    metadata: { session_id: "abc" },
     // Streaming
     stream_options: { include_obfuscation: true },
     // Verbosity
-    verbosity: 'medium', // 'low' | 'medium' | 'high'
+    verbosity: "medium", // 'low' | 'medium' | 'high'
     // Prompt caching
-    prompt_cache_key: 'my-cache',
-    prompt_cache_retention: '24h',
+    prompt_cache_key: "my-cache",
+    prompt_cache_retention: "24h",
     // Conversations API
-    conversation: { id: 'conv-123' },
+    conversation: { id: "conv-123" },
     // Background processing
     background: false,
   },
-})
+});
 ```
 
 ## Environment Variable

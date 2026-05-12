@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  DEAD_CODE_RULE_ID,
+  DEPENDENCIES_RULE_ID,
+  REACT_ARCHITECTURE_RULE_ID,
   ReactDoctorInvalidConfigError,
   createRuleRegistry,
   defineRule,
@@ -21,6 +24,36 @@ describe("rule registry", () => {
         severity: "info",
         defaultEnabled: true,
         tags: ["project", "discovery"],
+      },
+      {
+        id: DEAD_CODE_RULE_ID,
+        name: "Codebase dead code",
+        description:
+          "Builds a project module graph and reports unused files, exports, types, and duplicate exports.",
+        category: "dead-code",
+        severity: "warning",
+        defaultEnabled: false,
+        tags: ["codebase", "dead-code", "oxc"],
+      },
+      {
+        id: DEPENDENCIES_RULE_ID,
+        name: "Codebase dependencies",
+        description:
+          "Builds a workspace-aware module graph and reports unresolved, unlisted, unused, type-only, and test-only dependencies.",
+        category: "dependencies",
+        severity: "warning",
+        defaultEnabled: false,
+        tags: ["codebase", "dependencies", "oxc"],
+      },
+      {
+        id: REACT_ARCHITECTURE_RULE_ID,
+        name: "Codebase React architecture",
+        description:
+          "Builds a project module graph and reports React architecture boundary and dependency issues.",
+        category: "react-architecture",
+        severity: "warning",
+        defaultEnabled: false,
+        tags: ["codebase", "react-architecture", "oxc"],
       },
     ]);
   });

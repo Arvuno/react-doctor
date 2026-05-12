@@ -2,14 +2,29 @@
   "name": "@tanstack/ai-code-mode",
   "version": "0.1.10",
   "description": "Code Mode for TanStack AI - LLM-driven code execution in secure sandboxes",
-  "author": "",
+  "keywords": [
+    "ai",
+    "code-mode",
+    "isolate",
+    "llm",
+    "sandbox",
+    "tanstack",
+    "tanstack-intent"
+  ],
   "license": "MIT",
+  "author": "",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TanStack/ai.git",
     "directory": "packages/typescript/ai-code-mode"
   },
+  "files": [
+    "dist",
+    "src",
+    "skills"
+  ],
   "type": "module",
+  "sideEffects": false,
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
   "exports": {
@@ -17,36 +32,6 @@
       "types": "./dist/esm/index.d.ts",
       "import": "./dist/esm/index.js"
     }
-  },
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
-  "files": [
-    "dist",
-    "src",
-    "skills"
-  ],
-  "keywords": [
-    "ai",
-    "tanstack",
-    "code-mode",
-    "llm",
-    "sandbox",
-    "isolate",
-    "tanstack-intent"
-  ],
-  "dependencies": {
-    "esbuild": "^0.25.12"
-  },
-  "peerDependencies": {
-    "zod": "^3.0.0 || ^4.0.0",
-    "@tanstack/ai": "0.16.0"
-  },
-  "devDependencies": {
-    "@vitest/coverage-v8": "4.0.14",
-    "zod": "^4.2.0",
-    "@tanstack/ai": "0.16.0"
   },
   "scripts": {
     "build": "vite build",
@@ -57,5 +42,20 @@
     "test:lib": "vitest",
     "test:lib:dev": "pnpm test:lib --watch",
     "test:types": "tsc"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.12"
+  },
+  "devDependencies": {
+    "@tanstack/ai": "0.16.0",
+    "@vitest/coverage-v8": "4.0.14",
+    "zod": "^4.2.0"
+  },
+  "peerDependencies": {
+    "@tanstack/ai": "0.16.0",
+    "zod": "^3.0.0 || ^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

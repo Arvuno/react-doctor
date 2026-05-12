@@ -1,0 +1,1 @@
+export { serverAction } from "./server";

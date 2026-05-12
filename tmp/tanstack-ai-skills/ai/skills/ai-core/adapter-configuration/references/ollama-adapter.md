@@ -16,7 +16,7 @@
 ## Import
 
 ```typescript
-import { ollamaText } from '@tanstack/ai-ollama'
+import { ollamaText } from "@tanstack/ai-ollama";
 ```
 
 ## Key Models (Local)
@@ -42,24 +42,24 @@ Ollama models use a generic options type. Provider options vary by the
 underlying model. The adapter passes options through to the Ollama API.
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { ollamaText } from '@tanstack/ai-ollama'
+import { chat } from "@tanstack/ai";
+import { ollamaText } from "@tanstack/ai-ollama";
 
 const stream = chat({
-  adapter: ollamaText('llama3.3'),
+  adapter: ollamaText("llama3.3"),
   messages,
   temperature: 0.7,
   // Ollama-specific options are limited compared to cloud providers
-})
+});
 ```
 
 ## Configuration
 
 ```typescript
 // With explicit host
-const adapter = ollamaText('llama3.3', {
-  host: 'http://my-server:11434',
-})
+const adapter = ollamaText("llama3.3", {
+  host: "http://my-server:11434",
+});
 ```
 
 ## Environment Variable

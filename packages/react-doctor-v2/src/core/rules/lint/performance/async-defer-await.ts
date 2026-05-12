@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { collectIdentifierNames, isEarlyReturnIfStatement, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { collectIdentifierNames, isEarlyReturnIfStatement, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const asyncDeferAwait = defineRule<Rule>({
   recommendation:

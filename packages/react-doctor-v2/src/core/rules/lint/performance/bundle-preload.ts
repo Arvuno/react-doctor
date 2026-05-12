@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { walkAst, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { walkAst, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const handlerAttributeNames = new Set(["onClick", "onSubmit"]);
 const preloadAttributeNames = new Set(["onMouseEnter", "onPointerEnter", "onFocus"]);

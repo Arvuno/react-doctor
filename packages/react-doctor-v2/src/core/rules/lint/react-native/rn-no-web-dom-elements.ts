@@ -1,6 +1,10 @@
 import { defineRule } from "../../registry.js";
-import { REACT_NATIVE_WEB_DOM_ELEMENTS, hasDirective, resolveJsxElementName } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import {
+  REACT_NATIVE_WEB_DOM_ELEMENTS,
+  hasDirective,
+  resolveJsxElementName,
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoWebDomElements = defineRule<Rule>({
   recommendation:

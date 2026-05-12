@@ -12,6 +12,6 @@ export type {
   FinishInfo,
   AbortInfo,
   ErrorInfo,
-} from './types'
+} from "./types";
 
-export { MiddlewareRunner } from './compose'
+export { MiddlewareRunner } from "./compose";

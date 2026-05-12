@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { collectIdentifierNames, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { collectIdentifierNames, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isAwaitedPromiseAll = (node: EsTreeNode | null | undefined): boolean =>
   isNodeOfType(node, "AwaitExpression") &&

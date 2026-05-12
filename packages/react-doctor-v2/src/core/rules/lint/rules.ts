@@ -243,7 +243,7 @@ import { serverCacheReact } from "./server/server-cache-react.js";
 import { serverParallelFetching } from "./server/server-parallel-fetching.js";
 import { serverParallelNestedFetching } from "./server/server-parallel-nested-fetching.js";
 import { serverSerialization } from "./server/server-serialization.js";
-import type { Rule } from "./utils.js";
+import type { Rule, RulePlugin } from "./utils/index.js";
 
 export const reactDoctorOxlintRules: Record<string, Rule> = {
   "no-derived-state-effect": noDerivedStateEffect,
@@ -518,4 +518,9 @@ export const reactDoctorOxlintRules: Record<string, Rule> = {
   "design-no-three-period-ellipsis": noThreePeriodEllipsis,
   "design-no-default-tailwind-palette": noDefaultTailwindPalette,
   "design-no-vague-button-label": noVagueButtonLabel,
+};
+
+export const reactDoctorOxlintPlugin: RulePlugin = {
+  meta: { name: "react-doctor" },
+  rules: reactDoctorOxlintRules,
 };

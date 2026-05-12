@@ -6,8 +6,8 @@ import {
   getImportedName,
   getLocalName,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const I18N_IMPORT_SOURCES = new Set(["i18next", "next-intl", "react-i18next"]);
 

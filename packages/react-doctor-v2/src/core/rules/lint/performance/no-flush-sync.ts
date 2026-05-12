@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isNodeOfType } from "../utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "../utils.js";
+import { isNodeOfType } from "../utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "../utils/index.js";
 
 export const noFlushSync = defineRule<Rule>({
   recommendation:

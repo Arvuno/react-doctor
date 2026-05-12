@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { containsPreventDefaultCall, findJsxAttribute, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { containsPreventDefaultCall, findJsxAttribute, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const PASTEABLE_FIELD_NAMES = new Set(["input", "textarea"]);
 

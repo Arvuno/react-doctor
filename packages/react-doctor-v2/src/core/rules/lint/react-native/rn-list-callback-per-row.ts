@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { detectInlineRowHandlers, isRenderItemFunction, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { detectInlineRowHandlers, isRenderItemFunction, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnListCallbackPerRow = defineRule<Rule>({
   recommendation:

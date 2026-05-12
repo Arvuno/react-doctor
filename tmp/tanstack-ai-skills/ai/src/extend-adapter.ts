@@ -1,4 +1,4 @@
-import type { Modality } from './types'
+import type { Modality } from "./types";
 
 // ===========================
 // Extended Model Definition
@@ -24,11 +24,11 @@ export interface ExtendedModelDef<
   TOptions = unknown,
 > {
   /** The model name identifier */
-  name: TName
+  name: TName;
   /** Supported input modalities for this model */
-  input: TInput
+  input: TInput;
   /** Type brand for provider options - use `{} as YourOptionsType` */
-  modelOptions: TOptions
+  modelOptions: TOptions;
 }
 
 /**
@@ -66,7 +66,7 @@ export function createModel<
     name,
     input,
     modelOptions: {} as unknown,
-  }
+  };
 }
 
 // ===========================
@@ -76,8 +76,7 @@ export function createModel<
 /**
  * Extract the model name union from an array of model definitions.
  */
-type ExtractCustomModelNames<TDefs extends ReadonlyArray<ExtendedModelDef>> =
-  TDefs[number]['name']
+type ExtractCustomModelNames<TDefs extends ReadonlyArray<ExtendedModelDef>> = TDefs[number]["name"];
 
 // ===========================
 // Factory Type Inference
@@ -95,26 +94,21 @@ type InferFactoryModels<TFactory> = TFactory extends (
   ? TModel extends string
     ? TModel
     : string
-  : string
+  : string;
 
 /**
  * Infer the config parameter type from an adapter factory function.
  */
-type InferConfig<TFactory> = TFactory extends (
-  model: any,
-  config?: infer TConfig,
-) => any
+type InferConfig<TFactory> = TFactory extends (model: any, config?: infer TConfig) => any
   ? TConfig
-  : undefined
+  : undefined;
 
 /**
  * Infer the adapter return type from a factory function.
  */
-type InferAdapterReturn<TFactory> = TFactory extends (
-  ...args: Array<any>
-) => infer TReturn
+type InferAdapterReturn<TFactory> = TFactory extends (...args: Array<any>) => infer TReturn
   ? TReturn
-  : never
+  : never;
 
 // ===========================
 // extendAdapter Function
@@ -171,12 +165,10 @@ export function extendAdapter<
   _customModels: TDefs,
 ): (
   model: InferFactoryModels<TFactory> | ExtractCustomModelNames<TDefs>,
-  ...args: InferConfig<TFactory> extends undefined
-    ? []
-    : [config?: InferConfig<TFactory>]
+  ...args: InferConfig<TFactory> extends undefined ? [] : [config?: InferConfig<TFactory>]
 ) => InferAdapterReturn<TFactory> {
   // At runtime, we simply pass through to the original factory.
   // The _customModels parameter is only used for type inference.
   // No runtime validation - users are trusted to pass valid model names.
-  return factory as any
+  return factory as any;
 }

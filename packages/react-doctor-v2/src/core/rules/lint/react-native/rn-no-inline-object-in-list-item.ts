@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { RENDER_ITEM_PROP_NAMES, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { RENDER_ITEM_PROP_NAMES, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoInlineObjectInListItem = defineRule<Rule>({
   recommendation:

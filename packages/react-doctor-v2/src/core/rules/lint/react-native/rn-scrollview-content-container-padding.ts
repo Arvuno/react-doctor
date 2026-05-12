@@ -4,8 +4,8 @@ import {
   SCROLLVIEW_STYLE_PADDING_KEYS,
   resolveJsxElementName,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const reportPaddingProperty = (
   property: EsTreeNode,

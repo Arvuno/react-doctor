@@ -39,8 +39,34 @@ export interface ReactDoctorScore {
   label: string;
 }
 
+export type ReactDoctorFailOnLevel = "error" | "warning" | "none";
+
+export type ReactProjectFramework =
+  | "cra"
+  | "expo"
+  | "gatsby"
+  | "nextjs"
+  | "react"
+  | "react-native"
+  | "remix"
+  | "tanstack-start"
+  | "unknown"
+  | "vite";
+
 export interface ReactProjectInfo {
   rootDirectory: string;
+  projectName: string;
+  packageJsonPath: string | null;
+  reactVersion: string | null;
+  reactMajorVersion: number | null;
+  reactPeerDependencyRange: string | null;
+  tailwindVersion: string | null;
+  framework: ReactProjectFramework;
+  hasTypeScript: boolean;
+  hasReactCompiler: boolean;
+  hasTanStackAI: boolean;
+  hasTanStackQuery: boolean;
+  sourceFileCount: number;
 }
 
 export interface ReactDoctorResult {
@@ -59,10 +85,70 @@ export interface ReactDoctorRuleSelection {
   disabledRuleIds?: string[];
 }
 
+export interface ReactDoctorIgnoreOverride {
+  files: string[];
+  rules?: string[];
+}
+
+export interface ReactDoctorIgnoreConfig {
+  rules?: string[];
+  files?: string[];
+  overrides?: ReactDoctorIgnoreOverride[];
+}
+
+export interface ReactDoctorConfig {
+  ignore?: ReactDoctorIgnoreConfig;
+  lint?: boolean;
+  deadCode?: boolean;
+  verbose?: boolean;
+  diff?: boolean | string;
+  failOn?: ReactDoctorFailOnLevel;
+  customRulesOnly?: boolean;
+  rootDir?: string;
+  textComponents?: string[];
+  rawTextWrapperComponents?: string[];
+  respectInlineDisables?: boolean;
+  adoptExistingLintConfig?: boolean;
+  includeEcosystemRules?: boolean;
+  ignoredTags?: string[];
+}
+
+export interface LoadedReactDoctorConfig {
+  config: ReactDoctorConfig;
+  sourceDirectory: string;
+  sourcePath: string;
+}
+
+export interface ReactDoctorJsonReportSummary {
+  errorCount: number;
+  warningCount: number;
+  affectedFileCount: number;
+  totalIssueCount: number;
+  score: number | null;
+  scoreLabel: string | null;
+}
+
+export interface ReactDoctorJsonReport {
+  schemaVersion: 1;
+  ok: boolean;
+  project: ReactProjectInfo;
+  issues: ReactDoctorIssue[];
+  checks: ReactDoctorCheckResult[];
+  summary: ReactDoctorJsonReportSummary;
+  startedAt: string;
+  completedAt: string;
+  durationMilliseconds: number;
+}
+
 export interface InspectReactProjectOptions {
   rootDirectory?: string;
   includePaths?: string[];
   excludePatterns?: string[];
   rules?: ReactDoctorRuleSelection;
+  config?: ReactDoctorConfig | null;
+  lint?: boolean;
+  deadCode?: boolean;
+  customRulesOnly?: boolean;
+  respectInlineDisables?: boolean;
   signal?: AbortSignal;
 }

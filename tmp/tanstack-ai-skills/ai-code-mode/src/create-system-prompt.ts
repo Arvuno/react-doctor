@@ -1,6 +1,6 @@
-import { toolsToBindings } from './bindings/tool-to-binding'
-import { generateTypeStubs } from './type-generator/json-schema-to-ts'
-import type { CodeModeToolConfig } from './types'
+import { toolsToBindings } from "./bindings/tool-to-binding";
+import { generateTypeStubs } from "./type-generator/json-schema-to-ts";
+import type { CodeModeToolConfig } from "./types";
 
 /**
  * Create a system prompt snippet that documents the execute_typescript tool
@@ -25,21 +25,21 @@ import type { CodeModeToolConfig } from './types'
  * ```
  */
 export function createCodeModeSystemPrompt(config: CodeModeToolConfig): string {
-  const { tools } = config
+  const { tools } = config;
 
   // Transform tools to bindings with external_ prefix to generate correct type stubs
-  const bindings = toolsToBindings(tools, 'external_')
+  const bindings = toolsToBindings(tools, "external_");
 
   // Generate TypeScript type stubs for the external functions
-  const typeStubs = generateTypeStubs(bindings)
+  const typeStubs = generateTypeStubs(bindings);
 
   // Build function documentation
   const functionDocs = Object.entries(bindings)
     .map(([name, binding]) => {
-      const doc = `- \`${name}(input)\`: ${binding.description}`
-      return doc
+      const doc = `- \`${name}(input)\`: ${binding.description}`;
+      return doc;
     })
-    .join('\n')
+    .join("\n");
 
   return `## Code Execution Tool
 
@@ -91,5 +91,5 @@ return { warmestCity: warmest.location, temperature: warmest.temperature };
 - Use \`console.log()\` for debugging (logs are captured)
 - The sandbox is isolated - no network access or file system
 - Each execution is independent (no shared state between calls)
-`
+`;
 }

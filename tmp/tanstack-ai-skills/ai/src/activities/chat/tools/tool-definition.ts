@@ -1,11 +1,11 @@
-import type { StandardJSONSchemaV1 } from '@standard-schema/spec'
+import type { StandardJSONSchemaV1 } from "@standard-schema/spec";
 import type {
   InferSchemaType,
   JSONSchema,
   SchemaInput,
   Tool,
   ToolExecutionContext,
-} from '../../../types'
+} from "../../../types";
 
 /**
  * Marker type for server-side tools
@@ -15,7 +15,7 @@ export interface ServerTool<
   TOutput extends SchemaInput = SchemaInput,
   TName extends string = string,
 > extends Tool<TInput, TOutput, TName> {
-  __toolSide: 'server'
+  __toolSide: "server";
 }
 
 /**
@@ -26,17 +26,17 @@ export interface ClientTool<
   TOutput extends SchemaInput = SchemaInput,
   TName extends string = string,
 > {
-  __toolSide: 'client'
-  name: TName
-  description: string
-  inputSchema?: TInput
-  outputSchema?: TOutput
-  needsApproval?: boolean
-  lazy?: boolean
-  metadata?: Record<string, unknown>
+  __toolSide: "client";
+  name: TName;
+  description: string;
+  inputSchema?: TInput;
+  outputSchema?: TOutput;
+  needsApproval?: boolean;
+  lazy?: boolean;
+  metadata?: Record<string, unknown>;
   execute?: (
     args: InferSchemaType<TInput>,
-  ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>
+  ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>;
 }
 
 /**
@@ -47,7 +47,7 @@ export interface ToolDefinitionInstance<
   TOutput extends SchemaInput = SchemaInput,
   TName extends string = string,
 > extends Tool<TInput, TOutput, TName> {
-  __toolSide: 'definition'
+  __toolSide: "definition";
 }
 
 /**
@@ -55,12 +55,12 @@ export interface ToolDefinitionInstance<
  */
 export type AnyClientTool =
   | ClientTool<SchemaInput, SchemaInput>
-  | ToolDefinitionInstance<SchemaInput, SchemaInput>
+  | ToolDefinitionInstance<SchemaInput, SchemaInput>;
 
 /**
  * Extract the tool name as a literal type
  */
-export type InferToolName<T> = T extends { name: infer N } ? N : never
+export type InferToolName<T> = T extends { name: infer N } ? N : never;
 
 /**
  * Extract the input type from a tool (inferred from Standard JSON Schema, or `unknown` for plain JSONSchema)
@@ -71,7 +71,7 @@ export type InferToolInput<T> = T extends { inputSchema?: infer TInput }
     : TInput extends JSONSchema
       ? unknown
       : unknown
-  : unknown
+  : unknown;
 
 /**
  * Extract the output type from a tool (inferred from Standard JSON Schema, or `unknown` for plain JSONSchema)
@@ -82,7 +82,7 @@ export type InferToolOutput<T> = T extends { outputSchema?: infer TOutput }
     : TOutput extends JSONSchema
       ? unknown
       : unknown
-  : unknown
+  : unknown;
 
 /**
  * Tool definition configuration
@@ -92,13 +92,13 @@ export interface ToolDefinitionConfig<
   TOutput extends SchemaInput = SchemaInput,
   TName extends string = string,
 > {
-  name: TName
-  description: string
-  inputSchema?: TInput
-  outputSchema?: TOutput
-  needsApproval?: boolean
-  lazy?: boolean
-  metadata?: Record<string, unknown>
+  name: TName;
+  description: string;
+  inputSchema?: TInput;
+  outputSchema?: TOutput;
+  needsApproval?: boolean;
+  lazy?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -117,7 +117,7 @@ export interface ToolDefinition<
       args: InferSchemaType<TInput>,
       context?: ToolExecutionContext,
     ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>,
-  ) => ServerTool<TInput, TOutput, TName>
+  ) => ServerTool<TInput, TOutput, TName>;
 
   /**
    * Create a client-side tool with optional execute function
@@ -126,7 +126,7 @@ export interface ToolDefinition<
     execute?: (
       args: InferSchemaType<TInput>,
     ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>,
-  ) => ClientTool<TInput, TOutput, TName>
+  ) => ClientTool<TInput, TOutput, TName>;
 }
 
 /**
@@ -188,11 +188,9 @@ export function toolDefinition<
   TInput extends SchemaInput = SchemaInput,
   TOutput extends SchemaInput = SchemaInput,
   TName extends string = string,
->(
-  config: ToolDefinitionConfig<TInput, TOutput, TName>,
-): ToolDefinition<TInput, TOutput, TName> {
+>(config: ToolDefinitionConfig<TInput, TOutput, TName>): ToolDefinition<TInput, TOutput, TName> {
   const definition: ToolDefinition<TInput, TOutput, TName> = {
-    __toolSide: 'definition',
+    __toolSide: "definition",
     ...config,
     server(
       execute: (
@@ -201,10 +199,10 @@ export function toolDefinition<
       ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>,
     ): ServerTool<TInput, TOutput, TName> {
       return {
-        __toolSide: 'server',
+        __toolSide: "server",
         ...config,
         execute,
-      }
+      };
     },
 
     client(
@@ -213,12 +211,12 @@ export function toolDefinition<
       ) => Promise<InferSchemaType<TOutput>> | InferSchemaType<TOutput>,
     ): ClientTool<TInput, TOutput, TName> {
       return {
-        __toolSide: 'client',
+        __toolSide: "client",
         ...config,
         execute,
-      }
+      };
     },
-  }
+  };
 
-  return definition
+  return definition;
 }

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { callbackReturnsJsx, isHookCall } from "../performance/_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { callbackReturnsJsx, isHookCall } from "../performance/utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rerenderMemo = defineRule<Rule>({
   recommendation:

@@ -1,10 +1,10 @@
-import type { DebugCategories, Logger } from './types'
+import type { DebugCategories, Logger } from "./types";
 
 /**
  * Fully-resolved categories map. Every flag is a definite boolean (never
  * undefined), produced by `resolveDebugOption` from a `DebugOption`.
  */
-export type ResolvedCategories = Required<DebugCategories>
+export type ResolvedCategories = Required<DebugCategories>;
 
 /**
  * Package-internal logger wrapper used by every activity and adapter in
@@ -23,15 +23,15 @@ export type ResolvedCategories = Required<DebugCategories>
  * dense streaming logs.
  */
 const CATEGORY_EMOJI: Record<keyof ResolvedCategories, string> = {
-  request: '📤',
-  provider: '📥',
-  output: '📨',
-  middleware: '🧩',
-  tools: '🔧',
-  agentLoop: '🔁',
-  config: '⚙️',
-  errors: '❌',
-}
+  request: "📤",
+  provider: "📥",
+  output: "📨",
+  middleware: "🧩",
+  tools: "🔧",
+  agentLoop: "🔁",
+  config: "⚙️",
+  errors: "❌",
+};
 
 export class InternalLogger {
   constructor(
@@ -41,21 +41,21 @@ export class InternalLogger {
 
   /** Whether a category is enabled. Cheap, safe to call on hot paths. */
   isEnabled(category: keyof ResolvedCategories): boolean {
-    return this.categories[category]
+    return this.categories[category];
   }
 
   private emit(
-    level: 'debug' | 'error',
+    level: "debug" | "error",
     category: keyof ResolvedCategories,
     message: string,
     meta?: Record<string, unknown>,
   ): void {
-    if (!this.categories[category]) return
-    const emoji = CATEGORY_EMOJI[category]
-    const prefixed = `${emoji} [tanstack-ai:${category}] ${emoji} ${message}`
+    if (!this.categories[category]) return;
+    const emoji = CATEGORY_EMOJI[category];
+    const prefixed = `${emoji} [tanstack-ai:${category}] ${emoji} ${message}`;
     try {
-      if (level === 'error') this.logger.error(prefixed, meta)
-      else this.logger.debug(prefixed, meta)
+      if (level === "error") this.logger.error(prefixed, meta);
+      else this.logger.debug(prefixed, meta);
     } catch {
       // User-supplied logger threw; swallow so we never mask the original
       // error that triggered this log call.
@@ -64,32 +64,32 @@ export class InternalLogger {
 
   /** Log a raw chunk/frame received from a provider SDK. */
   provider(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'provider', message, meta)
+    this.emit("debug", "provider", message, meta);
   }
 
   /** Log a chunk/result yielded to the consumer after middleware. */
   output(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'output', message, meta)
+    this.emit("debug", "output", message, meta);
   }
 
   /** Log inputs/outputs around a middleware hook invocation. Chat-only. */
   middleware(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'middleware', message, meta)
+    this.emit("debug", "middleware", message, meta);
   }
 
   /** Log before/after a tool-call execution. Chat-only. */
   tools(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'tools', message, meta)
+    this.emit("debug", "tools", message, meta);
   }
 
   /** Log an agent-loop iteration marker or phase transition. Chat-only. */
   agentLoop(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'agentLoop', message, meta)
+    this.emit("debug", "agentLoop", message, meta);
   }
 
   /** Log a config transform returned by a middleware `onConfig` hook. Chat-only. */
   config(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'config', message, meta)
+    this.emit("debug", "config", message, meta);
   }
 
   /**
@@ -97,11 +97,11 @@ export class InternalLogger {
    * Uses the underlying logger's `error` level.
    */
   errors(message: string, meta?: Record<string, unknown>): void {
-    this.emit('error', 'errors', message, meta)
+    this.emit("error", "errors", message, meta);
   }
 
   /** Log outgoing request metadata before an adapter SDK call. */
   request(message: string, meta?: Record<string, unknown>): void {
-    this.emit('debug', 'request', message, meta)
+    this.emit("debug", "request", message, meta);
   }
 }

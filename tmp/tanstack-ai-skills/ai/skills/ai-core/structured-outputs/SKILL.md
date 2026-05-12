@@ -8,9 +8,9 @@ description: >
   schema conversion.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/chat/structured-outputs.md'
+  - "TanStack/ai:docs/chat/structured-outputs.md"
 ---
 
 # Structured Outputs
@@ -20,19 +20,19 @@ sources:
 ## Setup
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
-import { z } from 'zod'
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
+import { z } from "zod";
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
         {
-          type: 'text',
-          content: 'Extract the person info from: John is 30 years old',
+          type: "text",
+          content: "Extract the person info from: John is 30 years old",
         },
       ],
     },
@@ -41,7 +41,7 @@ const stream = chat({
     name: z.string(),
     age: z.number(),
   }),
-})
+});
 ```
 
 When `outputSchema` is provided, `chat()` returns `Promise<InferSchemaType<TSchema>>` instead of `AsyncIterable<StreamChunk>`. The result is fully typed based on the schema.
@@ -51,44 +51,43 @@ When `outputSchema` is provided, `chat()` returns `Promise<InferSchemaType<TSche
 ### Pattern 1: Basic structured output with Zod
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
-import { z } from 'zod'
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
+import { z } from "zod";
 
 const PersonSchema = z.object({
   name: z.string().meta({ description: "The person's full name" }),
   age: z.number().meta({ description: "The person's age in years" }),
-  email: z.string().email().meta({ description: 'Email address' }),
-})
+  email: z.string().email().meta({ description: "Email address" }),
+});
 
 // chat() returns Promise<{ name: string; age: number; email: string }>
 const person = await chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages: [
     {
-      role: 'user',
-      content:
-        'Extract the person info: John Doe is 30 years old, email john@example.com',
+      role: "user",
+      content: "Extract the person info: John Doe is 30 years old, email john@example.com",
     },
   ],
   outputSchema: PersonSchema,
-})
+});
 
-console.log(person.name) // "John Doe"
-console.log(person.age) // 30
-console.log(person.email) // "john@example.com"
+console.log(person.name); // "John Doe"
+console.log(person.age); // 30
+console.log(person.email); // "john@example.com"
 ```
 
 ### Pattern 2: Complex nested schemas
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { anthropicText } from '@tanstack/ai-anthropic'
-import { z } from 'zod'
+import { chat } from "@tanstack/ai";
+import { anthropicText } from "@tanstack/ai-anthropic";
+import { z } from "zod";
 
 const CompanySchema = z.object({
   name: z.string(),
-  founded: z.number().meta({ description: 'Year the company was founded' }),
+  founded: z.number().meta({ description: "Year the company was founded" }),
   headquarters: z.object({
     city: z.string(),
     country: z.string(),
@@ -103,29 +102,27 @@ const CompanySchema = z.object({
   ),
   financials: z
     .object({
-      revenue: z
-        .number()
-        .meta({ description: 'Annual revenue in millions USD' }),
+      revenue: z.number().meta({ description: "Annual revenue in millions USD" }),
       profitable: z.boolean(),
     })
     .optional(),
-})
+});
 
 const company = await chat({
-  adapter: anthropicText('claude-sonnet-4-5'),
+  adapter: anthropicText("claude-sonnet-4-5"),
   messages: [
     {
-      role: 'user',
-      content: 'Extract company info from this article: ...',
+      role: "user",
+      content: "Extract company info from this article: ...",
     },
   ],
   outputSchema: CompanySchema,
-})
+});
 
 // Full type safety on nested properties
-console.log(company.headquarters.city)
-console.log(company.employees[0].role)
-console.log(company.financials?.revenue)
+console.log(company.headquarters.city);
+console.log(company.employees[0].role);
+console.log(company.financials?.revenue);
 ```
 
 ## Common Mistakes
@@ -140,16 +137,16 @@ chat({
   adapter,
   messages,
   modelOptions: {
-    responseFormat: { type: 'json_schema', json_schema: mySchema },
+    responseFormat: { type: "json_schema", json_schema: mySchema },
   },
-})
+});
 
 // CORRECT -- just pass outputSchema, the adapter handles the rest
 chat({
   adapter,
   messages,
   outputSchema: z.object({ name: z.string(), age: z.number() }),
-})
+});
 ```
 
 There is no scenario where you need to know the provider's strategy. Just pass `outputSchema` to `chat()`.
@@ -168,18 +165,18 @@ chat({
   adapter,
   messages,
   outputSchema: {
-    type: 'object',
+    type: "object",
     properties: {
-      name: { type: 'string' },
-      age: { type: 'number' },
+      name: { type: "string" },
+      age: { type: "number" },
     },
-    required: ['name', 'age'],
+    required: ["name", "age"],
     additionalProperties: false,
   },
-})
+});
 
 // CORRECT -- use the project's schema library (e.g. Zod)
-import { z } from 'zod'
+import { z } from "zod";
 
 chat({
   adapter,
@@ -188,7 +185,7 @@ chat({
     name: z.string(),
     age: z.number(),
   }),
-})
+});
 ```
 
 Using the project's schema library gives you runtime validation, TypeScript

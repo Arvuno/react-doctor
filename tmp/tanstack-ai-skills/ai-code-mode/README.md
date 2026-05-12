@@ -28,50 +28,44 @@ pnpm add @tanstack/ai-isolate-cloudflare
 ## Quick Start
 
 ```typescript
-import { chat, toolDefinition } from '@tanstack/ai'
-import { createCodeMode } from '@tanstack/ai-code-mode'
-import { createNodeIsolateDriver } from '@tanstack/ai-isolate-node'
-import { z } from 'zod'
+import { chat, toolDefinition } from "@tanstack/ai";
+import { createCodeMode } from "@tanstack/ai-code-mode";
+import { createNodeIsolateDriver } from "@tanstack/ai-isolate-node";
+import { z } from "zod";
 
 // Define tools that the LLM can call from inside the sandbox
 const weatherTool = toolDefinition({
-  name: 'fetchWeather',
-  description: 'Get weather for a city',
+  name: "fetchWeather",
+  description: "Get weather for a city",
   inputSchema: z.object({ location: z.string() }),
   outputSchema: z.object({ temperature: z.number(), condition: z.string() }),
 }).server(async ({ location }) => {
   // Your implementation
-  return { temperature: 72, condition: 'sunny' }
-})
+  return { temperature: 72, condition: "sunny" };
+});
 
 // Create the execute_typescript tool and system prompt
 const { tool, systemPrompt } = createCodeMode({
   driver: createNodeIsolateDriver(),
   tools: [weatherTool],
-})
+});
 
 const result = await chat({
   adapter: yourAdapter,
-  model: 'gpt-4o',
-  systemPrompts: ['You are a helpful assistant.', systemPrompt],
+  model: "gpt-4o",
+  systemPrompts: ["You are a helpful assistant.", systemPrompt],
   tools: [tool],
-  messages: [
-    { role: 'user', content: 'Compare weather in Tokyo, Paris, and NYC' },
-  ],
-})
+  messages: [{ role: "user", content: "Compare weather in Tokyo, Paris, and NYC" }],
+});
 ```
 
 The LLM will generate code like:
 
 ```typescript
-const cities = ['Tokyo', 'Paris', 'NYC']
-const results = await Promise.all(
-  cities.map((city) => external_fetchWeather({ location: city })),
-)
-const warmest = results.reduce((prev, curr) =>
-  curr.temperature > prev.temperature ? curr : prev,
-)
-return { warmestCity: warmest.location, temperature: warmest.temperature }
+const cities = ["Tokyo", "Paris", "NYC"];
+const results = await Promise.all(cities.map((city) => external_fetchWeather({ location: city })));
+const warmest = results.reduce((prev, curr) => (curr.temperature > prev.temperature ? curr : prev));
+return { warmestCity: warmest.location, temperature: warmest.temperature };
 ```
 
 ## API Reference

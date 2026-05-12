@@ -1,14 +1,14 @@
-import type { TTSOptions, TTSResult } from '../../types'
+import type { TTSOptions, TTSResult } from "../../types";
 
 /**
  * Configuration for TTS adapter instances
  */
 export interface TTSAdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
-  headers?: Record<string, string>
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -26,30 +26,30 @@ export interface TTSAdapter<
   TProviderOptions extends object = Record<string, unknown>,
 > {
   /** Discriminator for adapter kind - used to determine API shape */
-  readonly kind: 'tts'
+  readonly kind: "tts";
   /** Adapter name identifier */
-  readonly name: string
+  readonly name: string;
   /** The model this adapter is configured for */
-  readonly model: TModel
+  readonly model: TModel;
 
   /**
    * @internal Type-only properties for inference. Not assigned at runtime.
    */
-  '~types': {
-    providerOptions: TProviderOptions
-  }
+  "~types": {
+    providerOptions: TProviderOptions;
+  };
 
   /**
    * Generate speech from text
    */
-  generateSpeech: (options: TTSOptions<TProviderOptions>) => Promise<TTSResult>
+  generateSpeech: (options: TTSOptions<TProviderOptions>) => Promise<TTSResult>;
 }
 
 /**
  * A TTSAdapter with any/unknown type parameters.
  * Useful as a constraint in generic functions and interfaces.
  */
-export type AnyTTSAdapter = TTSAdapter<any, any>
+export type AnyTTSAdapter = TTSAdapter<any, any>;
 
 /**
  * Abstract base class for text-to-speech adapters.
@@ -61,27 +61,25 @@ export abstract class BaseTTSAdapter<
   TModel extends string = string,
   TProviderOptions extends object = Record<string, unknown>,
 > implements TTSAdapter<TModel, TProviderOptions> {
-  readonly kind = 'tts' as const
-  abstract readonly name: string
-  readonly model: TModel
+  readonly kind = "tts" as const;
+  abstract readonly name: string;
+  readonly model: TModel;
 
   // Type-only property - never assigned at runtime
-  declare '~types': {
-    providerOptions: TProviderOptions
-  }
+  declare "~types": {
+    providerOptions: TProviderOptions;
+  };
 
-  protected config: TTSAdapterConfig
+  protected config: TTSAdapterConfig;
 
   constructor(model: TModel, config: TTSAdapterConfig = {}) {
-    this.config = config
-    this.model = model
+    this.config = config;
+    this.model = model;
   }
 
-  abstract generateSpeech(
-    options: TTSOptions<TProviderOptions>,
-  ): Promise<TTSResult>
+  abstract generateSpeech(options: TTSOptions<TProviderOptions>): Promise<TTSResult>;
 
   protected generateId(): string {
-    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
 }

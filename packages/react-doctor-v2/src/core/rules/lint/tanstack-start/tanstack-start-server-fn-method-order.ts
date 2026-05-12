@@ -3,8 +3,8 @@ import {
   TANSTACK_MIDDLEWARE_METHOD_ORDER,
   TANSTACK_SERVER_FN_NAMES,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const tanstackStartServerFnMethodOrder = defineRule<Rule>({
   recommendation:

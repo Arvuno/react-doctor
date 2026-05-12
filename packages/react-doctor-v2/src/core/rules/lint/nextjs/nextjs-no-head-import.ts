@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { APP_DIRECTORY_PATTERN } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { APP_DIRECTORY_PATTERN } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoHeadImport = defineRule<Rule>({
   recommendation:

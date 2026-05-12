@@ -59,19 +59,19 @@ Import only the functionality you need for smaller bundle sizes:
 
 ```typescript
 // Only chat functionality - no summarization code bundled
-import { openaiText } from '@tanstack/ai-openai/adapters'
-import { generate } from '@tanstack/ai'
+import { openaiText } from "@tanstack/ai-openai/adapters";
+import { generate } from "@tanstack/ai";
 
-const textAdapter = openaiText()
+const textAdapter = openaiText();
 
 const result = generate({
   adapter: textAdapter,
-  model: 'gpt-4o',
-  messages: [{ role: 'user', content: [{ type: 'text', content: 'Hello!' }] }],
-})
+  model: "gpt-4o",
+  messages: [{ role: "user", content: [{ type: "text", content: "Hello!" }] }],
+});
 
 for await (const chunk of result) {
-  console.log(chunk)
+  console.log(chunk);
 }
 ```
 

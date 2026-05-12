@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
-import { getStringFromClassNameAttr } from "../design/_utils.js";
-import { findJsxAttribute, isNodeOfType } from "../utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "../utils.js";
+import { getStringFromClassNameAttr } from "../design/utils/index.js";
+import { findJsxAttribute, isNodeOfType } from "../utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "../utils/index.js";
 
 const HOVER_TARGET_TRANSFORM_PATTERN = /(?:^|\s)hover:(?:-?translate-[xy]|scale|rotate)-/;
 

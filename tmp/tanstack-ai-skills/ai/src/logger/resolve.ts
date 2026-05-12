@@ -1,7 +1,7 @@
-import { ConsoleLogger } from './console-logger'
-import { InternalLogger } from './internal-logger'
-import type { ResolvedCategories } from './internal-logger'
-import type { DebugCategories, DebugConfig, DebugOption, Logger } from './types'
+import { ConsoleLogger } from "./console-logger";
+import { InternalLogger } from "./internal-logger";
+import type { ResolvedCategories } from "./internal-logger";
+import type { DebugCategories, DebugConfig, DebugOption, Logger } from "./types";
 
 const ALL_OFF: ResolvedCategories = {
   provider: false,
@@ -12,7 +12,7 @@ const ALL_OFF: ResolvedCategories = {
   config: false,
   errors: false,
   request: false,
-}
+};
 
 const ALL_ON: ResolvedCategories = {
   provider: true,
@@ -23,16 +23,14 @@ const ALL_ON: ResolvedCategories = {
   config: true,
   errors: true,
   request: true,
-}
+};
 
 const errorsOnlyCategories = (): ResolvedCategories => ({
   ...ALL_OFF,
   errors: true,
-})
+});
 
-const resolveCategoriesFromPartial = (
-  partial: DebugCategories,
-): ResolvedCategories => ({
+const resolveCategoriesFromPartial = (partial: DebugCategories): ResolvedCategories => ({
   provider: partial.provider ?? true,
   output: partial.output ?? true,
   middleware: partial.middleware ?? true,
@@ -41,7 +39,7 @@ const resolveCategoriesFromPartial = (
   config: partial.config ?? true,
   errors: partial.errors ?? true,
   request: partial.request ?? true,
-})
+});
 
 /**
  * Normalize a `DebugOption` into an `InternalLogger` ready to be threaded
@@ -54,19 +52,17 @@ const resolveCategoriesFromPartial = (
  * - `DebugConfig`: each unspecified category defaults to `true`; an optional
  *   `logger` replaces the default `ConsoleLogger`.
  */
-export function resolveDebugOption(
-  debug: DebugOption | undefined,
-): InternalLogger {
+export function resolveDebugOption(debug: DebugOption | undefined): InternalLogger {
   if (debug === undefined) {
-    return new InternalLogger(new ConsoleLogger(), errorsOnlyCategories())
+    return new InternalLogger(new ConsoleLogger(), errorsOnlyCategories());
   }
   if (debug === true) {
-    return new InternalLogger(new ConsoleLogger(), ALL_ON)
+    return new InternalLogger(new ConsoleLogger(), ALL_ON);
   }
   if (debug === false) {
-    return new InternalLogger(new ConsoleLogger(), ALL_OFF)
+    return new InternalLogger(new ConsoleLogger(), ALL_OFF);
   }
-  const { logger, ...cats }: DebugConfig = debug
-  const userLogger: Logger = logger ?? new ConsoleLogger()
-  return new InternalLogger(userLogger, resolveCategoriesFromPartial(cats))
+  const { logger, ...cats }: DebugConfig = debug;
+  const userLogger: Logger = logger ?? new ConsoleLogger();
+  return new InternalLogger(userLogger, resolveCategoriesFromPartial(cats));
 }

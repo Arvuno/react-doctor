@@ -18,8 +18,8 @@
 ## Import
 
 ```typescript
-import { geminiText } from '@tanstack/ai-gemini'
-import { geminiImage } from '@tanstack/ai-gemini'
+import { geminiText } from "@tanstack/ai-gemini";
+import { geminiImage } from "@tanstack/ai-gemini";
 ```
 
 ## Key Chat Models
@@ -39,7 +39,7 @@ All Gemini text models accept `text`, `image`, `audio`, `video`, and `document` 
 
 ```typescript
 chat({
-  adapter: geminiText('gemini-2.5-pro'),
+  adapter: geminiText("gemini-2.5-pro"),
   messages,
   modelOptions: {
     // Thinking (budget-based)
@@ -49,13 +49,13 @@ chat({
     },
     // Thinking (level-based, advanced models)
     thinkingConfig: {
-      thinkingLevel: 'THINKING_LEVEL_HIGH',
+      thinkingLevel: "THINKING_LEVEL_HIGH",
     },
     // Safety settings
     safetySettings: [
       {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        category: "HARM_CATEGORY_HATE_SPEECH",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
       },
     ],
     // Tool config
@@ -63,23 +63,23 @@ chat({
       /* ToolConfig */
     },
     // Structured output
-    responseMimeType: 'application/json',
+    responseMimeType: "application/json",
     responseSchema: {
       /* Schema */
     },
     // Cached content
-    cachedContent: 'cachedContents/abc123',
+    cachedContent: "cachedContents/abc123",
     // Response modalities
-    responseModalities: ['TEXT'],
+    responseModalities: ["TEXT"],
     // Sampling
     topK: 40,
     seed: 42,
     presencePenalty: 0.5,
     frequencyPenalty: 0.5,
     candidateCount: 1,
-    stopSequences: ['END'],
+    stopSequences: ["END"],
   },
-})
+});
 ```
 
 ## Environment Variable

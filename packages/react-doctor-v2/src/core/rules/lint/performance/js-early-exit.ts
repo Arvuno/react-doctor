@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { DEEP_NESTING_THRESHOLD, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { DEEP_NESTING_THRESHOLD, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const jsEarlyExit = defineRule<Rule>({
   recommendation:

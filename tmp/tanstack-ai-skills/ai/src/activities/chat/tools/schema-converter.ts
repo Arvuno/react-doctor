@@ -1,30 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 
-import type {
-  StandardJSONSchemaV1,
-  StandardSchemaV1,
-} from '@standard-schema/spec'
-import type { JSONSchema, SchemaInput } from '../../../types'
+import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec";
+import type { JSONSchema, SchemaInput } from "../../../types";
 
 /**
  * Check if a value is a Standard JSON Schema compliant schema.
  * Standard JSON Schema compliant libraries (Zod v4+, ArkType, Valibot with toStandardJsonSchema, etc.)
  * implement the '~standard' property with jsonSchema converter methods.
  */
-export function isStandardJSONSchema(
-  schema: unknown,
-): schema is StandardJSONSchemaV1 {
+export function isStandardJSONSchema(schema: unknown): schema is StandardJSONSchemaV1 {
   return (
-    typeof schema === 'object' &&
+    typeof schema === "object" &&
     schema !== null &&
-    '~standard' in schema &&
-    typeof (schema as StandardJSONSchemaV1)['~standard'] === 'object' &&
-    (schema as StandardJSONSchemaV1)['~standard'].version === 1 &&
-    typeof (schema as StandardJSONSchemaV1)['~standard'].jsonSchema ===
-      'object' &&
-    typeof (schema as StandardJSONSchemaV1)['~standard'].jsonSchema.input ===
-      'function'
-  )
+    "~standard" in schema &&
+    typeof (schema as StandardJSONSchemaV1)["~standard"] === "object" &&
+    (schema as StandardJSONSchemaV1)["~standard"].version === 1 &&
+    typeof (schema as StandardJSONSchemaV1)["~standard"].jsonSchema === "object" &&
+    typeof (schema as StandardJSONSchemaV1)["~standard"].jsonSchema.input === "function"
+  );
 }
 
 /**
@@ -33,17 +26,17 @@ export function isStandardJSONSchema(
  */
 export function isStandardSchema(schema: unknown): schema is StandardSchemaV1 {
   return (
-    typeof schema === 'object' &&
+    typeof schema === "object" &&
     schema !== null &&
-    '~standard' in schema &&
-    typeof schema['~standard'] === 'object' &&
+    "~standard" in schema &&
+    typeof schema["~standard"] === "object" &&
     schema !== null &&
-    schema['~standard'] !== null &&
-    'version' in schema['~standard'] &&
-    schema['~standard'].version === 1 &&
-    'validate' in schema['~standard'] &&
-    typeof schema['~standard'].validate === 'function'
-  )
+    schema["~standard"] !== null &&
+    "version" in schema["~standard"] &&
+    schema["~standard"].version === 1 &&
+    "validate" in schema["~standard"] &&
+    typeof schema["~standard"].validate === "function"
+  );
 }
 
 /**
@@ -61,70 +54,61 @@ function makeStructuredOutputCompatible(
   schema: Record<string, any>,
   originalRequired: Array<string> = [],
 ): Record<string, any> {
-  const result = { ...schema }
+  const result = { ...schema };
 
   // Handle object types
-  if (result.type === 'object' && result.properties) {
-    const properties = { ...result.properties }
-    const allPropertyNames = Object.keys(properties)
+  if (result.type === "object" && result.properties) {
+    const properties = { ...result.properties };
+    const allPropertyNames = Object.keys(properties);
 
     // Transform each property
     for (const propName of allPropertyNames) {
-      const prop = properties[propName]
-      const wasOptional = !originalRequired.includes(propName)
+      const prop = properties[propName];
+      const wasOptional = !originalRequired.includes(propName);
 
       // Recursively transform nested objects/arrays
-      if (prop.type === 'object' && prop.properties) {
-        const transformed = makeStructuredOutputCompatible(
-          prop,
-          prop.required || [],
-        )
+      if (prop.type === "object" && prop.properties) {
+        const transformed = makeStructuredOutputCompatible(prop, prop.required || []);
         properties[propName] = wasOptional
-          ? { ...transformed, type: ['object', 'null'] }
-          : transformed
-      } else if (prop.type === 'array' && prop.items) {
+          ? { ...transformed, type: ["object", "null"] }
+          : transformed;
+      } else if (prop.type === "array" && prop.items) {
         const transformed = {
           ...prop,
-          items: makeStructuredOutputCompatible(
-            prop.items,
-            prop.items.required || [],
-          ),
-        }
+          items: makeStructuredOutputCompatible(prop.items, prop.items.required || []),
+        };
         properties[propName] = wasOptional
-          ? { ...transformed, type: ['array', 'null'] }
-          : transformed
+          ? { ...transformed, type: ["array", "null"] }
+          : transformed;
       } else if (wasOptional) {
         // Make optional fields nullable by adding null to the type
         if (prop.type && !Array.isArray(prop.type)) {
           properties[propName] = {
             ...prop,
-            type: [prop.type, 'null'],
-          }
-        } else if (Array.isArray(prop.type) && !prop.type.includes('null')) {
+            type: [prop.type, "null"],
+          };
+        } else if (Array.isArray(prop.type) && !prop.type.includes("null")) {
           properties[propName] = {
             ...prop,
-            type: [...prop.type, 'null'],
-          }
+            type: [...prop.type, "null"],
+          };
         }
       }
     }
 
-    result.properties = properties
+    result.properties = properties;
     // ALL properties must be required for OpenAI structured output
-    result.required = allPropertyNames
+    result.required = allPropertyNames;
     // additionalProperties must be false
-    result.additionalProperties = false
+    result.additionalProperties = false;
   }
 
   // Handle array types with object items
-  if (result.type === 'array' && result.items) {
-    result.items = makeStructuredOutputCompatible(
-      result.items,
-      result.items.required || [],
-    )
+  if (result.type === "array" && result.items) {
+    result.items = makeStructuredOutputCompatible(result.items, result.items.required || []);
   }
 
-  return result
+  return result;
 }
 
 /**
@@ -139,7 +123,7 @@ export interface ConvertSchemaOptions {
    *
    * @default false
    */
-  forStructuredOutput?: boolean
+  forStructuredOutput?: boolean;
 }
 
 /**
@@ -206,65 +190,62 @@ export function convertSchemaToJsonSchema(
   schema: SchemaInput | undefined,
   options: ConvertSchemaOptions = {},
 ): JSONSchema | undefined {
-  if (!schema) return undefined
+  if (!schema) return undefined;
 
-  const { forStructuredOutput = false } = options
+  const { forStructuredOutput = false } = options;
 
   // If it's a Standard JSON Schema compliant schema, use the standard interface
   if (isStandardJSONSchema(schema)) {
-    const jsonSchema = schema['~standard'].jsonSchema.input({
-      target: 'draft-07',
-    })
+    const jsonSchema = schema["~standard"].jsonSchema.input({
+      target: "draft-07",
+    });
 
-    let result = jsonSchema
+    let result = jsonSchema;
 
-    if (typeof result === 'object' && '$schema' in result) {
+    if (typeof result === "object" && "$schema" in result) {
       // Remove $schema property as it's not needed for LLM providers
-      const { $schema, ...rest } = result
-      result = rest
+      const { $schema, ...rest } = result;
+      result = rest;
     }
 
     // Ensure object schemas always have type: "object"
 
-    if (typeof result === 'object') {
+    if (typeof result === "object") {
       // If it has properties (even empty), it should be an object type
-      if ('properties' in result && !result.type) {
-        result.type = 'object'
+      if ("properties" in result && !result.type) {
+        result.type = "object";
       }
 
       // Ensure properties exists for object types (even if empty)
-      if (result.type === 'object' && !('properties' in result)) {
-        result.properties = {}
+      if (result.type === "object" && !("properties" in result)) {
+        result.properties = {};
       }
 
       // Ensure required exists for object types (even if empty array)
-      if (result.type === 'object' && !('required' in result)) {
-        result.required = []
+      if (result.type === "object" && !("required" in result)) {
+        result.required = [];
       }
 
       // Apply structured output transformation if requested
       if (forStructuredOutput) {
-        result = makeStructuredOutputCompatible(
-          result,
-          (result.required as Array<string>) || [],
-        )
+        result = makeStructuredOutputCompatible(result, (result.required as Array<string>) || []);
       }
     }
 
-    return result as JSONSchema
+    return result as JSONSchema;
   }
 
   // If it's not a Standard JSON Schema, assume it's already a JSONSchema and pass through
   // Still apply structured output transformation if requested
 
-  if (forStructuredOutput && typeof schema === 'object') {
+  if (forStructuredOutput && typeof schema === "object") {
     return makeStructuredOutputCompatible(
       schema as Record<string, any>,
       ((schema as JSONSchema).required as Array<string>) || [],
-    ) as JSONSchema
+    ) as JSONSchema;
   }
 
-  return schema as JSONSchema
+  return schema as JSONSchema;
 }
 
 /**
@@ -283,22 +264,22 @@ export async function validateWithStandardSchema<T>(
 > {
   if (!isStandardSchema(schema)) {
     // If it's not a Standard Schema, just return the data as-is
-    return { success: true, data: data as T }
+    return { success: true, data: data as T };
   }
 
-  const result = await schema['~standard'].validate(data)
+  const result = await schema["~standard"].validate(data);
 
   if (!result.issues) {
-    return { success: true, data: result.value as T }
+    return { success: true, data: result.value as T };
   }
 
   return {
     success: false,
     issues: result.issues.map((issue) => ({
-      message: issue.message || 'Validation failed',
+      message: issue.message || "Validation failed",
       path: issue.path?.map(String),
     })),
-  }
+  };
 }
 
 /**
@@ -314,25 +295,25 @@ export async function validateWithStandardSchema<T>(
 export function parseWithStandardSchema<T>(schema: unknown, data: unknown): T {
   if (!isStandardSchema(schema)) {
     // If it's not a Standard Schema, just return the data as-is
-    return data as T
+    return data as T;
   }
 
-  const result = schema['~standard'].validate(data)
+  const result = schema["~standard"].validate(data);
 
   // Handle async result (Promise)
   if (result instanceof Promise) {
     throw new Error(
-      'Schema validation returned a Promise. Use validateWithStandardSchema for async validation.',
-    )
+      "Schema validation returned a Promise. Use validateWithStandardSchema for async validation.",
+    );
   }
   // Standard Schema validation returns { value } for success or { issues } for failure
   if (!result.issues) {
-    return result.value as T
+    return result.value as T;
   }
 
   // invalid validation, throw error with all issues
   const errorMessages = result.issues
-    .map((issue) => issue.message || 'Validation failed')
-    .join(', ')
-  throw new Error(`Validation failed: ${errorMessages}`)
+    .map((issue) => issue.message || "Validation failed")
+    .join(", ");
+  throw new Error(`Validation failed: ${errorMessages}`);
 }

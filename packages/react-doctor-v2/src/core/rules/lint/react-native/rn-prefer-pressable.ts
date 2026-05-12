@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { TOUCHABLE_COMPONENTS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { TOUCHABLE_COMPONENTS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnPreferPressable = defineRule<Rule>({
   recommendation: "Use Pressable for touch interactions instead of legacy touchable components.",

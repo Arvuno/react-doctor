@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { DEPRECATED_RN_MODULE_REPLACEMENTS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { DEPRECATED_RN_MODULE_REPLACEMENTS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoDeprecatedModules = defineRule<Rule>({
   recommendation:

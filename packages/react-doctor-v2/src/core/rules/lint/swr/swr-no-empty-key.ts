@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { SWR_HOOK_NAMES, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { SWR_HOOK_NAMES, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isEmptyString = (node: EsTreeNode | undefined): boolean =>
   isNodeOfType(node, "Literal") && node.value === "";

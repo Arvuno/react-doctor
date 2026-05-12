@@ -1,14 +1,34 @@
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { createReactDoctor, inspectReactProject } from "../src/sdk/index.js";
+import { DEAD_CODE_RULE_ID, createReactDoctor, inspectReactProject } from "../src/sdk/index.js";
+
+const createFixtureProject = async (files: Record<string, string>): Promise<string> => {
+  const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "react-doctor-inspect-"));
+  await Promise.all(
+    Object.entries(files).map(async ([relativePath, sourceText]) => {
+      const filePath = path.join(rootDirectory, relativePath);
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, sourceText);
+    }),
+  );
+  return rootDirectory;
+};
 
 describe("inspectReactProject", () => {
   it("returns a scaffold run result for the target project", async () => {
     const result = await inspectReactProject({ rootDirectory: "src" });
 
     expect(result.status).toBe("completed");
-    expect(result.project).toEqual({
+    expect(result.project).toMatchObject({
       rootDirectory: path.resolve("src"),
+      projectName: "react-doctor-v2",
+      framework: "unknown",
+      hasTypeScript: true,
+      reactVersion: null,
+      tailwindVersion: null,
+      sourceFileCount: expect.any(Number),
     });
     expect(result.issues).toEqual([]);
     expect(result.checks).toEqual([
@@ -20,7 +40,7 @@ describe("inspectReactProject", () => {
         durationMilliseconds: expect.any(Number),
       },
     ]);
-    expect(result.score).toBeNull();
+    expect(result.score).toEqual({ value: 100, label: "Great" });
     expect(result.startedAt).toEqual(expect.any(String));
     expect(result.completedAt).toEqual(expect.any(String));
     expect(result.durationMilliseconds).toEqual(expect.any(Number));
@@ -35,6 +55,30 @@ describe("inspectReactProject", () => {
     });
 
     expect(result.checks).toEqual([]);
+  });
+
+  it("loads config from ancestors and resolves rootDir from the config source", async () => {
+    const rootDirectory = await createFixtureProject({
+      "react-doctor.config.json": JSON.stringify({
+        rootDir: "apps/web",
+        deadCode: true,
+      }),
+      "apps/web/package.json": JSON.stringify({
+        name: "web",
+        dependencies: { react: "^19.0.0" },
+      }),
+      "apps/web/src/main.tsx": "import { App } from './app';\nconsole.log(App);\n",
+      "apps/web/src/app.tsx": "export const App = () => null;\nexport const Unused = 1;\n",
+    });
+
+    const result = await inspectReactProject({ rootDirectory });
+
+    expect(result.project.rootDirectory).toBe(path.join(rootDirectory, "apps/web"));
+    expect(result.project.projectName).toBe("web");
+    expect(result.checks.map((check) => check.id)).toContain(DEAD_CODE_RULE_ID);
+    expect(result.issues.map((issue) => issue.id)).toContain(
+      `${DEAD_CODE_RULE_ID}/unused-export/src/app.tsx/Unused`,
+    );
   });
 });
 

@@ -8,8 +8,8 @@ import {
   isHookCall,
   isSetterCall,
   walkInsideStatementBlocks,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const hasAnyName = (names: Iterable<string>, candidates: ReadonlySet<string>): boolean => {
   for (const name of names) {

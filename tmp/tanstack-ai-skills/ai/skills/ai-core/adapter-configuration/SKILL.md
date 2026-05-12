@@ -9,15 +9,15 @@ description: >
   XAI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, OLLAMA_HOST.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/adapters/openai.md'
-  - 'TanStack/ai:docs/adapters/anthropic.md'
-  - 'TanStack/ai:docs/adapters/gemini.md'
-  - 'TanStack/ai:docs/adapters/ollama.md'
-  - 'TanStack/ai:docs/advanced/per-model-type-safety.md'
-  - 'TanStack/ai:docs/advanced/runtime-adapter-switching.md'
-  - 'TanStack/ai:docs/advanced/extend-adapter.md'
+  - "TanStack/ai:docs/adapters/openai.md"
+  - "TanStack/ai:docs/adapters/anthropic.md"
+  - "TanStack/ai:docs/adapters/gemini.md"
+  - "TanStack/ai:docs/adapters/ollama.md"
+  - "TanStack/ai:docs/advanced/per-model-type-safety.md"
+  - "TanStack/ai:docs/advanced/runtime-adapter-switching.md"
+  - "TanStack/ai:docs/advanced/extend-adapter.md"
 ---
 
 # Adapter Configuration
@@ -36,17 +36,17 @@ sources:
 Create an adapter and use it with `chat()`:
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   temperature: 0.7,
   maxTokens: 1000,
-})
+});
 
-return toServerSentEventsResponse(stream)
+return toServerSentEventsResponse(stream);
 ```
 
 The adapter factory function takes the model name as a string literal and an
@@ -72,27 +72,27 @@ The text adapter is the primary one for chat/completions:
 
 ```typescript
 // Each factory takes model as first arg, optional config as second
-import { openaiText } from '@tanstack/ai-openai'
-import { anthropicText } from '@tanstack/ai-anthropic'
-import { geminiText } from '@tanstack/ai-gemini'
-import { grokText } from '@tanstack/ai-grok'
-import { groqText } from '@tanstack/ai-groq'
-import { openRouterText } from '@tanstack/ai-openrouter'
-import { ollamaText } from '@tanstack/ai-ollama'
+import { openaiText } from "@tanstack/ai-openai";
+import { anthropicText } from "@tanstack/ai-anthropic";
+import { geminiText } from "@tanstack/ai-gemini";
+import { grokText } from "@tanstack/ai-grok";
+import { groqText } from "@tanstack/ai-groq";
+import { openRouterText } from "@tanstack/ai-openrouter";
+import { ollamaText } from "@tanstack/ai-ollama";
 
 // Model string is passed to the factory, NOT to chat()
-const adapter = openaiText('gpt-5.2')
-const adapter2 = anthropicText('claude-sonnet-4-6')
-const adapter3 = geminiText('gemini-2.5-pro')
-const adapter4 = grokText('grok-4')
-const adapter5 = groqText('llama-3.3-70b-versatile')
-const adapter6 = openRouterText('anthropic/claude-sonnet-4')
-const adapter7 = ollamaText('llama3.3')
+const adapter = openaiText("gpt-5.2");
+const adapter2 = anthropicText("claude-sonnet-4-6");
+const adapter3 = geminiText("gemini-2.5-pro");
+const adapter4 = grokText("grok-4");
+const adapter5 = groqText("llama-3.3-70b-versatile");
+const adapter6 = openRouterText("anthropic/claude-sonnet-4");
+const adapter7 = ollamaText("llama3.3");
 
 // Optional: pass explicit API key
-const adapterWithKey = openaiText('gpt-5.2', {
-  apiKey: 'sk-...',
-})
+const adapterWithKey = openaiText("gpt-5.2", {
+  apiKey: "sk-...",
+});
 ```
 
 ### 2. Runtime Adapter Switching
@@ -101,31 +101,31 @@ Use an adapter factory map to switch providers dynamically based on user
 input or configuration:
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import type { TextAdapter } from '@tanstack/ai/adapters'
-import { openaiText } from '@tanstack/ai-openai'
-import { anthropicText } from '@tanstack/ai-anthropic'
-import { geminiText } from '@tanstack/ai-gemini'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import type { TextAdapter } from "@tanstack/ai/adapters";
+import { openaiText } from "@tanstack/ai-openai";
+import { anthropicText } from "@tanstack/ai-anthropic";
+import { geminiText } from "@tanstack/ai-gemini";
 
 // Define a map of provider+model to adapter factory calls
 const adapters: Record<string, () => TextAdapter> = {
-  'openai/gpt-5.2': () => openaiText('gpt-5.2'),
-  'anthropic/claude-sonnet-4-6': () => anthropicText('claude-sonnet-4-6'),
-  'gemini/gemini-2.5-pro': () => geminiText('gemini-2.5-pro'),
-}
+  "openai/gpt-5.2": () => openaiText("gpt-5.2"),
+  "anthropic/claude-sonnet-4-6": () => anthropicText("claude-sonnet-4-6"),
+  "gemini/gemini-2.5-pro": () => geminiText("gemini-2.5-pro"),
+};
 
 export function handleChat(providerModel: string, messages: Array<any>) {
-  const createAdapter = adapters[providerModel]
+  const createAdapter = adapters[providerModel];
   if (!createAdapter) {
-    throw new Error(`Unknown provider/model: ${providerModel}`)
+    throw new Error(`Unknown provider/model: ${providerModel}`);
   }
 
   const stream = chat({
     adapter: createAdapter(),
     messages,
-  })
+  });
 
-  return toServerSentEventsResponse(stream)
+  return toServerSentEventsResponse(stream);
 }
 ```
 
@@ -134,52 +134,52 @@ export function handleChat(providerModel: string, messages: Array<any>) {
 Different providers expose reasoning/thinking through their `modelOptions`:
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
-import { anthropicText } from '@tanstack/ai-anthropic'
-import { geminiText } from '@tanstack/ai-gemini'
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
+import { anthropicText } from "@tanstack/ai-anthropic";
+import { geminiText } from "@tanstack/ai-gemini";
 
 // OpenAI: reasoning with effort and summary
 const openaiStream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   modelOptions: {
     reasoning: {
-      effort: 'high',
-      summary: 'auto',
+      effort: "high",
+      summary: "auto",
     },
   },
-})
+});
 
 // Anthropic: extended thinking with budget_tokens
 const anthropicStream = chat({
-  adapter: anthropicText('claude-sonnet-4-6'),
+  adapter: anthropicText("claude-sonnet-4-6"),
   messages,
   maxTokens: 16000,
   modelOptions: {
     thinking: {
-      type: 'enabled',
+      type: "enabled",
       budget_tokens: 8000, // must be >= 1024 and < maxTokens
     },
   },
-})
+});
 
 // Anthropic: adaptive thinking (claude-sonnet-4-6 and newer)
 const adaptiveStream = chat({
-  adapter: anthropicText('claude-sonnet-4-6'),
+  adapter: anthropicText("claude-sonnet-4-6"),
   messages,
   maxTokens: 16000,
   modelOptions: {
     thinking: {
-      type: 'adaptive',
+      type: "adaptive",
     },
-    effort: 'high', // 'max' | 'high' | 'medium' | 'low'
+    effort: "high", // 'max' | 'high' | 'medium' | 'low'
   },
-})
+});
 
 // Gemini: thinking config with budget or level
 const geminiStream = chat({
-  adapter: geminiText('gemini-2.5-pro'),
+  adapter: geminiText("gemini-2.5-pro"),
   messages,
   modelOptions: {
     thinkingConfig: {
@@ -187,7 +187,7 @@ const geminiStream = chat({
       thinkingBudget: 4096,
     },
   },
-})
+});
 ```
 
 ### 4. Extending Adapters with Custom Models
@@ -196,23 +196,23 @@ Use `extendAdapter()` and `createModel()` to add custom or fine-tuned models
 while preserving type safety for the original models:
 
 ```typescript
-import { extendAdapter, createModel } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { extendAdapter, createModel } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 // Define custom models
 const customModels = [
-  createModel('ft:gpt-5.2:my-org:custom-model:abc123', ['text', 'image']),
-  createModel('my-local-proxy-model', ['text']),
-] as const
+  createModel("ft:gpt-5.2:my-org:custom-model:abc123", ["text", "image"]),
+  createModel("my-local-proxy-model", ["text"]),
+] as const;
 
 // Create extended factory - original models still fully typed
-const myOpenai = extendAdapter(openaiText, customModels)
+const myOpenai = extendAdapter(openaiText, customModels);
 
 // Use original models - full type inference preserved
-const gpt5 = myOpenai('gpt-5.2')
+const gpt5 = myOpenai("gpt-5.2");
 
 // Use custom models - accepted by the type system
-const custom = myOpenai('ft:gpt-5.2:my-org:custom-model:abc123')
+const custom = myOpenai("ft:gpt-5.2:my-org:custom-model:abc123");
 
 // Type error: 'nonexistent-model' is not a valid model
 // myOpenai('nonexistent-model')
@@ -230,12 +230,12 @@ deprecated. They take the model in `chat()`, not in the factory.
 
 ```typescript
 // WRONG: Legacy monolithic adapter pattern
-import { openai } from '@tanstack/ai-openai'
-chat({ adapter: openai(), model: 'gpt-5.2', messages })
+import { openai } from "@tanstack/ai-openai";
+chat({ adapter: openai(), model: "gpt-5.2", messages });
 
 // CORRECT: Tree-shakeable adapter, model in factory
-import { openaiText } from '@tanstack/ai-openai'
-chat({ adapter: openaiText('gpt-5.2'), messages })
+import { openaiText } from "@tanstack/ai-openai";
+chat({ adapter: openaiText("gpt-5.2"), messages });
 ```
 
 Source: docs/migration/migration.md

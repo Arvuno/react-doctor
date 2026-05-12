@@ -1,6 +1,6 @@
-import { createCodeModeTool } from './create-code-mode-tool'
-import { createCodeModeSystemPrompt } from './create-system-prompt'
-import type { CodeModeToolConfig } from './types'
+import { createCodeModeTool } from "./create-code-mode-tool";
+import { createCodeModeSystemPrompt } from "./create-system-prompt";
+import type { CodeModeToolConfig } from "./types";
 
 /**
  * Create both the `execute_typescript` tool and its matching system prompt
@@ -31,5 +31,5 @@ export function createCodeMode(config: CodeModeToolConfig) {
   return {
     tool: createCodeModeTool(config),
     systemPrompt: createCodeModeSystemPrompt(config),
-  }
+  };
 }

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { getMemberPropertyName, getRootIdentifierName, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { getMemberPropertyName, getRootIdentifierName, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const CONTAINER_QUERY_METHODS = new Set(["getElementById", "querySelector", "querySelectorAll"]);
 

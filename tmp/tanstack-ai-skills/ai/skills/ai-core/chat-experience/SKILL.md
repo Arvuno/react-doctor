@@ -9,13 +9,13 @@ description: >
   NOT Vercel AI SDK — uses chat() not streamText().
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/getting-started/quick-start.md'
-  - 'TanStack/ai:docs/chat/streaming.md'
-  - 'TanStack/ai:docs/chat/connection-adapters.md'
-  - 'TanStack/ai:docs/chat/thinking-content.md'
-  - 'TanStack/ai:docs/advanced/multimodal-content.md'
+  - "TanStack/ai:docs/getting-started/quick-start.md"
+  - "TanStack/ai:docs/chat/streaming.md"
+  - "TanStack/ai:docs/chat/connection-adapters.md"
+  - "TanStack/ai:docs/chat/thinking-content.md"
+  - "TanStack/ai:docs/advanced/multimodal-content.md"
 ---
 
 # Chat Experience
@@ -28,30 +28,30 @@ This skill builds on ai-core. Read it first for critical rules.
 
 ```typescript
 // src/routes/api.chat.ts
-import { createFileRoute } from '@tanstack/react-router'
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { createFileRoute } from "@tanstack/react-router";
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
-export const Route = createFileRoute('/api/chat')({
+export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const abortController = new AbortController()
-        const body = await request.json()
-        const { messages } = body
+        const abortController = new AbortController();
+        const body = await request.json();
+        const { messages } = body;
 
         const stream = chat({
-          adapter: openaiText('gpt-5.2'),
+          adapter: openaiText("gpt-5.2"),
           messages,
-          systemPrompts: ['You are a helpful assistant.'],
+          systemPrompts: ["You are a helpful assistant."],
           abortController,
-        })
+        });
 
-        return toServerSentEventsResponse(stream, { abortController })
+        return toServerSentEventsResponse(stream, { abortController });
       },
     },
   },
-})
+});
 ```
 
 ### Client: React Component
@@ -131,36 +131,36 @@ Server returns a streaming SSE Response; client parses it automatically.
 **Server:**
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { anthropicText } from '@tanstack/ai-anthropic'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { anthropicText } from "@tanstack/ai-anthropic";
 
 const stream = chat({
-  adapter: anthropicText('claude-sonnet-4-5'),
+  adapter: anthropicText("claude-sonnet-4-5"),
   messages,
   temperature: 0.7,
   maxTokens: 2000,
-  systemPrompts: ['You are a helpful assistant.'],
+  systemPrompts: ["You are a helpful assistant."],
   abortController,
-})
+});
 
-return toServerSentEventsResponse(stream, { abortController })
+return toServerSentEventsResponse(stream, { abortController });
 ```
 
 **Client:**
 
 ```typescript
-import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useChat, fetchServerSentEvents } from "@tanstack/ai-react";
 
 const { messages, sendMessage, isLoading, error, stop, status } = useChat({
-  connection: fetchServerSentEvents('/api/chat'),
-  body: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+  connection: fetchServerSentEvents("/api/chat"),
+  body: { provider: "anthropic", model: "claude-sonnet-4-5" },
   onFinish: (message) => {
-    console.log('Response complete:', message.id)
+    console.log("Response complete:", message.id);
   },
   onError: (err) => {
-    console.error('Stream error:', err)
+    console.error("Stream error:", err);
   },
-})
+});
 ```
 
 The `body` field is merged into the POST request body alongside `messages`,
@@ -213,10 +213,10 @@ function MessageRenderer({ message }: { message: UIMessage }) {
 Server-side, enable thinking via `modelOptions` on the adapter:
 
 ```typescript
-import { geminiText } from '@tanstack/ai-gemini'
+import { geminiText } from "@tanstack/ai-gemini";
 
 const stream = chat({
-  adapter: geminiText('gemini-2.5-flash'),
+  adapter: geminiText("gemini-2.5-flash"),
   messages,
   modelOptions: {
     thinkingConfig: {
@@ -224,7 +224,7 @@ const stream = chat({
       thinkingBudget: 100,
     },
   },
-})
+});
 ```
 
 ### 3. Sending Multimodal Content (Images)
@@ -232,35 +232,35 @@ const stream = chat({
 Use `sendMessage` with a `MultimodalContent` object instead of a plain string.
 
 ```typescript
-import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
-import type { ContentPart } from '@tanstack/ai'
+import { useChat, fetchServerSentEvents } from "@tanstack/ai-react";
+import type { ContentPart } from "@tanstack/ai";
 
 const { sendMessage } = useChat({
-  connection: fetchServerSentEvents('/api/chat'),
-})
+  connection: fetchServerSentEvents("/api/chat"),
+});
 
 function sendImageMessage(text: string, imageBase64: string, mimeType: string) {
   const contentParts: Array<ContentPart> = [
-    { type: 'text', content: text },
+    { type: "text", content: text },
     {
-      type: 'image',
-      source: { type: 'data', value: imageBase64, mimeType },
+      type: "image",
+      source: { type: "data", value: imageBase64, mimeType },
     },
-  ]
+  ];
 
-  sendMessage({ content: contentParts })
+  sendMessage({ content: contentParts });
 }
 
 function sendImageUrl(text: string, imageUrl: string) {
   const contentParts: Array<ContentPart> = [
-    { type: 'text', content: text },
+    { type: "text", content: text },
     {
-      type: 'image',
-      source: { type: 'url', value: imageUrl },
+      type: "image",
+      source: { type: "url", value: imageUrl },
     },
-  ]
+  ];
 
-  sendMessage({ content: contentParts })
+  sendMessage({ content: contentParts });
 }
 ```
 
@@ -283,26 +283,26 @@ Use `toHttpResponse` + `fetchHttpStream` for newline-delimited JSON instead of S
 **Server:**
 
 ```typescript
-import { chat, toHttpResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toHttpResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   abortController,
-})
+});
 
-return toHttpResponse(stream, { abortController })
+return toHttpResponse(stream, { abortController });
 ```
 
 **Client:**
 
 ```typescript
-import { useChat, fetchHttpStream } from '@tanstack/ai-react'
+import { useChat, fetchHttpStream } from "@tanstack/ai-react";
 
 const { messages, sendMessage } = useChat({
-  connection: fetchHttpStream('/api/chat'),
-})
+  connection: fetchHttpStream("/api/chat"),
+});
 ```
 
 The only difference is swapping `toServerSentEventsResponse` / `fetchServerSentEvents`
@@ -314,40 +314,40 @@ for `toHttpResponse` / `fetchHttpStream`. Everything else stays identical.
 
 ```typescript
 // WRONG
-import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
-const result = streamText({ model: openai('gpt-4o'), messages })
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+const result = streamText({ model: openai("gpt-4o"), messages });
 
 // CORRECT
-import { chat } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
-const stream = chat({ adapter: openaiText('gpt-5.2'), messages })
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
+const stream = chat({ adapter: openaiText("gpt-5.2"), messages });
 ```
 
 ### b. CRITICAL: Using Vercel createOpenAI() provider pattern
 
 ```typescript
 // WRONG
-import { createOpenAI } from '@ai-sdk/openai'
-const openai = createOpenAI({ apiKey })
-streamText({ model: openai('gpt-4o'), messages })
+import { createOpenAI } from "@ai-sdk/openai";
+const openai = createOpenAI({ apiKey });
+streamText({ model: openai("gpt-4o"), messages });
 
 // CORRECT
-import { openaiText } from '@tanstack/ai-openai'
-import { chat } from '@tanstack/ai'
-chat({ adapter: openaiText('gpt-5.2'), messages })
+import { openaiText } from "@tanstack/ai-openai";
+import { chat } from "@tanstack/ai";
+chat({ adapter: openaiText("gpt-5.2"), messages });
 ```
 
 ### c. CRITICAL: Using monolithic openai() instead of openaiText()
 
 ```typescript
 // WRONG
-import { openai } from '@tanstack/ai-openai'
-chat({ adapter: openai(), model: 'gpt-5.2', messages })
+import { openai } from "@tanstack/ai-openai";
+chat({ adapter: openai(), model: "gpt-5.2", messages });
 
 // CORRECT
-import { openaiText } from '@tanstack/ai-openai'
-chat({ adapter: openaiText('gpt-5.2'), messages })
+import { openaiText } from "@tanstack/ai-openai";
+chat({ adapter: openaiText("gpt-5.2"), messages });
 ```
 
 The monolithic `openai()` adapter is deprecated. Use tree-shakeable adapters:
@@ -357,22 +357,22 @@ The monolithic `openai()` adapter is deprecated. Use tree-shakeable adapters:
 
 ```typescript
 // WRONG
-import { toResponseStream } from '@tanstack/ai'
-return toResponseStream(stream, { abortController })
+import { toResponseStream } from "@tanstack/ai";
+return toResponseStream(stream, { abortController });
 
 // CORRECT
-import { toServerSentEventsResponse } from '@tanstack/ai'
-return toServerSentEventsResponse(stream, { abortController })
+import { toServerSentEventsResponse } from "@tanstack/ai";
+return toServerSentEventsResponse(stream, { abortController });
 ```
 
 ### e. HIGH: Passing model as separate parameter to chat()
 
 ```typescript
 // WRONG
-chat({ adapter: openaiText(), model: 'gpt-5.2', messages })
+chat({ adapter: openaiText(), model: "gpt-5.2", messages });
 
 // CORRECT
-chat({ adapter: openaiText('gpt-5.2'), messages })
+chat({ adapter: openaiText("gpt-5.2"), messages });
 ```
 
 The model is passed to the adapter factory, not to `chat()`.
@@ -381,10 +381,10 @@ The model is passed to the adapter factory, not to `chat()`.
 
 ```typescript
 // WRONG
-chat({ adapter, messages, options: { temperature: 0.7, maxTokens: 1000 } })
+chat({ adapter, messages, options: { temperature: 0.7, maxTokens: 1000 } });
 
 // CORRECT
-chat({ adapter, messages, temperature: 0.7, maxTokens: 1000 })
+chat({ adapter, messages, temperature: 0.7, maxTokens: 1000 });
 ```
 
 All parameters are top-level on the `chat()` options object.
@@ -396,15 +396,15 @@ All parameters are top-level on the `chat()` options object.
 chat({
   adapter,
   messages,
-  providerOptions: { responseFormat: { type: 'json_object' } },
-})
+  providerOptions: { responseFormat: { type: "json_object" } },
+});
 
 // CORRECT
 chat({
   adapter,
   messages,
-  modelOptions: { responseFormat: { type: 'json_object' } },
-})
+  modelOptions: { responseFormat: { type: "json_object" } },
+});
 ```
 
 ### h. HIGH: Implementing custom SSE stream instead of using toServerSentEventsResponse
@@ -413,21 +413,21 @@ chat({
 // WRONG
 const readable = new ReadableStream({
   async start(controller) {
-    const encoder = new TextEncoder()
+    const encoder = new TextEncoder();
     for await (const chunk of stream) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
     }
-    controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-    controller.close()
+    controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+    controller.close();
   },
-})
+});
 return new Response(readable, {
-  headers: { 'Content-Type': 'text/event-stream' },
-})
+  headers: { "Content-Type": "text/event-stream" },
+});
 
 // CORRECT
-import { toServerSentEventsResponse } from '@tanstack/ai'
-return toServerSentEventsResponse(stream, { abortController })
+import { toServerSentEventsResponse } from "@tanstack/ai";
+return toServerSentEventsResponse(stream, { abortController });
 ```
 
 `toServerSentEventsResponse` handles SSE formatting, abort signals,
@@ -441,24 +441,24 @@ chat({
   adapter,
   messages,
   onEnd: (result) => {
-    trackAnalytics(result)
+    trackAnalytics(result);
   },
-})
+});
 
 // CORRECT
-import type { ChatMiddleware } from '@tanstack/ai'
+import type { ChatMiddleware } from "@tanstack/ai";
 
 const analytics: ChatMiddleware = {
-  name: 'analytics',
+  name: "analytics",
   onFinish(ctx, info) {
-    trackAnalytics({ reason: info.finishReason, iterations: ctx.iteration })
+    trackAnalytics({ reason: info.finishReason, iterations: ctx.iteration });
   },
   onUsage(ctx, usage) {
-    trackTokens(usage.totalTokens)
+    trackTokens(usage.totalTokens);
   },
-}
+};
 
-chat({ adapter, messages, middleware: [analytics] })
+chat({ adapter, messages, middleware: [analytics] });
 ```
 
 `chat()` has no `onEnd`/`onFinish` option. Use `middleware` for lifecycle events.
@@ -468,11 +468,11 @@ See also: ai-core/middleware/SKILL.md.
 
 ```typescript
 // WRONG
-import { fetchServerSentEvents } from '@tanstack/ai-client'
-import { useChat } from '@tanstack/ai-react'
+import { fetchServerSentEvents } from "@tanstack/ai-client";
+import { useChat } from "@tanstack/ai-react";
 
 // CORRECT
-import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useChat, fetchServerSentEvents } from "@tanstack/ai-react";
 ```
 
 Framework packages re-export everything needed from `@tanstack/ai-client`.
@@ -487,12 +487,12 @@ check for `RUN_ERROR` chunks:
 
 ```typescript
 for await (const chunk of stream) {
-  if (chunk.type === 'RUN_ERROR') {
-    console.error('Stream error:', chunk.error.message)
-    break
+  if (chunk.type === "RUN_ERROR") {
+    console.error("Stream error:", chunk.error.message);
+    break;
   }
-  if (chunk.type === 'TEXT_MESSAGE_CONTENT') {
-    process.stdout.write(chunk.delta)
+  if (chunk.type === "TEXT_MESSAGE_CONTENT") {
+    process.stdout.write(chunk.delta);
   }
 }
 ```

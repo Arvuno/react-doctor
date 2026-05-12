@@ -1,4 +1,5 @@
 import path from "node:path";
+import { clearReactDoctorConfigCache } from "../core/config.js";
 import { inspectReactProjectCore } from "../core/inspect-react-project.js";
 import type {
   InspectReactProjectOptions,
@@ -71,14 +72,14 @@ const toScoreResult = (score: ReactDoctorScore | null): ScoreResult | null =>
 
 const toProjectInfo = (result: ReactDoctorResult): ProjectInfo => ({
   rootDirectory: result.project.rootDirectory,
-  projectName: path.basename(result.project.rootDirectory),
-  reactVersion: null,
-  tailwindVersion: null,
-  framework: "unknown",
-  hasTypeScript: false,
-  hasReactCompiler: false,
-  hasTanStackQuery: false,
-  sourceFileCount: 0,
+  projectName: result.project.projectName || path.basename(result.project.rootDirectory),
+  reactVersion: result.project.reactVersion,
+  tailwindVersion: result.project.tailwindVersion,
+  framework: result.project.framework,
+  hasTypeScript: result.project.hasTypeScript,
+  hasReactCompiler: result.project.hasReactCompiler,
+  hasTanStackQuery: result.project.hasTanStackQuery,
+  sourceFileCount: result.project.sourceFileCount,
 });
 
 const toInspectOptions = (
@@ -97,7 +98,12 @@ export const diagnose = async (
   directory: string,
   options: DiagnoseOptions = {},
 ): Promise<DiagnoseResult> => {
-  const result = await inspectReactProjectCore(toInspectOptions(directory, options));
+  const result = await inspectReactProjectCore({
+    ...toInspectOptions(directory, options),
+    lint: options.lint,
+    deadCode: options.deadCode,
+    respectInlineDisables: options.respectInlineDisables,
+  });
 
   return {
     diagnostics: result.issues.map(toDiagnostic),
@@ -107,4 +113,6 @@ export const diagnose = async (
   };
 };
 
-export const clearCaches = (): void => {};
+export const clearCaches = (): void => {
+  clearReactDoctorConfigCache();
+};

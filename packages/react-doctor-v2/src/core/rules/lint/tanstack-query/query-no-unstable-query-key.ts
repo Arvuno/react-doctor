@@ -5,8 +5,8 @@ import {
   containsUnstableQueryKeyValue,
   getObjectProperty,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const queryNoUnstableQueryKey = defineRule<Rule>({
   recommendation:

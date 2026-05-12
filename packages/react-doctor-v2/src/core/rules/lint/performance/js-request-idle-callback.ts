@@ -1,7 +1,10 @@
 import { defineRule } from "../../registry.js";
-import { ANALYTICS_DEFERRABLE_METHODS, ANALYTICS_DEFERRABLE_OBJECTS } from "../server/_utils.js";
-import { isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import {
+  ANALYTICS_DEFERRABLE_METHODS,
+  ANALYTICS_DEFERRABLE_OBJECTS,
+} from "../server/utils/index.js";
+import { isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isDeferrableCall = (node: EsTreeNode): boolean => {
   if (!isNodeOfType(node, "CallExpression")) return false;

@@ -1,5 +1,5 @@
-import type { StandardJSONSchemaV1 } from '@standard-schema/spec'
-import type { InternalLogger } from './logger/internal-logger'
+import type { StandardJSONSchemaV1 } from "@standard-schema/spec";
+import type { InternalLogger } from "./logger/internal-logger";
 import type {
   BaseEvent as AGUIBaseEvent,
   CustomEvent as AGUICustomEvent,
@@ -25,69 +25,69 @@ import type {
   ToolCallResultEvent as AGUIToolCallResultEvent,
   ToolCallStartEvent as AGUIToolCallStartEvent,
   EventType,
-} from '@ag-ui/core'
+} from "@ag-ui/core";
 
 /**
  * Tool call states - track the lifecycle of a tool call
  */
 export type ToolCallState =
-  | 'awaiting-input' // Received start but no arguments yet
-  | 'input-streaming' // Partial arguments received
-  | 'input-complete' // All arguments received
-  | 'approval-requested' // Waiting for user approval
-  | 'approval-responded' // User has approved/denied
+  | "awaiting-input" // Received start but no arguments yet
+  | "input-streaming" // Partial arguments received
+  | "input-complete" // All arguments received
+  | "approval-requested" // Waiting for user approval
+  | "approval-responded"; // User has approved/denied
 
 /**
  * Tool result states - track the lifecycle of a tool result
  */
 export type ToolResultState =
-  | 'streaming' // Placeholder for future streamed output
-  | 'complete' // Result is complete
-  | 'error' // Error occurred
+  | "streaming" // Placeholder for future streamed output
+  | "complete" // Result is complete
+  | "error"; // Error occurred
 
 /**
  * JSON Schema type for defining tool input/output schemas as raw JSON Schema objects.
  * This allows tools to be defined without schema libraries when you have JSON Schema definitions available.
  */
 export interface JSONSchema {
-  type?: string | Array<string>
-  properties?: Record<string, JSONSchema>
-  items?: JSONSchema | Array<JSONSchema>
-  required?: Array<string>
-  enum?: Array<unknown>
-  const?: unknown
-  description?: string
-  default?: unknown
-  $ref?: string
-  $defs?: Record<string, JSONSchema>
-  definitions?: Record<string, JSONSchema>
-  allOf?: Array<JSONSchema>
-  anyOf?: Array<JSONSchema>
-  oneOf?: Array<JSONSchema>
-  not?: JSONSchema
-  if?: JSONSchema
-  then?: JSONSchema
-  else?: JSONSchema
-  minimum?: number
-  maximum?: number
-  exclusiveMinimum?: number
-  exclusiveMaximum?: number
-  minLength?: number
-  maxLength?: number
-  pattern?: string
-  format?: string
-  minItems?: number
-  maxItems?: number
-  uniqueItems?: boolean
-  additionalProperties?: boolean | JSONSchema
-  additionalItems?: boolean | JSONSchema
-  patternProperties?: Record<string, JSONSchema>
-  propertyNames?: JSONSchema
-  minProperties?: number
-  maxProperties?: number
-  title?: string
-  examples?: Array<unknown>
-  [key: string]: any // Allow additional properties for extensibility
+  type?: string | Array<string>;
+  properties?: Record<string, JSONSchema>;
+  items?: JSONSchema | Array<JSONSchema>;
+  required?: Array<string>;
+  enum?: Array<unknown>;
+  const?: unknown;
+  description?: string;
+  default?: unknown;
+  $ref?: string;
+  $defs?: Record<string, JSONSchema>;
+  definitions?: Record<string, JSONSchema>;
+  allOf?: Array<JSONSchema>;
+  anyOf?: Array<JSONSchema>;
+  oneOf?: Array<JSONSchema>;
+  not?: JSONSchema;
+  if?: JSONSchema;
+  then?: JSONSchema;
+  else?: JSONSchema;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  additionalProperties?: boolean | JSONSchema;
+  additionalItems?: boolean | JSONSchema;
+  patternProperties?: Record<string, JSONSchema>;
+  propertyNames?: JSONSchema;
+  minProperties?: number;
+  maxProperties?: number;
+  title?: string;
+  examples?: Array<unknown>;
+  [key: string]: any; // Allow additional properties for extensibility
 }
 
 /**
@@ -101,7 +101,7 @@ export interface JSONSchema {
  * @see https://standardschema.dev/json-schema
  */
 
-export type SchemaInput = StandardJSONSchemaV1<any, any> | JSONSchema
+export type SchemaInput = StandardJSONSchemaV1<any, any> | JSONSchema;
 
 /**
  * Infer the TypeScript type from a schema.
@@ -109,19 +109,19 @@ export type SchemaInput = StandardJSONSchemaV1<any, any> | JSONSchema
  * For plain JSONSchema, returns `any` since we can't infer types from JSON Schema at compile time.
  */
 export type InferSchemaType<T> =
-  T extends StandardJSONSchemaV1<infer TInput, unknown> ? TInput : unknown
+  T extends StandardJSONSchemaV1<infer TInput, unknown> ? TInput : unknown;
 
 export interface ToolCall<TMetadata = unknown> {
-  id: string
-  type: 'function'
+  id: string;
+  type: "function";
   function: {
-    name: string
-    arguments: string // JSON string
-  }
+    name: string;
+    arguments: string; // JSON string
+  };
   /** Provider-specific metadata to carry through the tool call lifecycle.
    * Typed per-adapter via `TToolCallMetadata`. For example,
    * `@tanstack/ai-gemini` sets this to `{ thoughtSignature?: string }`. */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 // ============================================================================
@@ -136,7 +136,7 @@ export interface ToolCall<TMetadata = unknown> {
  * - 'video': Video content (base64 or URL)
  * - 'document': Document content like PDFs (base64 or URL)
  */
-export type Modality = 'text' | 'image' | 'audio' | 'video' | 'document'
+export type Modality = "text" | "image" | "audio" | "video" | "document";
 
 /**
  * Source specification for inline data content (base64).
@@ -146,16 +146,16 @@ export interface ContentPartDataSource {
   /**
    * Indicates this is inline data content.
    */
-  type: 'data'
+  type: "data";
   /**
    * The base64-encoded content value.
    */
-  value: string
+  value: string;
   /**
    * The MIME type of the content (e.g., 'image/png', 'audio/wav').
    * Required for data sources to ensure proper handling by providers.
    */
-  mimeType: string
+  mimeType: string;
 }
 
 /**
@@ -166,15 +166,15 @@ export interface ContentPartUrlSource {
   /**
    * Indicates this is URL-referenced content.
    */
-  type: 'url'
+  type: "url";
   /**
    * HTTP(S) URL or data URI pointing to the content.
    */
-  value: string
+  value: string;
   /**
    * Optional MIME type hint for cases where providers can't infer it from the URL.
    */
-  mimeType?: string
+  mimeType?: string;
 }
 
 /**
@@ -183,18 +183,18 @@ export interface ContentPartUrlSource {
  * - For 'data' sources: mimeType is required
  * - For 'url' sources: mimeType is optional
  */
-export type ContentPartSource = ContentPartDataSource | ContentPartUrlSource
+export type ContentPartSource = ContentPartDataSource | ContentPartUrlSource;
 
 /**
  * Image content part for multimodal messages.
  * @template TMetadata - Provider-specific metadata type (e.g., OpenAI's detail level)
  */
 export interface ImagePart<TMetadata = unknown> {
-  type: 'image'
+  type: "image";
   /** Source of the image content */
-  source: ContentPartSource
+  source: ContentPartSource;
   /** Provider-specific metadata (e.g., OpenAI's detail: 'auto' | 'low' | 'high') */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 /**
@@ -202,11 +202,11 @@ export interface ImagePart<TMetadata = unknown> {
  * @template TMetadata - Provider-specific metadata type
  */
 export interface AudioPart<TMetadata = unknown> {
-  type: 'audio'
+  type: "audio";
   /** Source of the audio content */
-  source: ContentPartSource
+  source: ContentPartSource;
   /** Provider-specific metadata (e.g., format, sample rate) */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 /**
@@ -214,11 +214,11 @@ export interface AudioPart<TMetadata = unknown> {
  * @template TMetadata - Provider-specific metadata type
  */
 export interface VideoPart<TMetadata = unknown> {
-  type: 'video'
+  type: "video";
   /** Source of the video content */
-  source: ContentPartSource
+  source: ContentPartSource;
   /** Provider-specific metadata (e.g., duration, resolution) */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 /**
@@ -226,11 +226,11 @@ export interface VideoPart<TMetadata = unknown> {
  * @template TMetadata - Provider-specific metadata type (e.g., Anthropic's media_type)
  */
 export interface DocumentPart<TMetadata = unknown> {
-  type: 'document'
+  type: "document";
   /** Source of the document content */
-  source: ContentPartSource
+  source: ContentPartSource;
   /** Provider-specific metadata (e.g., media_type for PDFs) */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 /**
@@ -251,98 +251,91 @@ export type ContentPart<
   | ImagePart<TImageMeta>
   | AudioPart<TAudioMeta>
   | VideoPart<TVideoMeta>
-  | DocumentPart<TDocumentMeta>
+  | DocumentPart<TDocumentMeta>;
 
 /**
  * Helper type to filter ContentPart union to only include specific modalities.
  * Used to constrain message content based on model capabilities.
  */
-export type ContentPartForInputModalitiesTypes<
-  TInputModalitiesTypes extends InputModalitiesTypes,
-> = Extract<
-  ContentPart<
-    TInputModalitiesTypes['messageMetadataByModality']['text'],
-    TInputModalitiesTypes['messageMetadataByModality']['image'],
-    TInputModalitiesTypes['messageMetadataByModality']['audio'],
-    TInputModalitiesTypes['messageMetadataByModality']['video'],
-    TInputModalitiesTypes['messageMetadataByModality']['document']
-  >,
-  { type: TInputModalitiesTypes['inputModalities'][number] }
->
+export type ContentPartForInputModalitiesTypes<TInputModalitiesTypes extends InputModalitiesTypes> =
+  Extract<
+    ContentPart<
+      TInputModalitiesTypes["messageMetadataByModality"]["text"],
+      TInputModalitiesTypes["messageMetadataByModality"]["image"],
+      TInputModalitiesTypes["messageMetadataByModality"]["audio"],
+      TInputModalitiesTypes["messageMetadataByModality"]["video"],
+      TInputModalitiesTypes["messageMetadataByModality"]["document"]
+    >,
+    { type: TInputModalitiesTypes["inputModalities"][number] }
+  >;
 
 /**
  * Helper type to convert a readonly array of modalities to a union type.
  * e.g., readonly ['text', 'image'] -> 'text' | 'image'
  */
-export type ModalitiesArrayToUnion<T extends ReadonlyArray<Modality>> =
-  T[number]
+export type ModalitiesArrayToUnion<T extends ReadonlyArray<Modality>> = T[number];
 
 /**
  * Type for message content constrained by supported modalities.
  * When modalities is ['text', 'image'], only TextPart and ImagePart are allowed in the array.
  */
-export type ConstrainedContent<
-  TInputModalitiesTypes extends InputModalitiesTypes,
-> =
+export type ConstrainedContent<TInputModalitiesTypes extends InputModalitiesTypes> =
   | string
   | null
-  | Array<ContentPartForInputModalitiesTypes<TInputModalitiesTypes>>
+  | Array<ContentPartForInputModalitiesTypes<TInputModalitiesTypes>>;
 
 export interface ModelMessage<
-  TContent extends string | null | Array<ContentPart> =
-    | string
-    | null
-    | Array<ContentPart>,
+  TContent extends string | null | Array<ContentPart> = string | null | Array<ContentPart>,
 > {
-  role: 'user' | 'assistant' | 'tool'
-  content: TContent
-  name?: string
-  toolCalls?: Array<ToolCall>
-  toolCallId?: string
-  thinking?: Array<{ content: string; signature?: string }>
+  role: "user" | "assistant" | "tool";
+  content: TContent;
+  name?: string;
+  toolCalls?: Array<ToolCall>;
+  toolCallId?: string;
+  thinking?: Array<{ content: string; signature?: string }>;
 }
 
 /**
  * Message parts - building blocks of UIMessage
  */
 export interface TextPart<TMetadata = unknown> {
-  type: 'text'
-  content: string
-  metadata?: TMetadata
+  type: "text";
+  content: string;
+  metadata?: TMetadata;
 }
 
 export interface ToolCallPart<TMetadata = unknown> {
-  type: 'tool-call'
-  id: string
-  name: string
-  arguments: string // JSON string (may be incomplete)
-  state: ToolCallState
+  type: "tool-call";
+  id: string;
+  name: string;
+  arguments: string; // JSON string (may be incomplete)
+  state: ToolCallState;
   /** Approval metadata if tool requires user approval */
   approval?: {
-    id: string // Unique approval ID
-    needsApproval: boolean // Always true if present
-    approved?: boolean // User's decision (undefined until responded)
-  }
+    id: string; // Unique approval ID
+    needsApproval: boolean; // Always true if present
+    approved?: boolean; // User's decision (undefined until responded)
+  };
   /** Tool execution output (for client tools or after approval) */
-  output?: any
+  output?: any;
   /** Provider-specific metadata that round-trips with the tool call.
    * Typed per-adapter via `TToolCallMetadata`. */
-  metadata?: TMetadata
+  metadata?: TMetadata;
 }
 
 export interface ToolResultPart {
-  type: 'tool-result'
-  toolCallId: string
-  content: string
-  state: ToolResultState
-  error?: string // Error message if state is "error"
+  type: "tool-result";
+  toolCallId: string;
+  content: string;
+  state: ToolResultState;
+  error?: string; // Error message if state is "error"
 }
 
 export interface ThinkingPart {
-  type: 'thinking'
-  content: string
-  stepId?: string
-  signature?: string
+  type: "thinking";
+  content: string;
+  stepId?: string;
+  signature?: string;
 }
 
 export type MessagePart =
@@ -353,33 +346,34 @@ export type MessagePart =
   | DocumentPart
   | ToolCallPart
   | ToolResultPart
-  | ThinkingPart
+  | ThinkingPart;
 
 /**
  * UIMessage - Domain-specific message format optimized for building chat UIs
  * Contains parts that can be text, tool calls, or tool results
  */
 export interface UIMessage {
-  id: string
-  role: 'system' | 'user' | 'assistant'
-  parts: Array<MessagePart>
-  createdAt?: Date
+  id: string;
+  role: "system" | "user" | "assistant";
+  parts: Array<MessagePart>;
+  createdAt?: Date;
 }
 
 export type InputModalitiesTypes = {
-  inputModalities: ReadonlyArray<Modality>
-  messageMetadataByModality: DefaultMessageMetadataByModality
-}
+  inputModalities: ReadonlyArray<Modality>;
+  messageMetadataByModality: DefaultMessageMetadataByModality;
+};
 
 /**
  * A ModelMessage with content constrained to only allow content parts
  * matching the specified input modalities.
  */
-export type ConstrainedModelMessage<
-  TInputModalitiesTypes extends InputModalitiesTypes,
-> = Omit<ModelMessage, 'content'> & {
-  content: ConstrainedContent<TInputModalitiesTypes>
-}
+export type ConstrainedModelMessage<TInputModalitiesTypes extends InputModalitiesTypes> = Omit<
+  ModelMessage,
+  "content"
+> & {
+  content: ConstrainedContent<TInputModalitiesTypes>;
+};
 
 /**
  * Context passed to tool execute functions, providing capabilities like
@@ -387,7 +381,7 @@ export type ConstrainedModelMessage<
  */
 export interface ToolExecutionContext {
   /** The ID of the tool call being executed */
-  toolCallId?: string
+  toolCallId?: string;
   /**
    * Emit a custom event during tool execution.
    * Events are streamed to the client in real-time as AG-UI CUSTOM events.
@@ -406,7 +400,7 @@ export interface ToolExecutionContext {
    * })
    * ```
    */
-  emitCustomEvent: (eventName: string, value: Record<string, any>) => void
+  emitCustomEvent: (eventName: string, value: Record<string, any>) => void;
 }
 
 /**
@@ -435,7 +429,7 @@ export interface Tool<
    *
    * @example "get_weather", "search_database", "sendEmail"
    */
-  name: TName
+  name: TName;
 
   /**
    * Clear description of what the tool does.
@@ -445,7 +439,7 @@ export interface Tool<
    *
    * @example "Get the current weather in a given location. Returns temperature, conditions, and forecast."
    */
-  description: string
+  description: string;
 
   /**
    * Schema describing the tool's input parameters.
@@ -485,7 +479,7 @@ export interface Tool<
    *   required: ['location']
    * }
    */
-  inputSchema?: TInput
+  inputSchema?: TInput;
 
   /**
    * Optional schema for validating tool output.
@@ -506,7 +500,7 @@ export interface Tool<
    *   forecast: z.array(z.string()).optional()
    * })
    */
-  outputSchema?: TOutput
+  outputSchema?: TOutput;
 
   /**
    * Optional function to execute when the model calls this tool.
@@ -525,20 +519,20 @@ export interface Tool<
    *   return weather; // Can return object or string
    * }
    */
-  execute?: (args: any, context?: ToolExecutionContext) => Promise<any> | any
+  execute?: (args: any, context?: ToolExecutionContext) => Promise<any> | any;
 
   /** If true, tool execution requires user approval before running. Works with both server and client tools. */
-  needsApproval?: boolean
+  needsApproval?: boolean;
 
   /** If true, this tool is lazy and will only be sent to the LLM after being discovered via the lazy tool discovery mechanism. Only meaningful when used with chat(). */
-  lazy?: boolean
+  lazy?: boolean;
 
   /** Additional metadata for adapters or custom extensions */
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>;
 }
 
 export interface ToolConfig {
-  [key: string]: Tool
+  [key: string]: Tool;
 }
 
 /**
@@ -561,7 +555,7 @@ export interface ResponseFormat<TData = any> {
    *
    * @see https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format
    */
-  type: 'json_object' | 'json_schema'
+  type: "json_object" | "json_schema";
 
   /**
    * JSON schema specification (required when type is "json_schema").
@@ -576,7 +570,7 @@ export interface ResponseFormat<TData = any> {
      * Used to identify the schema in logs and debugging.
      * Should be descriptive (e.g., "user_profile", "search_results").
      */
-    name: string
+    name: string;
 
     /**
      * Optional description of what the schema represents.
@@ -585,7 +579,7 @@ export interface ResponseFormat<TData = any> {
      *
      * @example "User profile information including name, email, and preferences"
      */
-    description?: string
+    description?: string;
 
     /**
      * JSON Schema definition for the expected output structure.
@@ -607,7 +601,7 @@ export interface ResponseFormat<TData = any> {
      *   additionalProperties: false
      * }
      */
-    schema: Record<string, any>
+    schema: Record<string, any>;
 
     /**
      * Whether to enforce strict schema validation.
@@ -619,8 +613,8 @@ export interface ResponseFormat<TData = any> {
      *
      * @see https://platform.openai.com/docs/guides/structured-outputs#strict-mode
      */
-    strict?: boolean
-  }
+    strict?: boolean;
+  };
 
   /**
    * Type-only property to carry the inferred data type.
@@ -630,7 +624,7 @@ export interface ResponseFormat<TData = any> {
    *
    * @internal
    */
-  __data?: TData
+  __data?: TData;
 }
 
 /**
@@ -638,11 +632,11 @@ export interface ResponseFormat<TData = any> {
  */
 export interface AgentLoopState {
   /** Current iteration count (0-indexed) */
-  iterationCount: number
+  iterationCount: number;
   /** Current messages array */
-  messages: Array<ModelMessage>
+  messages: Array<ModelMessage>;
   /** Finish reason from the last response */
-  finishReason: string | null
+  finishReason: string | null;
 }
 
 /**
@@ -657,7 +651,7 @@ export interface AgentLoopState {
  * const strategy: AgentLoopStrategy = ({ iterationCount }) => iterationCount < 5;
  * ```
  */
-export type AgentLoopStrategy = (state: AgentLoopState) => boolean
+export type AgentLoopStrategy = (state: AgentLoopState) => boolean;
 
 /**
  * Options passed into the SDK and further piped to the AI provider.
@@ -666,11 +660,11 @@ export interface TextOptions<
   TProviderOptionsSuperset extends Record<string, any> = Record<string, any>,
   TProviderOptionsForModel = TProviderOptionsSuperset,
 > {
-  model: string
-  messages: Array<ModelMessage>
-  tools?: Array<Tool<any, any, any>>
-  systemPrompts?: Array<string>
-  agentLoopStrategy?: AgentLoopStrategy
+  model: string;
+  messages: Array<ModelMessage>;
+  tools?: Array<Tool<any, any, any>>;
+  systemPrompts?: Array<string>;
+  agentLoopStrategy?: AgentLoopStrategy;
   /**
    * Controls the randomness of the output.
    * Higher values (e.g., 0.8) make output more random, lower values (e.g., 0.2) make it more focused and deterministic.
@@ -683,7 +677,7 @@ export interface TextOptions<
    * - Anthropic: `temperature` (number) - ranges from 0.0 to 1.0, default 1.0
    * - Gemini: `generationConfig.temperature` (number) - ranges from 0.0 to 2.0
    */
-  temperature?: number
+  temperature?: number;
   /**
    * Nucleus sampling parameter. An alternative to temperature sampling.
    * The model considers the results of tokens with topP probability mass.
@@ -696,7 +690,7 @@ export interface TextOptions<
    * - Anthropic: `top_p` (number | null)
    * - Gemini: `generationConfig.topP` (number)
    */
-  topP?: number
+  topP?: number;
   /**
    * The maximum number of tokens to generate in the response.
    *
@@ -705,7 +699,7 @@ export interface TextOptions<
    * - Anthropic: `max_tokens` (number, required) - range x >= 1
    * - Gemini: `generationConfig.maxOutputTokens` (number)
    */
-  maxTokens?: number
+  maxTokens?: number;
   /**
    * Additional metadata to attach to the request.
    * Can be used for tracking, debugging, or passing custom information.
@@ -716,9 +710,9 @@ export interface TextOptions<
    * - Anthropic: `metadata` (Record<string, any>) - includes optional user_id (max 256 chars)
    * - Gemini: Not directly available in TextProviderOptions
    */
-  metadata?: Record<string, any>
-  modelOptions?: TProviderOptionsForModel
-  request?: Request | RequestInit
+  metadata?: Record<string, any>;
+  modelOptions?: TProviderOptionsForModel;
+  request?: Request | RequestInit;
 
   /**
    * Schema for structured output.
@@ -727,12 +721,12 @@ export interface TextOptions<
    * The schema will be converted to JSON Schema format before being sent to the provider.
    * Supports any Standard JSON Schema compliant library (Zod, ArkType, Valibot, etc.).
    */
-  outputSchema?: SchemaInput
+  outputSchema?: SchemaInput;
   /**
    * Conversation ID for correlating client and server-side devtools events.
    * When provided, server-side events will be linked to the client conversation in devtools.
    */
-  conversationId?: string
+  conversationId?: string;
   /**
    * AbortController for request cancellation.
    *
@@ -746,26 +740,26 @@ export interface TextOptions<
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/AbortController
    */
-  abortController?: AbortController
+  abortController?: AbortController;
 
   /**
    * Internal logger threaded from the chat entry point. Adapter implementations
    * must call `logger.request()` before SDK calls, `logger.provider()` for each
    * chunk received, and `logger.errors()` in catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 
   /**
    * Thread ID for AG-UI protocol run correlation.
    * When provided, this will be used in RunStartedEvent and RunFinishedEvent.
    */
-  threadId?: string
+  threadId?: string;
   /**
    * Run ID for AG-UI protocol run correlation.
    * When provided, this will be used in RunStartedEvent and RunFinishedEvent.
    * If not provided, a unique ID will be generated.
    */
-  runId?: string
+  runId?: string;
 }
 
 // ============================================================================
@@ -776,7 +770,7 @@ export interface TextOptions<
  * Re-export EventType enum from @ag-ui/core for use in event creation.
  * Use `EventType.RUN_STARTED` etc. when constructing event objects.
  */
-export { EventType } from '@ag-ui/core'
+export { EventType } from "@ag-ui/core";
 
 /**
  * AG-UI Protocol event types.
@@ -784,13 +778,13 @@ export { EventType } from '@ag-ui/core'
  * is kept for backward compatibility but will be removed in a future version.
  * @see https://docs.ag-ui.com/concepts/events
  */
-export type AGUIEventType = `${EventType}`
+export type AGUIEventType = `${EventType}`;
 
 /**
  * Stream chunk/event types (AG-UI protocol).
  * @deprecated Use `EventType` enum instead.
  */
-export type StreamChunkType = AGUIEventType
+export type StreamChunkType = AGUIEventType;
 
 /**
  * Base structure for AG-UI events.
@@ -801,7 +795,7 @@ export type StreamChunkType = AGUIEventType
  */
 export interface BaseAGUIEvent extends AGUIBaseEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 // ============================================================================
@@ -817,7 +811,7 @@ export interface BaseAGUIEvent extends AGUIBaseEvent {
  */
 export interface RunStartedEvent extends AGUIRunStartedEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -828,15 +822,15 @@ export interface RunStartedEvent extends AGUIRunStartedEvent {
  */
 export interface RunFinishedEvent extends AGUIRunFinishedEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /** Why the generation stopped */
-  finishReason?: 'stop' | 'length' | 'content_filter' | 'tool_calls' | null
+  finishReason?: "stop" | "length" | "content_filter" | "tool_calls" | null;
   /** Token usage statistics */
   usage?: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -847,15 +841,15 @@ export interface RunFinishedEvent extends AGUIRunFinishedEvent {
  */
 export interface RunErrorEvent extends AGUIRunErrorEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /**
    * @deprecated Use top-level `message` and `code` fields instead.
    * Kept for backward compatibility.
    */
   error?: {
-    message: string
-    code?: string
-  }
+    message: string;
+    code?: string;
+  };
 }
 
 /**
@@ -866,7 +860,7 @@ export interface RunErrorEvent extends AGUIRunErrorEvent {
  */
 export interface TextMessageStartEvent extends AGUITextMessageStartEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -877,9 +871,9 @@ export interface TextMessageStartEvent extends AGUITextMessageStartEvent {
  */
 export interface TextMessageContentEvent extends AGUITextMessageContentEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /** Full accumulated content so far (TanStack AI internal, for debugging) */
-  content?: string
+  content?: string;
 }
 
 /**
@@ -890,7 +884,7 @@ export interface TextMessageContentEvent extends AGUITextMessageContentEvent {
  */
 export interface TextMessageEndEvent extends AGUITextMessageEndEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -901,19 +895,19 @@ export interface TextMessageEndEvent extends AGUITextMessageEndEvent {
  */
 export interface ToolCallStartEvent extends AGUIToolCallStartEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /**
    * @deprecated Use `toolCallName` instead (from @ag-ui/core spec).
    * Kept for backward compatibility.
    */
-  toolName: string
+  toolName: string;
   /** Index for parallel tool calls */
-  index?: number
+  index?: number;
   /** Provider-specific metadata to carry into the ToolCall.
    * Untyped at the event layer because events flow through a discriminated
    * union that does not survive generics; adapters cast it to their typed
    * `TToolCallMetadata` shape when emitting. */
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -924,9 +918,9 @@ export interface ToolCallStartEvent extends AGUIToolCallStartEvent {
  */
 export interface ToolCallArgsEvent extends AGUIToolCallArgsEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /** Full accumulated arguments so far (TanStack AI internal) */
-  args?: string
+  args?: string;
 }
 
 /**
@@ -937,18 +931,18 @@ export interface ToolCallArgsEvent extends AGUIToolCallArgsEvent {
  */
 export interface ToolCallEndEvent extends AGUIToolCallEndEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /** Name of the tool that completed */
-  toolCallName?: string
+  toolCallName?: string;
   /**
    * @deprecated Use `toolCallName` instead.
    * Kept for backward compatibility.
    */
-  toolName?: string
+  toolName?: string;
   /** Final parsed input arguments (TanStack AI internal) */
-  input?: unknown
+  input?: unknown;
   /** Tool execution result (TanStack AI internal) */
-  result?: string
+  result?: string;
 }
 
 /**
@@ -959,7 +953,7 @@ export interface ToolCallEndEvent extends AGUIToolCallEndEvent {
  */
 export interface ToolCallResultEvent extends AGUIToolCallResultEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -970,14 +964,14 @@ export interface ToolCallResultEvent extends AGUIToolCallResultEvent {
  */
 export interface StepStartedEvent extends AGUIStepStartedEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /**
    * @deprecated Use `stepName` instead (from @ag-ui/core spec).
    * Kept for backward compatibility.
    */
-  stepId?: string
+  stepId?: string;
   /** Type of step (e.g., 'thinking', 'planning') */
-  stepType?: string
+  stepType?: string;
 }
 
 /**
@@ -988,18 +982,18 @@ export interface StepStartedEvent extends AGUIStepStartedEvent {
  */
 export interface StepFinishedEvent extends AGUIStepFinishedEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /**
    * @deprecated Use `stepName` instead (from @ag-ui/core spec).
    * Kept for backward compatibility.
    */
-  stepId?: string
+  stepId?: string;
   /** Incremental thinking content (TanStack AI internal) */
-  delta?: string
+  delta?: string;
   /** Full accumulated thinking content (TanStack AI internal) */
-  content?: string
+  content?: string;
   /** Provider signature for the thinking block */
-  signature?: string
+  signature?: string;
 }
 
 /**
@@ -1016,7 +1010,7 @@ export interface StepFinishedEvent extends AGUIStepFinishedEvent {
  */
 export interface MessagesSnapshotEvent extends AGUIMessagesSnapshotEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1027,12 +1021,12 @@ export interface MessagesSnapshotEvent extends AGUIMessagesSnapshotEvent {
  */
 export interface StateSnapshotEvent extends AGUIStateSnapshotEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
   /**
    * @deprecated Use `snapshot` instead (from @ag-ui/core spec).
    * Kept for backward compatibility.
    */
-  state?: Record<string, unknown>
+  state?: Record<string, unknown>;
 }
 
 /**
@@ -1043,7 +1037,7 @@ export interface StateSnapshotEvent extends AGUIStateSnapshotEvent {
  */
 export interface StateDeltaEvent extends AGUIStateDeltaEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1054,7 +1048,7 @@ export interface StateDeltaEvent extends AGUIStateDeltaEvent {
  */
 export interface CustomEvent extends AGUICustomEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 // ============================================================================
@@ -1069,7 +1063,7 @@ export interface CustomEvent extends AGUICustomEvent {
  */
 export interface ReasoningStartEvent extends AGUIReasoningStartEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1080,7 +1074,7 @@ export interface ReasoningStartEvent extends AGUIReasoningStartEvent {
  */
 export interface ReasoningMessageStartEvent extends AGUIReasoningMessageStartEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1091,7 +1085,7 @@ export interface ReasoningMessageStartEvent extends AGUIReasoningMessageStartEve
  */
 export interface ReasoningMessageContentEvent extends AGUIReasoningMessageContentEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1102,7 +1096,7 @@ export interface ReasoningMessageContentEvent extends AGUIReasoningMessageConten
  */
 export interface ReasoningMessageEndEvent extends AGUIReasoningMessageEndEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1113,7 +1107,7 @@ export interface ReasoningMessageEndEvent extends AGUIReasoningMessageEndEvent {
  */
 export interface ReasoningEndEvent extends AGUIReasoningEndEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 /**
@@ -1124,7 +1118,7 @@ export interface ReasoningEndEvent extends AGUIReasoningEndEvent {
  */
 export interface ReasoningEncryptedValueEvent extends AGUIReasoningEncryptedValueEvent {
   /** Model identifier for multi-model support */
-  model?: string
+  model?: string;
 }
 
 // ============================================================================
@@ -1156,51 +1150,51 @@ export type AGUIEvent =
   | ReasoningMessageContentEvent
   | ReasoningMessageEndEvent
   | ReasoningEndEvent
-  | ReasoningEncryptedValueEvent
+  | ReasoningEncryptedValueEvent;
 
 /**
  * Chunk returned by the SDK during streaming chat completions.
  * Uses the AG-UI protocol event format.
  */
-export type StreamChunk = AGUIEvent
+export type StreamChunk = AGUIEvent;
 
 // Simple streaming format for basic text completions
 // Converted to StreamChunk format by convertTextCompletionStream()
 export interface TextCompletionChunk {
-  id: string
-  model: string
-  content: string
-  role?: 'assistant'
-  finishReason?: 'stop' | 'length' | 'content_filter' | null
+  id: string;
+  model: string;
+  content: string;
+  role?: "assistant";
+  finishReason?: "stop" | "length" | "content_filter" | null;
   usage?: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export interface SummarizationOptions {
-  model: string
-  text: string
-  maxLength?: number
-  style?: 'bullet-points' | 'paragraph' | 'concise'
-  focus?: Array<string>
+  model: string;
+  text: string;
+  maxLength?: number;
+  style?: "bullet-points" | "paragraph" | "concise";
+  focus?: Array<string>;
   /**
    * Internal logger threaded from the summarize() entry point. Adapters must
    * call logger.request() before the SDK call and logger.errors() in catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 export interface SummarizationResult {
-  id: string
-  model: string
-  summary: string
+  id: string;
+  model: string;
+  summary: string;
   usage: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 // ============================================================================
@@ -1216,20 +1210,20 @@ export interface ImageGenerationOptions<
   TSize extends string = string,
 > {
   /** The model to use for image generation */
-  model: string
+  model: string;
   /** Text description of the desired image(s) */
-  prompt: string
+  prompt: string;
   /** Number of images to generate (default: 1) */
-  numberOfImages?: number
+  numberOfImages?: number;
   /** Image size in WIDTHxHEIGHT format (e.g., "1024x1024") */
-  size?: TSize
+  size?: TSize;
   /** Model-specific options for image generation */
-  modelOptions?: TProviderOptions
+  modelOptions?: TProviderOptions;
   /**
    * Internal logger threaded from the generateImage() entry point. Adapters must
    * call logger.request() before the SDK call and logger.errors() in catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 /**
@@ -1241,39 +1235,39 @@ export interface ImageGenerationOptions<
 export type GeneratedMediaSource =
   | {
       /** URL to the generated asset (may be temporary) */
-      url: string
-      b64Json?: never
+      url: string;
+      b64Json?: never;
     }
   | {
       /** Base64-encoded asset data */
-      b64Json: string
-      url?: never
-    }
+      b64Json: string;
+      url?: never;
+    };
 
 /**
  * A single generated image
  */
 export type GeneratedImage = GeneratedMediaSource & {
   /** Revised prompt used by the model (if applicable) */
-  revisedPrompt?: string
-}
+  revisedPrompt?: string;
+};
 
 /**
  * Result of image generation
  */
 export interface ImageGenerationResult {
   /** Unique identifier for the generation */
-  id: string
+  id: string;
   /** Model used for generation */
-  model: string
+  model: string;
   /** Array of generated images */
-  images: Array<GeneratedImage>
+  images: Array<GeneratedImage>;
   /** Token usage information (if available) */
   usage?: {
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-  }
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+  };
 }
 
 // ============================================================================
@@ -1284,23 +1278,21 @@ export interface ImageGenerationResult {
  * Options for audio generation (music, sound effects, etc.).
  * These are the common options supported across providers.
  */
-export interface AudioGenerationOptions<
-  TProviderOptions extends object = object,
-> {
+export interface AudioGenerationOptions<TProviderOptions extends object = object> {
   /** The model to use for audio generation */
-  model: string
+  model: string;
   /** Text description of the desired audio */
-  prompt: string
+  prompt: string;
   /** Desired duration in seconds */
-  duration?: number
+  duration?: number;
   /** Model-specific options for audio generation */
-  modelOptions?: TProviderOptions
+  modelOptions?: TProviderOptions;
   /**
    * Internal logger threaded from the generateAudio() entry point. Adapters
    * must call logger.request() before the SDK call and logger.errors() in
    * catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 /**
@@ -1308,27 +1300,27 @@ export interface AudioGenerationOptions<
  */
 export type GeneratedAudio = GeneratedMediaSource & {
   /** Content type of the audio (e.g., 'audio/wav', 'audio/mp3') */
-  contentType?: string
+  contentType?: string;
   /** Duration of the generated audio in seconds */
-  duration?: number
-}
+  duration?: number;
+};
 
 /**
  * Result of audio generation
  */
 export interface AudioGenerationResult {
   /** Unique identifier for the generation */
-  id: string
+  id: string;
   /** Model used for generation */
-  model: string
+  model: string;
   /** The generated audio */
-  audio: GeneratedAudio
+  audio: GeneratedAudio;
   /** Token usage information (if available) */
   usage?: {
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-  }
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+  };
 }
 
 // ============================================================================
@@ -1346,20 +1338,20 @@ export interface VideoGenerationOptions<
   TSize extends string = string,
 > {
   /** The model to use for video generation */
-  model: string
+  model: string;
   /** Text description of the desired video */
-  prompt: string
+  prompt: string;
   /** Video size — format depends on the provider (e.g., "16:9", "1280x720") */
-  size?: TSize
+  size?: TSize;
   /** Video duration in seconds */
-  duration?: number
+  duration?: number;
   /** Model-specific options for video generation */
-  modelOptions?: TProviderOptions
+  modelOptions?: TProviderOptions;
   /**
    * Internal logger threaded from the generateVideo() entry point. Adapters must
    * call logger.request() before the SDK call and logger.errors() in catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 /**
@@ -1369,9 +1361,9 @@ export interface VideoGenerationOptions<
  */
 export interface VideoJobResult {
   /** Unique job identifier for polling status */
-  jobId: string
+  jobId: string;
   /** Model used for generation */
-  model: string
+  model: string;
 }
 
 /**
@@ -1381,13 +1373,13 @@ export interface VideoJobResult {
  */
 export interface VideoStatusResult {
   /** Job identifier */
-  jobId: string
+  jobId: string;
   /** Current status of the job */
-  status: 'pending' | 'processing' | 'completed' | 'failed'
+  status: "pending" | "processing" | "completed" | "failed";
   /** Progress percentage (0-100), if available */
-  progress?: number
+  progress?: number;
   /** Error message if status is 'failed' */
-  error?: string
+  error?: string;
 }
 
 /**
@@ -1397,11 +1389,11 @@ export interface VideoStatusResult {
  */
 export interface VideoUrlResult {
   /** Job identifier */
-  jobId: string
+  jobId: string;
   /** URL to the generated video */
-  url: string
+  url: string;
   /** When the URL expires, if applicable */
-  expiresAt?: Date
+  expiresAt?: Date;
 }
 
 // ============================================================================
@@ -1414,23 +1406,23 @@ export interface VideoUrlResult {
  */
 export interface TTSOptions<TProviderOptions extends object = object> {
   /** The model to use for TTS generation */
-  model: string
+  model: string;
   /** The text to convert to speech */
-  text: string
+  text: string;
   /** The voice to use for generation */
-  voice?: string
+  voice?: string;
   /** The output audio format */
-  format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm'
+  format?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
   /** The speed of the generated audio (0.25 to 4.0) */
-  speed?: number
+  speed?: number;
   /** Model-specific options for TTS generation */
-  modelOptions?: TProviderOptions
+  modelOptions?: TProviderOptions;
   /**
    * Internal logger threaded from the generateSpeech() entry point. Adapters
    * must call logger.request() before the SDK call and logger.errors() in
    * catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 /**
@@ -1438,17 +1430,17 @@ export interface TTSOptions<TProviderOptions extends object = object> {
  */
 export interface TTSResult {
   /** Unique identifier for the generation */
-  id: string
+  id: string;
   /** Model used for generation */
-  model: string
+  model: string;
   /** Base64-encoded audio data */
-  audio: string
+  audio: string;
   /** Audio format of the generated audio */
-  format: string
+  format: string;
   /** Duration of the audio in seconds, if available */
-  duration?: number
+  duration?: number;
   /** Content type of the audio (e.g., 'audio/mp3') */
-  contentType?: string
+  contentType?: string;
 }
 
 // ============================================================================
@@ -1459,27 +1451,25 @@ export interface TTSResult {
  * Options for audio transcription.
  * These are the common options supported across providers.
  */
-export interface TranscriptionOptions<
-  TProviderOptions extends object = object,
-> {
+export interface TranscriptionOptions<TProviderOptions extends object = object> {
   /** The model to use for transcription */
-  model: string
+  model: string;
   /** The audio data to transcribe - can be base64 string, File, Blob, or Buffer */
-  audio: string | File | Blob | ArrayBuffer
+  audio: string | File | Blob | ArrayBuffer;
   /** The language of the audio in ISO-639-1 format (e.g., 'en') */
-  language?: string
+  language?: string;
   /** An optional prompt to guide the transcription */
-  prompt?: string
+  prompt?: string;
   /** The format of the transcription output */
-  responseFormat?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt'
+  responseFormat?: "json" | "text" | "srt" | "verbose_json" | "vtt";
   /** Model-specific options for transcription */
-  modelOptions?: TProviderOptions
+  modelOptions?: TProviderOptions;
   /**
    * Internal logger threaded from the generateTranscription() entry point.
    * Adapters must call logger.request() before the SDK call and logger.errors()
    * in catch blocks.
    */
-  logger: InternalLogger
+  logger: InternalLogger;
 }
 
 /**
@@ -1487,17 +1477,17 @@ export interface TranscriptionOptions<
  */
 export interface TranscriptionSegment {
   /** Unique identifier for the segment */
-  id: number
+  id: number;
   /** Start time of the segment in seconds */
-  start: number
+  start: number;
   /** End time of the segment in seconds */
-  end: number
+  end: number;
   /** Transcribed text for this segment */
-  text: string
+  text: string;
   /** Confidence score (0-1), if available */
-  confidence?: number
+  confidence?: number;
   /** Speaker identifier, if diarization is enabled */
-  speaker?: string
+  speaker?: string;
 }
 
 /**
@@ -1505,11 +1495,11 @@ export interface TranscriptionSegment {
  */
 export interface TranscriptionWord {
   /** The transcribed word */
-  word: string
+  word: string;
   /** Start time in seconds */
-  start: number
+  start: number;
   /** End time in seconds */
-  end: number
+  end: number;
 }
 
 /**
@@ -1517,19 +1507,19 @@ export interface TranscriptionWord {
  */
 export interface TranscriptionResult {
   /** Unique identifier for the transcription */
-  id: string
+  id: string;
   /** Model used for transcription */
-  model: string
+  model: string;
   /** The full transcribed text */
-  text: string
+  text: string;
   /** Language detected or specified */
-  language?: string
+  language?: string;
   /** Duration of the audio in seconds */
-  duration?: number
+  duration?: number;
   /** Detailed segments with timing, if available */
-  segments?: Array<TranscriptionSegment>
+  segments?: Array<TranscriptionSegment>;
   /** Word-level timestamps, if available */
-  words?: Array<TranscriptionWord>
+  words?: Array<TranscriptionWord>;
 }
 
 /**
@@ -1537,9 +1527,9 @@ export interface TranscriptionResult {
  * Uses unknown for all modalities.
  */
 export interface DefaultMessageMetadataByModality {
-  text: unknown
-  image: unknown
-  audio: unknown
-  video: unknown
-  document: unknown
+  text: unknown;
+  image: unknown;
+  audio: unknown;
+  video: unknown;
+  document: unknown;
 }

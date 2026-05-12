@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { NON_NATIVE_NAVIGATOR_PACKAGES } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { NON_NATIVE_NAVIGATOR_PACKAGES } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoNonNativeNavigator = defineRule<Rule>({
   recommendation:

@@ -5,31 +5,26 @@
  * The canonical chunk format is StreamChunk from @tanstack/ai types.
  */
 
-import type {
-  StreamChunk,
-  ToolCall,
-  ToolCallState,
-  ToolResultState,
-} from '../../../types'
+import type { StreamChunk, ToolCall, ToolCallState, ToolResultState } from "../../../types";
 
 // Re-export for backwards compatibility
-export type { ToolCallState, ToolResultState }
+export type { ToolCallState, ToolResultState };
 
 /**
  * Internal state for a tool call being tracked
  */
 export interface InternalToolCallState {
-  id: string
-  name: string
-  arguments: string
-  state: ToolCallState
-  parsedArguments?: any
-  index: number
+  id: string;
+  name: string;
+  arguments: string;
+  state: ToolCallState;
+  parsedArguments?: any;
+  index: number;
   /** Provider-specific metadata that round-trips with the tool call
    * (e.g. Gemini's `thoughtSignature`). Untyped at this layer because
    * the stream processor is provider-agnostic; adapters narrow it
    * via their `TToolCallMetadata` generic. */
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -42,12 +37,12 @@ export interface ChunkStrategy {
    * @param accumulated - All text accumulated so far
    * @returns true if an update should be emitted now
    */
-  shouldEmit: (chunk: string, accumulated: string) => boolean
+  shouldEmit: (chunk: string, accumulated: string) => boolean;
 
   /**
    * Optional: Reset strategy state (called when streaming starts)
    */
-  reset?: () => void
+  reset?: () => void;
 }
 
 /**
@@ -56,56 +51,56 @@ export interface ChunkStrategy {
  * for a single message in the stream.
  */
 export interface MessageStreamState {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  totalTextContent: string
-  currentSegmentText: string
-  lastEmittedText: string
-  hasSeenReasoningEvents: boolean
-  thinkingSteps: Map<string, string>
-  thinkingStepSignatures: Map<string, string>
-  thinkingStepOrder: Array<string>
-  currentThinkingStepId: string | null
-  toolCalls: Map<string, InternalToolCallState>
-  toolCallOrder: Array<string>
-  hasToolCallsSinceTextStart: boolean
-  isComplete: boolean
+  id: string;
+  role: "user" | "assistant" | "system";
+  totalTextContent: string;
+  currentSegmentText: string;
+  lastEmittedText: string;
+  hasSeenReasoningEvents: boolean;
+  thinkingSteps: Map<string, string>;
+  thinkingStepSignatures: Map<string, string>;
+  thinkingStepOrder: Array<string>;
+  currentThinkingStepId: string | null;
+  toolCalls: Map<string, InternalToolCallState>;
+  toolCallOrder: Array<string>;
+  hasToolCallsSinceTextStart: boolean;
+  isComplete: boolean;
 }
 
 /**
  * Result from processing a stream
  */
 export interface ProcessorResult {
-  content: string
-  thinking?: string
-  toolCalls?: Array<ToolCall>
-  finishReason?: string | null
+  content: string;
+  thinking?: string;
+  toolCalls?: Array<ToolCall>;
+  finishReason?: string | null;
 }
 
 /**
  * Current state of the processor
  */
 export interface ProcessorState {
-  content: string
-  thinking: string
-  toolCalls: Map<string, InternalToolCallState>
-  toolCallOrder: Array<string>
-  finishReason: string | null
-  done: boolean
+  content: string;
+  thinking: string;
+  toolCalls: Map<string, InternalToolCallState>;
+  toolCallOrder: Array<string>;
+  finishReason: string | null;
+  done: boolean;
 }
 
 /**
  * Recording format for replay testing
  */
 export interface ChunkRecording {
-  version: '1.0'
-  timestamp: number
-  model?: string
-  provider?: string
+  version: "1.0";
+  timestamp: number;
+  model?: string;
+  provider?: string;
   chunks: Array<{
-    chunk: StreamChunk
-    timestamp: number
-    index: number
-  }>
-  result?: ProcessorResult
+    chunk: StreamChunk;
+    timestamp: number;
+    index: number;
+  }>;
+  result?: ProcessorResult;
 }

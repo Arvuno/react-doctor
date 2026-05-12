@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { TANSTACK_ROOT_ROUTE_FILE_PATTERN, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { TANSTACK_ROOT_ROUTE_FILE_PATTERN, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const tanstackStartMissingHeadContent = defineRule<Rule>({
   recommendation:

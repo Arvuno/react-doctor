@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { STORY_FILE_PATTERN, isUserEventCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { STORY_FILE_PATTERN, isUserEventCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isAwaited = (node: EsTreeNode): boolean => isNodeOfType(node.parent, "AwaitExpression");
 

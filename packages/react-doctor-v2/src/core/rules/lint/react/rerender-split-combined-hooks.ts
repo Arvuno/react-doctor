@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { EFFECT_HOOK_NAMES, isHookCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { EFFECT_HOOK_NAMES, isHookCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const splitCandidateHookNames = new Set(["useMemo", "useCallback", ...EFFECT_HOOK_NAMES]);
 

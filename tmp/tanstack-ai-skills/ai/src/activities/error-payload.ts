@@ -8,28 +8,28 @@
  */
 export function toRunErrorPayload(
   error: unknown,
-  fallbackMessage = 'Unknown error occurred',
+  fallbackMessage = "Unknown error occurred",
 ): { message: string; code: string | undefined } {
   if (error instanceof Error) {
-    const codeField = (error as Error & { code?: unknown }).code
+    const codeField = (error as Error & { code?: unknown }).code;
     return {
       message: error.message || fallbackMessage,
-      code: typeof codeField === 'string' ? codeField : undefined,
-    }
+      code: typeof codeField === "string" ? codeField : undefined,
+    };
   }
-  if (typeof error === 'object' && error !== null) {
-    const messageField = (error as { message?: unknown }).message
-    const codeField = (error as { code?: unknown }).code
+  if (typeof error === "object" && error !== null) {
+    const messageField = (error as { message?: unknown }).message;
+    const codeField = (error as { code?: unknown }).code;
     return {
       message:
-        typeof messageField === 'string' && messageField.length > 0
+        typeof messageField === "string" && messageField.length > 0
           ? messageField
           : fallbackMessage,
-      code: typeof codeField === 'string' ? codeField : undefined,
-    }
+      code: typeof codeField === "string" ? codeField : undefined,
+    };
   }
-  if (typeof error === 'string' && error.length > 0) {
-    return { message: error, code: undefined }
+  if (typeof error === "string" && error.length > 0) {
+    return { message: error, code: undefined };
   }
-  return { message: fallbackMessage, code: undefined }
+  return { message: fallbackMessage, code: undefined };
 }

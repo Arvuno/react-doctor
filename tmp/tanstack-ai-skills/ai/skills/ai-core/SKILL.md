@@ -8,7 +8,7 @@ description: >
   not manual SSE, middleware hooks not onEnd callbacks.
 type: core
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 ---
 
 # TanStack AI — Core Concepts

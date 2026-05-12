@@ -1,6 +1,6 @@
-import { aiEventClient } from '@tanstack/ai-event-client'
-import type { StreamChunk } from '../../../types'
-import type { InternalLogger } from '../../../logger/internal-logger'
+import { aiEventClient } from "@tanstack/ai-event-client";
+import type { StreamChunk } from "../../../types";
+import type { InternalLogger } from "../../../logger/internal-logger";
 import type {
   AbortInfo,
   AfterToolCallInfo,
@@ -14,11 +14,11 @@ import type {
   ToolCallHookContext,
   ToolPhaseCompleteInfo,
   UsageInfo,
-} from './types'
+} from "./types";
 
 /** Check if a middleware should be skipped for instrumentation events. */
 function shouldSkipInstrumentation(mw: ChatMiddleware): boolean {
-  return mw.name === 'devtools' || mw.name === 'strip-to-spec'
+  return mw.name === "devtools" || mw.name === "strip-to-spec";
 }
 
 /** Build the base context for middleware instrumentation events. */
@@ -28,7 +28,7 @@ function instrumentCtx(ctx: ChatMiddlewareContext) {
     streamId: ctx.streamId,
     clientId: ctx.conversationId,
     timestamp: Date.now(),
-  }
+  };
 }
 
 /**
@@ -36,19 +36,16 @@ function instrumentCtx(ctx: ChatMiddlewareContext) {
  * Created once per chat() invocation.
  */
 export class MiddlewareRunner {
-  private readonly middlewares: ReadonlyArray<ChatMiddleware>
-  private readonly logger: InternalLogger
+  private readonly middlewares: ReadonlyArray<ChatMiddleware>;
+  private readonly logger: InternalLogger;
 
-  constructor(
-    middlewares: ReadonlyArray<ChatMiddleware>,
-    logger: InternalLogger,
-  ) {
-    this.middlewares = middlewares
-    this.logger = logger
+  constructor(middlewares: ReadonlyArray<ChatMiddleware>, logger: InternalLogger) {
+    this.middlewares = middlewares;
+    this.logger = logger;
   }
 
   get hasMiddleware(): boolean {
-    return this.middlewares.length > 0
+    return this.middlewares.length > 0;
   }
 
   /**
@@ -60,47 +57,47 @@ export class MiddlewareRunner {
     ctx: ChatMiddlewareContext,
     config: ChatMiddlewareConfig,
   ): Promise<ChatMiddlewareConfig> {
-    let current = config
+    let current = config;
     for (const mw of this.middlewares) {
       if (mw.onConfig) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        const result = await mw.onConfig(ctx, current)
-        const hasTransform = result !== undefined && result !== null
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        const result = await mw.onConfig(ctx, current);
+        const hasTransform = result !== undefined && result !== null;
         if (hasTransform) {
-          current = { ...current, ...result }
+          current = { ...current, ...result };
           if (!skip) {
             this.logger.config(
-              `middleware=${mw.name ?? 'unnamed'} keys=${Object.keys(result as object).join(',')}`,
+              `middleware=${mw.name ?? "unnamed"} keys=${Object.keys(result as object).join(",")}`,
               {
-                middleware: mw.name ?? 'unnamed',
+                middleware: mw.name ?? "unnamed",
                 changes: result,
               },
-            )
+            );
           }
         }
         if (!skip) {
-          const base = instrumentCtx(ctx)
-          aiEventClient.emit('middleware:hook:executed', {
+          const base = instrumentCtx(ctx);
+          aiEventClient.emit("middleware:hook:executed", {
             ...base,
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onConfig',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onConfig",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform,
-          })
+          });
           if (hasTransform) {
-            aiEventClient.emit('middleware:config:transformed', {
+            aiEventClient.emit("middleware:config:transformed", {
               ...base,
-              middlewareName: mw.name || 'unnamed',
+              middlewareName: mw.name || "unnamed",
               iteration: ctx.iteration,
               changes: result as Record<string, unknown>,
-            })
+            });
           }
         }
       }
     }
-    return current
+    return current;
   }
 
   /**
@@ -109,22 +106,22 @@ export class MiddlewareRunner {
   async runOnStart(ctx: ChatMiddlewareContext): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onStart) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onStart(ctx)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onStart(ctx);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onStart middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onStart' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onStart middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onStart",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onStart',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onStart",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -139,98 +136,95 @@ export class MiddlewareRunner {
    * - chunk[]: expand to multiple chunks
    * - null: drop the chunk entirely
    */
-  async runOnChunk(
-    ctx: ChatMiddlewareContext,
-    chunk: StreamChunk,
-  ): Promise<Array<StreamChunk>> {
-    let chunks: Array<StreamChunk> = [chunk]
+  async runOnChunk(ctx: ChatMiddlewareContext, chunk: StreamChunk): Promise<Array<StreamChunk>> {
+    let chunks: Array<StreamChunk> = [chunk];
 
     for (const mw of this.middlewares) {
-      if (!mw.onChunk) continue
-      const skip = shouldSkipInstrumentation(mw)
+      if (!mw.onChunk) continue;
+      const skip = shouldSkipInstrumentation(mw);
 
-      const nextChunks: Array<StreamChunk> = []
+      const nextChunks: Array<StreamChunk> = [];
       for (const c of chunks) {
         // Cast: @ag-ui/core Zod passthrough types prevent direct `.type` access
-        const chunkType = (c as StreamChunk & { type: string }).type
+        const chunkType = (c as StreamChunk & { type: string }).type;
         if (!skip) {
           this.logger.middleware(
-            `hook=onChunk middleware=${mw.name ?? 'unnamed'} in=${chunkType}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onChunk', in: c },
-          )
+            `hook=onChunk middleware=${mw.name ?? "unnamed"} in=${chunkType}`,
+            { middleware: mw.name ?? "unnamed", hook: "onChunk", in: c },
+          );
         }
-        const result = await mw.onChunk(ctx, c)
+        const result = await mw.onChunk(ctx, c);
         if (result === null) {
           // Drop this chunk
           if (!skip) {
             this.logger.middleware(
-              `hook=onChunk middleware=${mw.name ?? 'unnamed'} in=${chunkType} out=<dropped>`,
+              `hook=onChunk middleware=${mw.name ?? "unnamed"} in=${chunkType} out=<dropped>`,
               {
-                middleware: mw.name ?? 'unnamed',
-                hook: 'onChunk',
+                middleware: mw.name ?? "unnamed",
+                hook: "onChunk",
                 dropped: true,
               },
-            )
-            aiEventClient.emit('middleware:chunk:transformed', {
+            );
+            aiEventClient.emit("middleware:chunk:transformed", {
               ...instrumentCtx(ctx),
-              middlewareName: mw.name || 'unnamed',
+              middlewareName: mw.name || "unnamed",
               originalChunkType: chunkType,
               resultCount: 0,
               wasDropped: true,
-            })
+            });
           }
-          continue
+          continue;
         } else if (result === undefined) {
           // Pass through — no instrumentation for pass-throughs
-          nextChunks.push(c)
+          nextChunks.push(c);
         } else if (Array.isArray(result)) {
           // Expand
-          nextChunks.push(...result)
+          nextChunks.push(...result);
           if (!skip) {
             this.logger.middleware(
-              `hook=onChunk middleware=${mw.name ?? 'unnamed'} in=${chunkType} out=[${result.map((r: StreamChunk) => (r as StreamChunk & { type: string }).type).join(',')}]`,
+              `hook=onChunk middleware=${mw.name ?? "unnamed"} in=${chunkType} out=[${result.map((r: StreamChunk) => (r as StreamChunk & { type: string }).type).join(",")}]`,
               {
-                middleware: mw.name ?? 'unnamed',
-                hook: 'onChunk',
+                middleware: mw.name ?? "unnamed",
+                hook: "onChunk",
                 in: c,
                 out: result,
               },
-            )
-            aiEventClient.emit('middleware:chunk:transformed', {
+            );
+            aiEventClient.emit("middleware:chunk:transformed", {
               ...instrumentCtx(ctx),
-              middlewareName: mw.name || 'unnamed',
+              middlewareName: mw.name || "unnamed",
               originalChunkType: chunkType,
               resultCount: result.length,
               wasDropped: false,
-            })
+            });
           }
         } else {
           // Replace
-          nextChunks.push(result)
+          nextChunks.push(result);
           if (!skip) {
             this.logger.middleware(
-              `hook=onChunk middleware=${mw.name ?? 'unnamed'} in=${chunkType} out=${(result as StreamChunk & { type: string }).type}`,
+              `hook=onChunk middleware=${mw.name ?? "unnamed"} in=${chunkType} out=${(result as StreamChunk & { type: string }).type}`,
               {
-                middleware: mw.name ?? 'unnamed',
-                hook: 'onChunk',
+                middleware: mw.name ?? "unnamed",
+                hook: "onChunk",
                 in: c,
                 out: result,
               },
-            )
-            aiEventClient.emit('middleware:chunk:transformed', {
+            );
+            aiEventClient.emit("middleware:chunk:transformed", {
               ...instrumentCtx(ctx),
-              middlewareName: mw.name || 'unnamed',
+              middlewareName: mw.name || "unnamed",
               originalChunkType: chunkType,
               resultCount: 1,
               wasDropped: false,
-            })
+            });
           }
         }
       }
-      chunks = nextChunks
+      chunks = nextChunks;
     }
 
-    return chunks
+    return chunks;
   }
 
   /**
@@ -243,57 +237,54 @@ export class MiddlewareRunner {
   ): Promise<BeforeToolCallDecision> {
     for (const mw of this.middlewares) {
       if (mw.onBeforeToolCall) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        const decision = await mw.onBeforeToolCall(ctx, hookCtx)
-        const hasTransform = decision !== undefined && decision !== null
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        const decision = await mw.onBeforeToolCall(ctx, hookCtx);
+        const hasTransform = decision !== undefined && decision !== null;
         if (!skip) {
-          this.logger.middleware(
-            `hook=onBeforeToolCall middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onBeforeToolCall' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onBeforeToolCall middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onBeforeToolCall",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onBeforeToolCall',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onBeforeToolCall",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform,
-          })
+          });
         }
         if (hasTransform) {
-          return decision
+          return decision;
         }
       }
     }
-    return undefined
+    return undefined;
   }
 
   /**
    * Run onAfterToolCall on all middleware in order.
    */
-  async runOnAfterToolCall(
-    ctx: ChatMiddlewareContext,
-    info: AfterToolCallInfo,
-  ): Promise<void> {
+  async runOnAfterToolCall(ctx: ChatMiddlewareContext, info: AfterToolCallInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onAfterToolCall) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onAfterToolCall(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onAfterToolCall(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onAfterToolCall middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onAfterToolCall' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onAfterToolCall middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onAfterToolCall",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onAfterToolCall',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onAfterToolCall",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -302,28 +293,25 @@ export class MiddlewareRunner {
   /**
    * Run onUsage on all middleware in order.
    */
-  async runOnUsage(
-    ctx: ChatMiddlewareContext,
-    usage: UsageInfo,
-  ): Promise<void> {
+  async runOnUsage(ctx: ChatMiddlewareContext, usage: UsageInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onUsage) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onUsage(ctx, usage)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onUsage(ctx, usage);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onUsage middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onUsage' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onUsage middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onUsage",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onUsage',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onUsage",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -332,28 +320,25 @@ export class MiddlewareRunner {
   /**
    * Run onFinish on all middleware in order.
    */
-  async runOnFinish(
-    ctx: ChatMiddlewareContext,
-    info: FinishInfo,
-  ): Promise<void> {
+  async runOnFinish(ctx: ChatMiddlewareContext, info: FinishInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onFinish) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onFinish(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onFinish(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onFinish middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onFinish' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onFinish middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onFinish",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onFinish',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onFinish",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -365,22 +350,22 @@ export class MiddlewareRunner {
   async runOnAbort(ctx: ChatMiddlewareContext, info: AbortInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onAbort) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onAbort(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onAbort(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onAbort middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onAbort' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onAbort middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onAbort",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onAbort',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onAbort",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -392,22 +377,22 @@ export class MiddlewareRunner {
   async runOnError(ctx: ChatMiddlewareContext, info: ErrorInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onError) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onError(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onError(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onError middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onError' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onError middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onError",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onError',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onError",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -417,28 +402,25 @@ export class MiddlewareRunner {
    * Run onIteration on all middleware in order.
    * Called at the start of each agent loop iteration.
    */
-  async runOnIteration(
-    ctx: ChatMiddlewareContext,
-    info: IterationInfo,
-  ): Promise<void> {
+  async runOnIteration(ctx: ChatMiddlewareContext, info: IterationInfo): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onIteration) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onIteration(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onIteration(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onIteration middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onIteration' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onIteration middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onIteration",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onIteration',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onIteration",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }
@@ -454,22 +436,22 @@ export class MiddlewareRunner {
   ): Promise<void> {
     for (const mw of this.middlewares) {
       if (mw.onToolPhaseComplete) {
-        const skip = shouldSkipInstrumentation(mw)
-        const start = Date.now()
-        await mw.onToolPhaseComplete(ctx, info)
+        const skip = shouldSkipInstrumentation(mw);
+        const start = Date.now();
+        await mw.onToolPhaseComplete(ctx, info);
         if (!skip) {
-          this.logger.middleware(
-            `hook=onToolPhaseComplete middleware=${mw.name ?? 'unnamed'}`,
-            { middleware: mw.name ?? 'unnamed', hook: 'onToolPhaseComplete' },
-          )
-          aiEventClient.emit('middleware:hook:executed', {
+          this.logger.middleware(`hook=onToolPhaseComplete middleware=${mw.name ?? "unnamed"}`, {
+            middleware: mw.name ?? "unnamed",
+            hook: "onToolPhaseComplete",
+          });
+          aiEventClient.emit("middleware:hook:executed", {
             ...instrumentCtx(ctx),
-            middlewareName: mw.name || 'unnamed',
-            hookName: 'onToolPhaseComplete',
+            middlewareName: mw.name || "unnamed",
+            hookName: "onToolPhaseComplete",
             iteration: ctx.iteration,
             duration: Date.now() - start,
             hasTransform: false,
-          })
+          });
         }
       }
     }

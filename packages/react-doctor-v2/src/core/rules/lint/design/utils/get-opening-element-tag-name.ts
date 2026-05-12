@@ -1,0 +1,17 @@
+import type { EsTreeNode } from "../../utils/index.js";
+import { isNodeOfType } from "../../utils/index.js";
+
+export const getOpeningElementTagName = (
+  openingElement: EsTreeNode | null | undefined,
+): string | null => {
+  if (!openingElement) return null;
+  if (isNodeOfType(openingElement.name, "JSXIdentifier")) return openingElement.name.name;
+  if (isNodeOfType(openingElement.name, "JSXMemberExpression")) {
+    let cursor: EsTreeNode = openingElement.name;
+    while (isNodeOfType(cursor, "JSXMemberExpression")) {
+      cursor = cursor.property;
+    }
+    if (isNodeOfType(cursor, "JSXIdentifier")) return cursor.name;
+  }
+  return null;
+};

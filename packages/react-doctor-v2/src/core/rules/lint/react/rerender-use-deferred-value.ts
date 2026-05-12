@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isHookCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isHookCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const EXPENSIVE_ARRAY_METHODS = new Set(["filter", "map", "flatMap", "sort", "toSorted", "reduce"]);
 const interactiveNamePattern = /(?:query|search|input|filter|term|value)/i;

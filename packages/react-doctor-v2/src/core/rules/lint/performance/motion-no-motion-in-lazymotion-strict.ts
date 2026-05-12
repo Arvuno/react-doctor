@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { findJsxAttribute, isNodeOfType } from "../utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "../utils.js";
+import { findJsxAttribute, isNodeOfType } from "../utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "../utils/index.js";
 
 const isTruthyJsxAttribute = (attribute: EsTreeNode | undefined): boolean => {
   if (!attribute) return false;

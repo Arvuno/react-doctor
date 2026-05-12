@@ -5,8 +5,8 @@ import {
   isRawTextContent,
   isTextHandlingComponent,
   resolveJsxElementName,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const WEB_FILE_EXTENSION_PATTERN = /\.web\.[jt]sx?$/;
 

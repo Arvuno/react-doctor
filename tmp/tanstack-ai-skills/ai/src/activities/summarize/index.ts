@@ -5,24 +5,20 @@
  * This is a self-contained module with implementation, types, and JSDoc.
  */
 
-import { aiEventClient } from '@tanstack/ai-event-client'
-import { streamGenerationResult } from '../stream-generation-result.js'
-import { resolveDebugOption } from '../../logger/resolve'
-import type { InternalLogger } from '../../logger/internal-logger'
-import type { DebugOption } from '../../logger/types'
-import type { SummarizeAdapter } from './adapter'
-import type {
-  StreamChunk,
-  SummarizationOptions,
-  SummarizationResult,
-} from '../../types'
+import { aiEventClient } from "@tanstack/ai-event-client";
+import { streamGenerationResult } from "../stream-generation-result.js";
+import { resolveDebugOption } from "../../logger/resolve";
+import type { InternalLogger } from "../../logger/internal-logger";
+import type { DebugOption } from "../../logger/types";
+import type { SummarizeAdapter } from "./adapter";
+import type { StreamChunk, SummarizationOptions, SummarizationResult } from "../../types";
 
 // ===========================
 // Activity Kind
 // ===========================
 
 /** The adapter kind this activity handles */
-export const kind = 'summarize' as const
+export const kind = "summarize" as const;
 
 // ===========================
 // Type Extraction Helpers
@@ -30,9 +26,7 @@ export const kind = 'summarize' as const
 
 /** Extract provider options from a SummarizeAdapter via ~types */
 export type SummarizeProviderOptions<TAdapter> =
-  TAdapter extends SummarizeAdapter<any, any>
-    ? TAdapter['~types']['providerOptions']
-    : object
+  TAdapter extends SummarizeAdapter<any, any> ? TAdapter["~types"]["providerOptions"] : object;
 
 // ===========================
 // Activity Options Type
@@ -50,17 +44,17 @@ export interface SummarizeActivityOptions<
   TStream extends boolean = false,
 > {
   /** The summarize adapter to use (must be created with a model) */
-  adapter: TAdapter & { kind: typeof kind }
+  adapter: TAdapter & { kind: typeof kind };
   /** The text to summarize */
-  text: string
+  text: string;
   /** Maximum length of the summary (in words or characters, provider-dependent) */
-  maxLength?: number
+  maxLength?: number;
   /** Style of summary to generate */
-  style?: 'bullet-points' | 'paragraph' | 'concise'
+  style?: "bullet-points" | "paragraph" | "concise";
   /** Topics or aspects to focus on in the summary */
-  focus?: Array<string>
+  focus?: Array<string>;
   /** Provider-specific options */
-  modelOptions?: SummarizeProviderOptions<TAdapter>
+  modelOptions?: SummarizeProviderOptions<TAdapter>;
   /**
    * Whether to stream the summarization result.
    * When true, returns an AsyncIterable<StreamChunk> for streaming output.
@@ -68,13 +62,13 @@ export interface SummarizeActivityOptions<
    *
    * @default false
    */
-  stream?: TStream
+  stream?: TStream;
   /**
    * Enable debug logging. Pass `true` to enable all categories, `false` to
    * silence everything including errors, or a `DebugConfig` object for granular
    * control and/or a custom `Logger`.
    */
-  debug?: DebugOption
+  debug?: DebugOption;
 }
 
 // ===========================
@@ -86,17 +80,16 @@ export interface SummarizeActivityOptions<
  * - If stream is true: AsyncIterable<StreamChunk>
  * - Otherwise: Promise<SummarizationResult>
  */
-export type SummarizeActivityResult<TStream extends boolean> =
-  TStream extends true
-    ? AsyncIterable<StreamChunk>
-    : Promise<SummarizationResult>
+export type SummarizeActivityResult<TStream extends boolean> = TStream extends true
+  ? AsyncIterable<StreamChunk>
+  : Promise<SummarizationResult>;
 
 // ===========================
 // Helper Functions
 // ===========================
 
 function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // ===========================
@@ -156,26 +149,18 @@ function createId(prefix: string): string {
 export function summarize<
   TAdapter extends SummarizeAdapter<string, object>,
   TStream extends boolean = false,
->(
-  options: SummarizeActivityOptions<TAdapter, TStream>,
-): SummarizeActivityResult<TStream> {
-  const { stream } = options
+>(options: SummarizeActivityOptions<TAdapter, TStream>): SummarizeActivityResult<TStream> {
+  const { stream } = options;
 
   if (stream) {
     return runStreamingSummarize(
-      options as unknown as SummarizeActivityOptions<
-        SummarizeAdapter<string, object>,
-        true
-      >,
-    ) as SummarizeActivityResult<TStream>
+      options as unknown as SummarizeActivityOptions<SummarizeAdapter<string, object>, true>,
+    ) as SummarizeActivityResult<TStream>;
   }
 
   return runSummarize(
-    options as unknown as SummarizeActivityOptions<
-      SummarizeAdapter<string, object>,
-      false
-    >,
-  ) as SummarizeActivityResult<TStream>
+    options as unknown as SummarizeActivityOptions<SummarizeAdapter<string, object>, false>,
+  ) as SummarizeActivityResult<TStream>;
 }
 
 /**
@@ -184,26 +169,26 @@ export function summarize<
 async function runSummarize(
   options: SummarizeActivityOptions<SummarizeAdapter<string, object>, false>,
 ): Promise<SummarizationResult> {
-  const { adapter, text, maxLength, style, focus } = options
-  const model = adapter.model
-  const requestId = createId('summarize')
-  const inputLength = text.length
-  const startTime = Date.now()
-  const logger: InternalLogger = resolveDebugOption(options.debug)
+  const { adapter, text, maxLength, style, focus } = options;
+  const model = adapter.model;
+  const requestId = createId("summarize");
+  const inputLength = text.length;
+  const startTime = Date.now();
+  const logger: InternalLogger = resolveDebugOption(options.debug);
 
-  aiEventClient.emit('summarize:request:started', {
+  aiEventClient.emit("summarize:request:started", {
     requestId,
     provider: adapter.name,
     model,
     inputLength,
     timestamp: startTime,
-  })
+  });
 
   logger.request(`activity=summarize provider=${adapter.name}`, {
     provider: adapter.name,
     model,
     inputLength,
-  })
+  });
 
   const summarizeOptions: SummarizationOptions = {
     model,
@@ -212,15 +197,15 @@ async function runSummarize(
     style,
     focus,
     logger,
-  }
+  };
 
   try {
-    const result = await adapter.summarize(summarizeOptions)
+    const result = await adapter.summarize(summarizeOptions);
 
-    const duration = Date.now() - startTime
-    const outputLength = result.summary.length
+    const duration = Date.now() - startTime;
+    const outputLength = result.summary.length;
 
-    aiEventClient.emit('summarize:request:completed', {
+    aiEventClient.emit("summarize:request:completed", {
       requestId,
       provider: adapter.name,
       model,
@@ -228,20 +213,20 @@ async function runSummarize(
       outputLength,
       duration,
       timestamp: Date.now(),
-    })
+    });
 
     logger.output(`activity=summarize length=${outputLength}`, {
       hasSummary: !!result.summary,
       outputLength,
-    })
+    });
 
-    return result
+    return result;
   } catch (error) {
-    logger.errors('summarize activity failed', {
+    logger.errors("summarize activity failed", {
       error,
-      source: 'summarize',
-    })
-    throw error
+      source: "summarize",
+    });
+    throw error;
   }
 }
 
@@ -253,15 +238,15 @@ async function runSummarize(
 async function* runStreamingSummarize(
   options: SummarizeActivityOptions<SummarizeAdapter<string, object>, true>,
 ): AsyncIterable<StreamChunk> {
-  const { adapter, text, maxLength, style, focus } = options
-  const model = adapter.model
-  const logger: InternalLogger = resolveDebugOption(options.debug)
+  const { adapter, text, maxLength, style, focus } = options;
+  const model = adapter.model;
+  const logger: InternalLogger = resolveDebugOption(options.debug);
 
   logger.request(`activity=summarize provider=${adapter.name}`, {
     provider: adapter.name,
     model,
     stream: true,
-  })
+  });
 
   const summarizeOptions: SummarizationOptions = {
     model,
@@ -270,23 +255,23 @@ async function* runStreamingSummarize(
     style,
     focus,
     logger,
-  }
+  };
 
   try {
     // Use real streaming if the adapter supports it
     if (adapter.summarizeStream) {
-      yield* adapter.summarizeStream(summarizeOptions)
-      return
+      yield* adapter.summarizeStream(summarizeOptions);
+      return;
     }
 
     // Fall back to non-streaming — wrap result with streamGenerationResult
-    yield* streamGenerationResult(() => adapter.summarize(summarizeOptions))
+    yield* streamGenerationResult(() => adapter.summarize(summarizeOptions));
   } catch (error) {
-    logger.errors('summarize activity failed', {
+    logger.errors("summarize activity failed", {
       error,
-      source: 'summarize',
-    })
-    throw error
+      source: "summarize",
+    });
+    throw error;
   }
 }
 
@@ -303,13 +288,9 @@ export function createSummarizeOptions<
 >(
   options: SummarizeActivityOptions<TAdapter, TStream>,
 ): SummarizeActivityOptions<TAdapter, TStream> {
-  return options
+  return options;
 }
 
 // Re-export adapter types
-export type {
-  SummarizeAdapter,
-  SummarizeAdapterConfig,
-  AnySummarizeAdapter,
-} from './adapter'
-export { BaseSummarizeAdapter } from './adapter'
+export type { SummarizeAdapter, SummarizeAdapterConfig, AnySummarizeAdapter } from "./adapter";
+export { BaseSummarizeAdapter } from "./adapter";

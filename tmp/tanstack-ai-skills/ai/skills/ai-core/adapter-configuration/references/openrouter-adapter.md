@@ -17,7 +17,7 @@
 ## Import
 
 ```typescript
-import { openRouterText } from '@tanstack/ai-openrouter'
+import { openRouterText } from "@tanstack/ai-openrouter";
 ```
 
 ## Key Models
@@ -39,12 +39,12 @@ OpenRouter has unique routing and provider selection options:
 
 ```typescript
 chat({
-  adapter: openRouterText('anthropic/claude-sonnet-4'),
+  adapter: openRouterText("anthropic/claude-sonnet-4"),
   messages,
   modelOptions: {
     // Reasoning
     reasoning: {
-      effort: 'high', // 'none' | 'minimal' | 'low' | 'medium' | 'high'
+      effort: "high", // 'none' | 'minimal' | 'low' | 'medium' | 'high'
       max_tokens: 4096,
       exclude: false,
     },
@@ -60,23 +60,23 @@ chat({
     // Token limits
     maxCompletionTokens: 8192,
     // Stop sequences
-    stop: ['\n\n'],
+    stop: ["\n\n"],
     // Tool calling
-    toolChoice: 'auto',
+    toolChoice: "auto",
     parallelToolCalls: true,
     // Response format
-    responseFormat: { type: 'json_object' },
+    responseFormat: { type: "json_object" },
     // Web search
     webSearchOptions: {
-      search_context_size: 'medium', // 'low' | 'medium' | 'high'
+      search_context_size: "medium", // 'low' | 'medium' | 'high'
     },
     // Verbosity
-    verbosity: 'medium',
+    verbosity: "medium",
     // Logprobs
     logprobs: true,
     topLogprobs: 5,
   },
-})
+});
 ```
 
 ## Environment Variable

@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
-import { isSetterCall } from "../utils.js";
-import { isUseFrameCall } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isSetterCall } from "../utils/index.js";
+import { isUseFrameCall } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const r3fNoSetStateInFrame = defineRule<Rule>({
   recommendation:

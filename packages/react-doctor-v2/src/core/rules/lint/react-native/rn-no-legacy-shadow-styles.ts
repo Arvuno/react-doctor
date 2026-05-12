@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isMemberProperty, reportLegacyShadowProperties, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isMemberProperty, reportLegacyShadowProperties, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoLegacyShadowStyles = defineRule<Rule>({
   recommendation:

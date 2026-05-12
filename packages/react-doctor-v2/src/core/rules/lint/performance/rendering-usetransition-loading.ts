@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { LOADING_STATE_PATTERN, isHookCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { LOADING_STATE_PATTERN, isHookCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const renderingUsetransitionLoading = defineRule<Rule>({
   recommendation:

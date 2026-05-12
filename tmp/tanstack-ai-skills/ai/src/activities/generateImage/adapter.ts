@@ -1,4 +1,4 @@
-import type { ImageGenerationOptions, ImageGenerationResult } from '../../types'
+import type { ImageGenerationOptions, ImageGenerationResult } from "../../types";
 
 /**
  * Resolve the size type for a model from the model-size map.
@@ -11,11 +11,11 @@ import type { ImageGenerationOptions, ImageGenerationResult } from '../../types'
  * Configuration for image adapter instances
  */
 export interface ImageAdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
-  headers?: Record<string, string>
+  apiKey?: string;
+  baseUrl?: string;
+  timeout?: number;
+  maxRetries?: number;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -37,34 +37,34 @@ export interface ImageAdapter<
   TModelSizeByName extends Record<string, string> = Record<string, string>,
 > {
   /** Discriminator for adapter kind - used by generate() to determine API shape */
-  readonly kind: 'image'
+  readonly kind: "image";
   /** Adapter name identifier */
-  readonly name: string
+  readonly name: string;
   /** The model this adapter is configured for */
-  readonly model: TModel
+  readonly model: TModel;
 
   /**
    * @internal Type-only properties for inference. Not assigned at runtime.
    */
-  '~types': {
-    providerOptions: TProviderOptions
-    modelProviderOptionsByName: TModelProviderOptionsByName
-    modelSizeByName: TModelSizeByName
-  }
+  "~types": {
+    providerOptions: TProviderOptions;
+    modelProviderOptionsByName: TModelProviderOptionsByName;
+    modelSizeByName: TModelSizeByName;
+  };
 
   /**
    * Generate images from a prompt
    */
   generateImages: (
     options: ImageGenerationOptions<TProviderOptions, TModelSizeByName[TModel]>,
-  ) => Promise<ImageGenerationResult>
+  ) => Promise<ImageGenerationResult>;
 }
 
 /**
  * An ImageAdapter with any/unknown type parameters.
  * Useful as a constraint in generic functions and interfaces.
  */
-export type AnyImageAdapter = ImageAdapter<any, any, any, any>
+export type AnyImageAdapter = ImageAdapter<any, any, any, any>;
 
 /**
  * Abstract base class for image generation adapters.
@@ -77,35 +77,30 @@ export abstract class BaseImageAdapter<
   TProviderOptions extends object = Record<string, unknown>,
   TModelProviderOptionsByName extends Record<string, any> = Record<string, any>,
   TModelSizeByName extends Record<string, string> = Record<string, string>,
-> implements ImageAdapter<
-  TModel,
-  TProviderOptions,
-  TModelProviderOptionsByName,
-  TModelSizeByName
-> {
-  readonly kind = 'image' as const
-  abstract readonly name: string
-  readonly model: TModel
+> implements ImageAdapter<TModel, TProviderOptions, TModelProviderOptionsByName, TModelSizeByName> {
+  readonly kind = "image" as const;
+  abstract readonly name: string;
+  readonly model: TModel;
 
   // Type-only property - never assigned at runtime
-  declare '~types': {
-    providerOptions: TProviderOptions
-    modelProviderOptionsByName: TModelProviderOptionsByName
-    modelSizeByName: TModelSizeByName
-  }
+  declare "~types": {
+    providerOptions: TProviderOptions;
+    modelProviderOptionsByName: TModelProviderOptionsByName;
+    modelSizeByName: TModelSizeByName;
+  };
 
-  protected config: ImageAdapterConfig
+  protected config: ImageAdapterConfig;
 
   constructor(model: TModel, config: ImageAdapterConfig = {}) {
-    this.config = config
-    this.model = model
+    this.config = config;
+    this.model = model;
   }
 
   abstract generateImages(
     options: ImageGenerationOptions<TProviderOptions, TModelSizeByName[TModel]>,
-  ): Promise<ImageGenerationResult>
+  ): Promise<ImageGenerationResult>;
 
   protected generateId(): string {
-    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    return `${this.name}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
 }

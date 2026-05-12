@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { THREE_ALLOCATING_CONSTRUCTORS, isUseFrameCall, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { THREE_ALLOCATING_CONSTRUCTORS, isUseFrameCall, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const r3fNoNewInFrame = defineRule<Rule>({
   recommendation:

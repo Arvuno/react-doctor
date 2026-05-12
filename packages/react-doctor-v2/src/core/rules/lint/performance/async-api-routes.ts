@@ -1,7 +1,7 @@
 import { defineRule } from "../../registry.js";
-import { APP_ROUTER_FILE_PATTERN, PAGES_ROUTER_API_PATH_PATTERN } from "../server/_utils.js";
-import { collectIdentifierNames, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { APP_ROUTER_FILE_PATTERN, PAGES_ROUTER_API_PATH_PATTERN } from "../server/utils/index.js";
+import { collectIdentifierNames, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isApiOrRouteFile = (filename: string): boolean =>
   APP_ROUTER_FILE_PATTERN.test(filename) || PAGES_ROUTER_API_PATH_PATTERN.test(filename);

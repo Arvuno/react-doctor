@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { LEGACY_EXPO_PACKAGE_REPLACEMENTS } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { LEGACY_EXPO_PACKAGE_REPLACEMENTS } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnNoLegacyExpoPackages = defineRule<Rule>({
   recommendation:

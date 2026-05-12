@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isMemberProperty, walkAst, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isMemberProperty, walkAst, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const jsLengthCheckFirst = defineRule<Rule>({
   recommendation: "Check array lengths before doing expensive element-by-element comparisons.",

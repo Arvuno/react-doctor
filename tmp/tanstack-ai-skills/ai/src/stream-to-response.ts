@@ -1,5 +1,5 @@
-import { toRunErrorPayload } from './activities/error-payload'
-import type { StreamChunk } from './types'
+import { toRunErrorPayload } from "./activities/error-payload";
+import type { StreamChunk } from "./types";
 
 /**
  * Collect all text content from a StreamChunk async iterable and return as a string.
@@ -21,18 +21,16 @@ import type { StreamChunk } from './types'
  * console.log(text); // "Hello! How can I help you today?"
  * ```
  */
-export async function streamToText(
-  stream: AsyncIterable<StreamChunk>,
-): Promise<string> {
-  let accumulatedContent = ''
+export async function streamToText(stream: AsyncIterable<StreamChunk>): Promise<string> {
+  let accumulatedContent = "";
 
   for await (const chunk of stream) {
-    if (chunk.type === 'TEXT_MESSAGE_CONTENT' && chunk.delta) {
-      accumulatedContent += chunk.delta
+    if (chunk.type === "TEXT_MESSAGE_CONTENT" && chunk.delta) {
+      accumulatedContent += chunk.delta;
     }
   }
 
-  return accumulatedContent
+  return accumulatedContent;
 }
 
 /**
@@ -51,7 +49,7 @@ export function toServerSentEventsStream(
   stream: AsyncIterable<StreamChunk>,
   abortController?: AbortController,
 ): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
@@ -59,44 +57,42 @@ export function toServerSentEventsStream(
         for await (const chunk of stream) {
           // Check if stream was cancelled/aborted
           if (abortController?.signal.aborted) {
-            break
+            break;
           }
 
           // Send each chunk as Server-Sent Events format
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`),
-          )
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
         }
 
-        controller.close()
+        controller.close();
       } catch (error: unknown) {
         // Don't send error if aborted
         if (abortController?.signal.aborted) {
-          controller.close()
-          return
+          controller.close();
+          return;
         }
 
         // Send error event (AG-UI RUN_ERROR)
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
-              type: 'RUN_ERROR',
+              type: "RUN_ERROR",
               timestamp: Date.now(),
               error: toRunErrorPayload(error),
             })}\n\n`,
           ),
-        )
-        controller.close()
+        );
+        controller.close();
       }
     },
     cancel() {
       // When the ReadableStream is cancelled (e.g., client disconnects),
       // abort the underlying stream
       if (abortController) {
-        abortController.abort()
+        abortController.abort();
       }
     },
-  })
+  });
 }
 
 /**
@@ -121,28 +117,28 @@ export function toServerSentEventsResponse(
   stream: AsyncIterable<StreamChunk>,
   init?: ResponseInit & { abortController?: AbortController },
 ): Response {
-  const { headers, abortController, ...responseInit } = init ?? {}
+  const { headers, abortController, ...responseInit } = init ?? {};
 
   // Start with default SSE headers
   const mergedHeaders = new Headers({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  })
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
 
   // Override with user headers if provided, handling all HeadersInit forms:
   // Headers instance, string[][], or plain object
   if (headers) {
-    const userHeaders = new Headers(headers)
+    const userHeaders = new Headers(headers);
     userHeaders.forEach((value, key) => {
-      mergedHeaders.set(key, value)
-    })
+      mergedHeaders.set(key, value);
+    });
   }
 
   return new Response(toServerSentEventsStream(stream, abortController), {
     ...responseInit,
     headers: mergedHeaders,
-  })
+  });
 }
 
 /**
@@ -172,7 +168,7 @@ export function toHttpStream(
   stream: AsyncIterable<StreamChunk>,
   abortController?: AbortController,
 ): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
@@ -180,42 +176,42 @@ export function toHttpStream(
         for await (const chunk of stream) {
           // Check if stream was cancelled/aborted
           if (abortController?.signal.aborted) {
-            break
+            break;
           }
 
           // Send each chunk as newline-delimited JSON
-          controller.enqueue(encoder.encode(`${JSON.stringify(chunk)}\n`))
+          controller.enqueue(encoder.encode(`${JSON.stringify(chunk)}\n`));
         }
 
-        controller.close()
+        controller.close();
       } catch (error: unknown) {
         // Don't send error if aborted
         if (abortController?.signal.aborted) {
-          controller.close()
-          return
+          controller.close();
+          return;
         }
 
         // Send error event (AG-UI RUN_ERROR)
         controller.enqueue(
           encoder.encode(
             `${JSON.stringify({
-              type: 'RUN_ERROR',
+              type: "RUN_ERROR",
               timestamp: Date.now(),
               error: toRunErrorPayload(error),
             })}\n`,
           ),
-        )
-        controller.close()
+        );
+        controller.close();
       }
     },
     cancel() {
       // When the ReadableStream is cancelled (e.g., client disconnects),
       // abort the underlying stream
       if (abortController) {
-        abortController.abort()
+        abortController.abort();
       }
     },
-  })
+  });
 }
 
 /**
@@ -243,5 +239,5 @@ export function toHttpResponse(
 ): Response {
   return new Response(toHttpStream(stream, init?.abortController), {
     ...init,
-  })
+  });
 }

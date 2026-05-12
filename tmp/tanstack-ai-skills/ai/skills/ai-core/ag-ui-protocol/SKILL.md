@@ -8,11 +8,11 @@ description: >
   NDJSON format. For backends serving AG-UI events without client packages.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/protocol/chunk-definitions.md'
-  - 'TanStack/ai:docs/protocol/sse-protocol.md'
-  - 'TanStack/ai:docs/protocol/http-stream-protocol.md'
+  - "TanStack/ai:docs/protocol/chunk-definitions.md"
+  - "TanStack/ai:docs/protocol/sse-protocol.md"
+  - "TanStack/ai:docs/protocol/http-stream-protocol.md"
 ---
 
 # AG-UI Protocol
@@ -22,16 +22,16 @@ This skill builds on ai-core. Read it first for critical rules.
 ## Setup — Server Endpoint Producing AG-UI Events via SSE
 
 ```typescript
-import { chat, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 export async function POST(request: Request) {
-  const { messages } = await request.json()
+  const { messages } = await request.json();
   const stream = chat({
-    adapter: openaiText('gpt-5.2'),
+    adapter: openaiText("gpt-5.2"),
     messages,
-  })
-  return toServerSentEventsResponse(stream)
+  });
+  return toServerSentEventsResponse(stream);
 }
 ```
 
@@ -46,32 +46,28 @@ helper encodes that iterable into an SSE-formatted `Response` with correct heade
 **Wire format:** Each event is `data: <JSON>\n\n`. Stream ends with `data: [DONE]\n\n`.
 
 ```typescript
-import {
-  chat,
-  toServerSentEventsStream,
-  toServerSentEventsResponse,
-} from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toServerSentEventsStream, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 // Option A: Get a ReadableStream (manual Response construction)
-const abortController = new AbortController()
+const abortController = new AbortController();
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   abortController,
-})
-const sseStream = toServerSentEventsStream(stream, abortController)
+});
+const sseStream = toServerSentEventsStream(stream, abortController);
 
 const response = new Response(sseStream, {
   headers: {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
   },
-})
+});
 
 // Option B: Use the helper (sets headers automatically)
-const response2 = toServerSentEventsResponse(stream, { abortController })
+const response2 = toServerSentEventsResponse(stream, { abortController });
 // Default headers: Content-Type: text/event-stream, Cache-Control: no-cache, Connection: keep-alive
 ```
 
@@ -88,11 +84,11 @@ Custom headers merge on top (user headers override defaults):
 ```typescript
 toServerSentEventsResponse(stream, {
   headers: {
-    'X-Accel-Buffering': 'no', // Disable nginx buffering
-    'Cache-Control': 'no-store', // Override default
+    "X-Accel-Buffering": "no", // Disable nginx buffering
+    "Cache-Control": "no-store", // Override default
   },
   abortController,
-})
+});
 ```
 
 **Error handling:** If the stream throws, a `RUN_ERROR` event is emitted
@@ -104,32 +100,32 @@ aborted, the error event is suppressed and the stream closes silently.
 **Wire format:** Each event is `<JSON>\n` (newline-delimited JSON, no SSE prefix, no `[DONE]` marker).
 
 ```typescript
-import { chat, toHttpStream, toHttpResponse } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat, toHttpStream, toHttpResponse } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 // Option A: Get a ReadableStream
-const abortController = new AbortController()
+const abortController = new AbortController();
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   abortController,
-})
-const ndjsonStream = toHttpStream(stream, abortController)
+});
+const ndjsonStream = toHttpStream(stream, abortController);
 
 const response = new Response(ndjsonStream, {
   headers: {
-    'Content-Type': 'application/x-ndjson',
+    "Content-Type": "application/x-ndjson",
   },
-})
+});
 
 // Option B: Use the helper (does NOT set headers automatically)
-const response2 = toHttpResponse(stream, { abortController })
+const response2 = toHttpResponse(stream, { abortController });
 // Note: toHttpResponse does NOT set Content-Type automatically.
 // You should pass headers explicitly:
 const response3 = toHttpResponse(stream, {
-  headers: { 'Content-Type': 'application/x-ndjson' },
+  headers: { "Content-Type": "application/x-ndjson" },
   abortController,
-})
+});
 ```
 
 **Client-side pairing:** SSE endpoints are consumed by `fetchServerSentEvents()`.
@@ -189,11 +185,11 @@ Fix: Set proxy-bypass headers on the response.
 ```typescript
 toServerSentEventsResponse(stream, {
   headers: {
-    'X-Accel-Buffering': 'no', // nginx
-    'X-Content-Type-Options': 'nosniff', // Some CDNs
+    "X-Accel-Buffering": "no", // nginx
+    "X-Content-Type-Options": "nosniff", // Some CDNs
   },
   abortController,
-})
+});
 ```
 
 For Cloudflare Workers, SSE streams automatically. For Cloudflare proxied

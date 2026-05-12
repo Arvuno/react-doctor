@@ -17,8 +17,8 @@
 ## Import
 
 ```typescript
-import { grokText } from '@tanstack/ai-grok'
-import { grokImage } from '@tanstack/ai-grok'
+import { grokText } from "@tanstack/ai-grok";
+import { grokImage } from "@tanstack/ai-grok";
 ```
 
 ## Key Chat Models
@@ -42,7 +42,7 @@ Grok uses an OpenAI-compatible API. Options are straightforward:
 
 ```typescript
 chat({
-  adapter: grokText('grok-4'),
+  adapter: grokText("grok-4"),
   messages,
   modelOptions: {
     temperature: 0.7,
@@ -50,10 +50,10 @@ chat({
     top_p: 0.9,
     frequency_penalty: 0.5,
     presence_penalty: 0.5,
-    stop: ['\n\n'],
-    user: 'user-123',
+    stop: ["\n\n"],
+    user: "user-123",
   },
-})
+});
 ```
 
 ## Environment Variable

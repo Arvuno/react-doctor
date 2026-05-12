@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { isComponentAssignment, isComponentDeclaration } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { isComponentAssignment, isComponentDeclaration } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const noNestedComponentDefinition = defineRule<Rule>({
   recommendation:

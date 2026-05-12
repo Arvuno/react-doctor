@@ -5,20 +5,20 @@
  * This is a self-contained module with implementation, types, and JSDoc.
  */
 
-import { aiEventClient } from '@tanstack/ai-event-client'
-import { streamGenerationResult } from '../stream-generation-result.js'
-import { resolveDebugOption } from '../../logger/resolve'
-import type { InternalLogger } from '../../logger/internal-logger'
-import type { DebugOption } from '../../logger/types'
-import type { TranscriptionAdapter } from './adapter'
-import type { StreamChunk, TranscriptionResult } from '../../types'
+import { aiEventClient } from "@tanstack/ai-event-client";
+import { streamGenerationResult } from "../stream-generation-result.js";
+import { resolveDebugOption } from "../../logger/resolve";
+import type { InternalLogger } from "../../logger/internal-logger";
+import type { DebugOption } from "../../logger/types";
+import type { TranscriptionAdapter } from "./adapter";
+import type { StreamChunk, TranscriptionResult } from "../../types";
 
 // ===========================
 // Activity Kind
 // ===========================
 
 /** The adapter kind this activity handles */
-export const kind = 'transcription' as const
+export const kind = "transcription" as const;
 
 // ===========================
 // Type Extraction Helpers
@@ -28,9 +28,7 @@ export const kind = 'transcription' as const
  * Extract provider options from a TranscriptionAdapter via ~types.
  */
 export type TranscriptionProviderOptions<TAdapter> =
-  TAdapter extends TranscriptionAdapter<any, any>
-    ? TAdapter['~types']['providerOptions']
-    : object
+  TAdapter extends TranscriptionAdapter<any, any> ? TAdapter["~types"]["providerOptions"] : object;
 
 // ===========================
 // Activity Options Type
@@ -44,24 +42,21 @@ export type TranscriptionProviderOptions<TAdapter> =
  * @template TStream - Whether to stream the output
  */
 export interface TranscriptionActivityOptions<
-  TAdapter extends TranscriptionAdapter<
-    string,
-    TranscriptionProviderOptions<TAdapter>
-  >,
+  TAdapter extends TranscriptionAdapter<string, TranscriptionProviderOptions<TAdapter>>,
   TStream extends boolean = false,
 > {
   /** The transcription adapter to use (must be created with a model) */
-  adapter: TAdapter & { kind: typeof kind }
+  adapter: TAdapter & { kind: typeof kind };
   /** The audio data to transcribe - can be base64 string, File, Blob, or Buffer */
-  audio: string | File | Blob | ArrayBuffer
+  audio: string | File | Blob | ArrayBuffer;
   /** The language of the audio in ISO-639-1 format (e.g., 'en') */
-  language?: string
+  language?: string;
   /** An optional prompt to guide the transcription */
-  prompt?: string
+  prompt?: string;
   /** The format of the transcription output */
-  responseFormat?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt'
+  responseFormat?: "json" | "text" | "srt" | "verbose_json" | "vtt";
   /** Provider-specific options for transcription */
-  modelOptions?: TranscriptionProviderOptions<TAdapter>
+  modelOptions?: TranscriptionProviderOptions<TAdapter>;
   /**
    * Whether to stream the transcription result.
    * When true, returns an AsyncIterable<StreamChunk> for streaming transport.
@@ -69,13 +64,13 @@ export interface TranscriptionActivityOptions<
    *
    * @default false
    */
-  stream?: TStream
+  stream?: TStream;
   /**
    * Enable debug logging. Pass `true` to enable all categories, `false` to
    * silence everything including errors, or a `DebugConfig` object for granular
    * control and/or a custom `Logger`.
    */
-  debug?: DebugOption
+  debug?: DebugOption;
 }
 
 // ===========================
@@ -87,13 +82,12 @@ export interface TranscriptionActivityOptions<
  * - If stream is true: AsyncIterable<StreamChunk>
  * - Otherwise: Promise<TranscriptionResult>
  */
-export type TranscriptionActivityResult<TStream extends boolean = false> =
-  TStream extends true
-    ? AsyncIterable<StreamChunk>
-    : Promise<TranscriptionResult>
+export type TranscriptionActivityResult<TStream extends boolean = false> = TStream extends true
+  ? AsyncIterable<StreamChunk>
+  : Promise<TranscriptionResult>;
 
 function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // ===========================
@@ -144,47 +138,35 @@ function createId(prefix: string): string {
  * ```
  */
 export function generateTranscription<
-  TAdapter extends TranscriptionAdapter<
-    string,
-    TranscriptionProviderOptions<TAdapter>
-  >,
+  TAdapter extends TranscriptionAdapter<string, TranscriptionProviderOptions<TAdapter>>,
   TStream extends boolean = false,
->(
-  options: TranscriptionActivityOptions<TAdapter, TStream>,
-): TranscriptionActivityResult<TStream> {
+>(options: TranscriptionActivityOptions<TAdapter, TStream>): TranscriptionActivityResult<TStream> {
   if (options.stream) {
     return streamGenerationResult(() =>
       runGenerateTranscription(options),
-    ) as TranscriptionActivityResult<TStream>
+    ) as TranscriptionActivityResult<TStream>;
   }
 
-  return runGenerateTranscription(
-    options,
-  ) as TranscriptionActivityResult<TStream>
+  return runGenerateTranscription(options) as TranscriptionActivityResult<TStream>;
 }
 
 /**
  * Run non-streaming transcription
  */
 async function runGenerateTranscription<
-  TAdapter extends TranscriptionAdapter<
-    string,
-    TranscriptionProviderOptions<TAdapter>
-  >,
->(
-  options: TranscriptionActivityOptions<TAdapter, boolean>,
-): Promise<TranscriptionResult> {
-  const { adapter, stream: _stream, debug: _debug, ...rest } = options
-  const model = adapter.model
-  const requestId = createId('transcription')
-  const startTime = Date.now()
-  const logger: InternalLogger = resolveDebugOption(options.debug)
+  TAdapter extends TranscriptionAdapter<string, TranscriptionProviderOptions<TAdapter>>,
+>(options: TranscriptionActivityOptions<TAdapter, boolean>): Promise<TranscriptionResult> {
+  const { adapter, stream: _stream, debug: _debug, ...rest } = options;
+  const model = adapter.model;
+  const requestId = createId("transcription");
+  const startTime = Date.now();
+  const logger: InternalLogger = resolveDebugOption(options.debug);
   const providerName =
     (adapter as { name?: string; provider?: string }).provider ??
     (adapter as { name?: string }).name ??
-    'unknown'
+    "unknown";
 
-  aiEventClient.emit('transcription:request:started', {
+  aiEventClient.emit("transcription:request:started", {
     requestId,
     provider: adapter.name,
     model,
@@ -193,18 +175,18 @@ async function runGenerateTranscription<
     responseFormat: rest.responseFormat,
     modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
     timestamp: startTime,
-  })
+  });
 
   logger.request(`activity=generateTranscription provider=${providerName}`, {
     provider: providerName,
     model,
-  })
+  });
 
   try {
-    const result = await adapter.transcribe({ ...rest, model, logger })
-    const duration = Date.now() - startTime
+    const result = await adapter.transcribe({ ...rest, model, logger });
+    const duration = Date.now() - startTime;
 
-    aiEventClient.emit('transcription:request:completed', {
+    aiEventClient.emit("transcription:request:completed", {
       requestId,
       provider: adapter.name,
       model,
@@ -213,18 +195,17 @@ async function runGenerateTranscription<
       duration,
       modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
       timestamp: Date.now(),
-    })
+    });
 
-    logger.output(
-      `activity=generateTranscription length=${result.text.length}`,
-      { hasText: !!result.text },
-    )
+    logger.output(`activity=generateTranscription length=${result.text.length}`, {
+      hasText: !!result.text,
+    });
 
-    return result
+    return result;
   } catch (error) {
-    const duration = Date.now() - startTime
-    const err = error as Error
-    aiEventClient.emit('transcription:request:error', {
+    const duration = Date.now() - startTime;
+    const err = error as Error;
+    aiEventClient.emit("transcription:request:error", {
       requestId,
       provider: adapter.name,
       model,
@@ -232,12 +213,12 @@ async function runGenerateTranscription<
       duration,
       modelOptions: rest.modelOptions as Record<string, unknown> | undefined,
       timestamp: Date.now(),
-    })
-    logger.errors('generateTranscription activity failed', {
+    });
+    logger.errors("generateTranscription activity failed", {
       error,
-      source: 'generateTranscription',
-    })
-    throw error
+      source: "generateTranscription",
+    });
+    throw error;
   }
 }
 
@@ -249,15 +230,12 @@ async function runGenerateTranscription<
  * Create typed options for the generateTranscription() function without executing.
  */
 export function createTranscriptionOptions<
-  TAdapter extends TranscriptionAdapter<
-    string,
-    TranscriptionProviderOptions<TAdapter>
-  >,
+  TAdapter extends TranscriptionAdapter<string, TranscriptionProviderOptions<TAdapter>>,
   TStream extends boolean = false,
 >(
   options: TranscriptionActivityOptions<TAdapter, TStream>,
 ): TranscriptionActivityOptions<TAdapter, TStream> {
-  return options
+  return options;
 }
 
 // Re-export adapter types
@@ -265,5 +243,5 @@ export type {
   TranscriptionAdapter,
   TranscriptionAdapterConfig,
   AnyTranscriptionAdapter,
-} from './adapter'
-export { BaseTranscriptionAdapter } from './adapter'
+} from "./adapter";
+export { BaseTranscriptionAdapter } from "./adapter";

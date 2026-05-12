@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { hasJsxAttribute, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { hasJsxAttribute, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsInlineScriptMissingId = defineRule<Rule>({
   recommendation:

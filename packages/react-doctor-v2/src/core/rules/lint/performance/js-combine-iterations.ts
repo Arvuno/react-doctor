@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { CHAINABLE_ITERATION_METHODS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { CHAINABLE_ITERATION_METHODS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const jsCombineIterations = defineRule<Rule>({
   recommendation:

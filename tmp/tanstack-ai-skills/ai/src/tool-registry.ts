@@ -1,4 +1,4 @@
-import type { Tool } from './types'
+import type { Tool } from "./types";
 
 /**
  * A registry that holds tools and allows dynamic tool management.
@@ -11,7 +11,7 @@ export interface ToolRegistry {
    * Get all current tools in the registry.
    * Called each agent loop iteration to get the latest tool list.
    */
-  getTools: () => ReadonlyArray<Tool>
+  getTools: () => ReadonlyArray<Tool>;
 
   /**
    * Add a tool to the registry dynamically.
@@ -19,7 +19,7 @@ export interface ToolRegistry {
    *
    * @param tool - The tool to add
    */
-  add: (tool: Tool) => void
+  add: (tool: Tool) => void;
 
   /**
    * Remove a tool from the registry by name.
@@ -28,14 +28,14 @@ export interface ToolRegistry {
    * @param name - The name of the tool to remove
    * @returns true if the tool was removed, false if not found or frozen
    */
-  remove: (name: string) => boolean
+  remove: (name: string) => boolean;
 
   /**
    * Check if a tool exists in the registry.
    *
    * @param name - The name of the tool to check
    */
-  has: (name: string) => boolean
+  has: (name: string) => boolean;
 
   /**
    * Get a tool by name.
@@ -43,13 +43,13 @@ export interface ToolRegistry {
    * @param name - The name of the tool to get
    * @returns The tool if found, undefined otherwise
    */
-  get: (name: string) => Tool | undefined
+  get: (name: string) => Tool | undefined;
 
   /**
    * Whether this registry is frozen (immutable).
    * Frozen registries don't allow add/remove operations.
    */
-  readonly isFrozen: boolean
+  readonly isFrozen: boolean;
 }
 
 /**
@@ -75,36 +75,34 @@ export interface ToolRegistry {
  * registry.add(newTool)  // Immediately available to LLM
  * ```
  */
-export function createToolRegistry(
-  initialTools: Array<Tool> = [],
-): ToolRegistry {
-  const tools = new Map<string, Tool>()
+export function createToolRegistry(initialTools: Array<Tool> = []): ToolRegistry {
+  const tools = new Map<string, Tool>();
 
   for (const tool of initialTools) {
-    tools.set(tool.name, tool)
+    tools.set(tool.name, tool);
   }
 
   return {
     getTools: () => Array.from(tools.values()),
 
     add: (tool: Tool) => {
-      tools.set(tool.name, tool)
+      tools.set(tool.name, tool);
     },
 
     remove: (name: string) => {
-      return tools.delete(name)
+      return tools.delete(name);
     },
 
     has: (name: string) => {
-      return tools.has(name)
+      return tools.has(name);
     },
 
     get: (name: string) => {
-      return tools.get(name)
+      return tools.get(name);
     },
 
     isFrozen: false,
-  }
+  };
 }
 
 /**
@@ -117,13 +115,13 @@ export function createToolRegistry(
  * @returns A frozen ToolRegistry
  */
 export function createFrozenRegistry(tools: Array<Tool> = []): ToolRegistry {
-  const toolMap = new Map<string, Tool>()
+  const toolMap = new Map<string, Tool>();
 
   for (const tool of tools) {
-    toolMap.set(tool.name, tool)
+    toolMap.set(tool.name, tool);
   }
 
-  const frozenTools = Object.freeze([...tools])
+  const frozenTools = Object.freeze([...tools]);
 
   return {
     getTools: () => frozenTools,
@@ -134,17 +132,17 @@ export function createFrozenRegistry(tools: Array<Tool> = []): ToolRegistry {
 
     remove: (_name: string) => {
       // No-op for frozen registry
-      return false
+      return false;
     },
 
     has: (name: string) => {
-      return toolMap.has(name)
+      return toolMap.has(name);
     },
 
     get: (name: string) => {
-      return toolMap.get(name)
+      return toolMap.get(name);
     },
 
     isFrozen: true,
-  }
+  };
 }

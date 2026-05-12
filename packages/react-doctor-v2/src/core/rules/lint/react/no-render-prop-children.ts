@@ -3,8 +3,8 @@ import {
   RENDER_PROP_PATTERN,
   RENDER_PROP_PROLIFERATION_THRESHOLD,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const noRenderPropChildren = defineRule<Rule>({
   recommendation:

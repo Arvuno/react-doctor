@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { SWR_HOOK_NAMES, containsUnstableSWRKeyValue, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { SWR_HOOK_NAMES, containsUnstableSWRKeyValue, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const swrNoUnstableKey = defineRule<Rule>({
   recommendation:

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { JS_BOTTOM_SHEET_PACKAGES } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { JS_BOTTOM_SHEET_PACKAGES } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnBottomSheetPreferNative = defineRule<Rule>({
   recommendation:

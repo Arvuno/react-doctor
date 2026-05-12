@@ -1,0 +1,7 @@
+{
+  "name": "full-port-fixture",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}

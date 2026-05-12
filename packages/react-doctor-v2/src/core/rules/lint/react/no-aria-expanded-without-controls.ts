@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { findJsxAttribute, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { findJsxAttribute, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isInactiveAttributeValue = (attribute: EsTreeNode): boolean => {
   if (!attribute.value) return false;

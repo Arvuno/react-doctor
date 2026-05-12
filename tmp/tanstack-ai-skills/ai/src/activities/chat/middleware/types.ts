@@ -1,4 +1,4 @@
-import type { ModelMessage, StreamChunk, Tool, ToolCall } from '../../../types'
+import type { ModelMessage, StreamChunk, Tool, ToolCall } from "../../../types";
 
 // ===========================
 // Middleware Context
@@ -13,11 +13,11 @@ import type { ModelMessage, StreamChunk, Tool, ToolCall } from '../../../types'
  * - 'afterTools': After tool execution phase
  */
 export type ChatMiddlewarePhase =
-  | 'init'
-  | 'beforeModel'
-  | 'modelStream'
-  | 'beforeTools'
-  | 'afterTools'
+  | "init"
+  | "beforeModel"
+  | "modelStream"
+  | "beforeTools"
+  | "afterTools";
 
 /**
  * Stable context object passed to all middleware hooks.
@@ -25,72 +25,72 @@ export type ChatMiddlewarePhase =
  */
 export interface ChatMiddlewareContext {
   /** Unique identifier for this chat request */
-  requestId: string
+  requestId: string;
   /** Unique identifier for this stream */
-  streamId: string
+  streamId: string;
   /** Conversation identifier, if provided by the caller */
-  conversationId?: string
+  conversationId?: string;
   /** Current lifecycle phase */
-  phase: ChatMiddlewarePhase
+  phase: ChatMiddlewarePhase;
   /** Current agent loop iteration (0-indexed) */
-  iteration: number
+  iteration: number;
   /** Running count of chunks yielded so far */
-  chunkIndex: number
+  chunkIndex: number;
   /** Abort signal from the chat request */
-  signal?: AbortSignal
+  signal?: AbortSignal;
   /** Abort the chat run with a reason */
-  abort: (reason?: string) => void
+  abort: (reason?: string) => void;
   /** Opaque user-provided value from chat() options */
-  context: unknown
+  context: unknown;
   /**
    * Defer a non-blocking side-effect promise.
    * Deferred promises do not block streaming and are awaited
    * after the terminal hook (onFinish/onAbort/onError).
    */
-  defer: (promise: Promise<unknown>) => void
+  defer: (promise: Promise<unknown>) => void;
 
   // --- Provider / adapter info (immutable for the lifetime of the request) ---
 
   /** Provider name (e.g., 'openai', 'anthropic') */
-  provider: string
+  provider: string;
   /** Model identifier (e.g., 'gpt-4o') */
-  model: string
+  model: string;
   /** Source of the chat invocation — always 'server' for server-side chat */
-  source: 'client' | 'server'
+  source: "client" | "server";
   /** Whether the chat is streaming */
-  streaming: boolean
+  streaming: boolean;
 
   // --- Config-derived info (may update per-iteration via onConfig) ---
 
   /** System prompts configured for this chat */
-  systemPrompts: Array<string>
+  systemPrompts: Array<string>;
   /** Names of configured tools, if any */
-  toolNames?: Array<string>
+  toolNames?: Array<string>;
   /** Flattened generation options (temperature, topP, maxTokens, metadata) */
-  options?: Record<string, unknown>
+  options?: Record<string, unknown>;
   /** Provider-specific model options */
-  modelOptions?: Record<string, unknown>
+  modelOptions?: Record<string, unknown>;
 
   // --- Computed info ---
 
   /** Number of messages at the start of the request */
-  messageCount: number
+  messageCount: number;
   /** Whether tools are configured */
-  hasTools: boolean
+  hasTools: boolean;
 
   // --- Mutable per-iteration state ---
 
   /** Current assistant message ID (changes per iteration) */
-  currentMessageId: string | null
+  currentMessageId: string | null;
   /** Accumulated text content for the current iteration */
-  accumulatedContent: string
+  accumulatedContent: string;
 
   // --- References ---
 
   /** Current messages array (read-only view) */
-  messages: ReadonlyArray<ModelMessage>
+  messages: ReadonlyArray<ModelMessage>;
   /** Generate a unique ID with the given prefix */
-  createId: (prefix: string) => string
+  createId: (prefix: string) => string;
 }
 
 // ===========================
@@ -103,14 +103,14 @@ export interface ChatMiddlewareContext {
  * that middleware is allowed to modify.
  */
 export interface ChatMiddlewareConfig {
-  messages: Array<ModelMessage>
-  systemPrompts: Array<string>
-  tools: Array<Tool>
-  temperature?: number
-  topP?: number
-  maxTokens?: number
-  metadata?: Record<string, unknown>
-  modelOptions?: Record<string, unknown>
+  messages: Array<ModelMessage>;
+  systemPrompts: Array<string>;
+  tools: Array<Tool>;
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  metadata?: Record<string, unknown>;
+  modelOptions?: Record<string, unknown>;
 }
 
 // ===========================
@@ -122,15 +122,15 @@ export interface ChatMiddlewareConfig {
  */
 export interface ToolCallHookContext {
   /** The tool call being executed */
-  toolCall: ToolCall
+  toolCall: ToolCall;
   /** The resolved tool definition, if found */
-  tool: Tool | undefined
+  tool: Tool | undefined;
   /** Parsed arguments for the tool call */
-  args: unknown
+  args: unknown;
   /** Name of the tool */
-  toolName: string
+  toolName: string;
   /** ID of the tool call */
-  toolCallId: string
+  toolCallId: string;
 }
 
 /**
@@ -144,29 +144,29 @@ export type BeforeToolCallDecision =
   | void
   | undefined
   | null
-  | { type: 'transformArgs'; args: unknown }
-  | { type: 'skip'; result: unknown }
-  | { type: 'abort'; reason?: string }
+  | { type: "transformArgs"; args: unknown }
+  | { type: "skip"; result: unknown }
+  | { type: "abort"; reason?: string };
 
 /**
  * Outcome information provided to onAfterToolCall.
  */
 export interface AfterToolCallInfo {
   /** The tool call that was executed */
-  toolCall: ToolCall
+  toolCall: ToolCall;
   /** The resolved tool definition */
-  tool: Tool | undefined
+  tool: Tool | undefined;
   /** Name of the tool */
-  toolName: string
+  toolName: string;
   /** ID of the tool call */
-  toolCallId: string
+  toolCallId: string;
   /** Whether the execution succeeded */
-  ok: boolean
+  ok: boolean;
   /** Duration of tool execution in milliseconds */
-  duration: number
+  duration: number;
   /** The result (if ok) or error (if not ok) */
-  result?: unknown
-  error?: unknown
+  result?: unknown;
+  error?: unknown;
 }
 
 // ===========================
@@ -178,9 +178,9 @@ export interface AfterToolCallInfo {
  */
 export interface IterationInfo {
   /** 0-based iteration index */
-  iteration: number
+  iteration: number;
   /** The assistant message ID created for this iteration */
-  messageId: string
+  messageId: string;
 }
 
 // ===========================
@@ -193,27 +193,27 @@ export interface IterationInfo {
  */
 export interface ToolPhaseCompleteInfo {
   /** Tool calls that were assigned to the assistant message */
-  toolCalls: Array<ToolCall>
+  toolCalls: Array<ToolCall>;
   /** Completed tool results */
   results: Array<{
-    toolCallId: string
-    toolName: string
-    result: unknown
-    duration?: number
-  }>
+    toolCallId: string;
+    toolName: string;
+    result: unknown;
+    duration?: number;
+  }>;
   /** Tools that need user approval */
   needsApproval: Array<{
-    toolCallId: string
-    toolName: string
-    input: unknown
-    approvalId: string
-  }>
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    approvalId: string;
+  }>;
   /** Tools that need client-side execution */
   needsClientExecution: Array<{
-    toolCallId: string
-    toolName: string
-    input: unknown
-  }>
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+  }>;
 }
 
 // ===========================
@@ -225,9 +225,9 @@ export interface ToolPhaseCompleteInfo {
  * Extracted from the RUN_FINISHED chunk when usage data is present.
  */
 export interface UsageInfo {
-  promptTokens: number
-  completionTokens: number
-  totalTokens: number
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 // ===========================
@@ -239,17 +239,17 @@ export interface UsageInfo {
  */
 export interface FinishInfo {
   /** The finish reason from the last model response */
-  finishReason: string | null
+  finishReason: string | null;
   /** Total duration of the chat run in milliseconds */
-  duration: number
+  duration: number;
   /** Final accumulated text content */
-  content: string
+  content: string;
   /** Final usage totals, if available */
   usage?: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -257,9 +257,9 @@ export interface FinishInfo {
  */
 export interface AbortInfo {
   /** The reason for the abort, if provided */
-  reason?: string
+  reason?: string;
   /** Duration until abort in milliseconds */
-  duration: number
+  duration: number;
 }
 
 /**
@@ -267,9 +267,9 @@ export interface AbortInfo {
  */
 export interface ErrorInfo {
   /** The error that caused the failure */
-  error: unknown
+  error: unknown;
   /** Duration until error in milliseconds */
-  duration: number
+  duration: number;
 }
 
 // ===========================
@@ -307,7 +307,7 @@ export interface ErrorInfo {
  */
 export interface ChatMiddleware {
   /** Optional name for debugging and identification */
-  name?: string
+  name?: string;
 
   /**
    * Called to observe or transform the chat configuration.
@@ -319,25 +319,18 @@ export interface ChatMiddleware {
   onConfig?: (
     ctx: ChatMiddlewareContext,
     config: ChatMiddlewareConfig,
-  ) =>
-    | void
-    | null
-    | Partial<ChatMiddlewareConfig>
-    | Promise<void | Partial<ChatMiddlewareConfig>>
+  ) => void | null | Partial<ChatMiddlewareConfig> | Promise<void | Partial<ChatMiddlewareConfig>>;
 
   /**
    * Called when the chat run starts (after initial onConfig).
    */
-  onStart?: (ctx: ChatMiddlewareContext) => void | Promise<void>
+  onStart?: (ctx: ChatMiddlewareContext) => void | Promise<void>;
 
   /**
    * Called at the start of each agent loop iteration, after a new assistant message ID
    * is created. Use this to observe iteration boundaries.
    */
-  onIteration?: (
-    ctx: ChatMiddlewareContext,
-    info: IterationInfo,
-  ) => void | Promise<void>
+  onIteration?: (ctx: ChatMiddlewareContext, info: IterationInfo) => void | Promise<void>;
 
   /**
    * Called for every chunk yielded by chat().
@@ -353,7 +346,7 @@ export interface ChatMiddleware {
     | StreamChunk
     | Array<StreamChunk>
     | null
-    | Promise<void | StreamChunk | Array<StreamChunk> | null>
+    | Promise<void | StreamChunk | Array<StreamChunk> | null>;
 
   /**
    * Called before a tool is executed.
@@ -362,15 +355,12 @@ export interface ChatMiddleware {
   onBeforeToolCall?: (
     ctx: ChatMiddlewareContext,
     hookCtx: ToolCallHookContext,
-  ) => BeforeToolCallDecision | Promise<BeforeToolCallDecision>
+  ) => BeforeToolCallDecision | Promise<BeforeToolCallDecision>;
 
   /**
    * Called after a tool execution completes (success or failure).
    */
-  onAfterToolCall?: (
-    ctx: ChatMiddlewareContext,
-    info: AfterToolCallInfo,
-  ) => void | Promise<void>
+  onAfterToolCall?: (ctx: ChatMiddlewareContext, info: AfterToolCallInfo) => void | Promise<void>;
 
   /**
    * Called after all tool calls in an iteration have been processed.
@@ -379,41 +369,29 @@ export interface ChatMiddleware {
   onToolPhaseComplete?: (
     ctx: ChatMiddlewareContext,
     info: ToolPhaseCompleteInfo,
-  ) => void | Promise<void>
+  ) => void | Promise<void>;
 
   /**
    * Called when usage data is available from a RUN_FINISHED chunk.
    * Called once per model iteration that reports usage.
    */
-  onUsage?: (
-    ctx: ChatMiddlewareContext,
-    usage: UsageInfo,
-  ) => void | Promise<void>
+  onUsage?: (ctx: ChatMiddlewareContext, usage: UsageInfo) => void | Promise<void>;
 
   /**
    * Called when the chat run completes normally.
    * Exactly one of onFinish/onAbort/onError will be called per run.
    */
-  onFinish?: (
-    ctx: ChatMiddlewareContext,
-    info: FinishInfo,
-  ) => void | Promise<void>
+  onFinish?: (ctx: ChatMiddlewareContext, info: FinishInfo) => void | Promise<void>;
 
   /**
    * Called when the chat run is aborted.
    * Exactly one of onFinish/onAbort/onError will be called per run.
    */
-  onAbort?: (
-    ctx: ChatMiddlewareContext,
-    info: AbortInfo,
-  ) => void | Promise<void>
+  onAbort?: (ctx: ChatMiddlewareContext, info: AbortInfo) => void | Promise<void>;
 
   /**
    * Called when the chat run encounters an unhandled error.
    * Exactly one of onFinish/onAbort/onError will be called per run.
    */
-  onError?: (
-    ctx: ChatMiddlewareContext,
-    info: ErrorInfo,
-  ) => void | Promise<void>
+  onError?: (ctx: ChatMiddlewareContext, info: ErrorInfo) => void | Promise<void>;
 }

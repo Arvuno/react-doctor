@@ -10,16 +10,16 @@ description: >
   TanStack Start server function integration with toServerSentEventsResponse.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/media/generations.md'
-  - 'TanStack/ai:docs/media/generation-hooks.md'
-  - 'TanStack/ai:docs/media/image-generation.md'
-  - 'TanStack/ai:docs/media/audio-generation.md'
-  - 'TanStack/ai:docs/media/video-generation.md'
-  - 'TanStack/ai:docs/media/text-to-speech.md'
-  - 'TanStack/ai:docs/media/transcription.md'
-  - 'TanStack/ai:docs/advanced/debug-logging.md'
+  - "TanStack/ai:docs/media/generations.md"
+  - "TanStack/ai:docs/media/generation-hooks.md"
+  - "TanStack/ai:docs/media/image-generation.md"
+  - "TanStack/ai:docs/media/audio-generation.md"
+  - "TanStack/ai:docs/media/video-generation.md"
+  - "TanStack/ai:docs/media/text-to-speech.md"
+  - "TanStack/ai:docs/media/transcription.md"
+  - "TanStack/ai:docs/advanced/debug-logging.md"
 ---
 
 # Media Generation
@@ -37,35 +37,35 @@ client.
 
 ```typescript
 // routes/api/generate/image.ts
-import { generateImage, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiImage } from '@tanstack/ai-openai'
+import { generateImage, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiImage } from "@tanstack/ai-openai";
 
 export async function POST(req: Request) {
-  const { prompt, size, numberOfImages } = await req.json()
+  const { prompt, size, numberOfImages } = await req.json();
 
   const stream = generateImage({
-    adapter: openaiImage('gpt-image-1'),
+    adapter: openaiImage("gpt-image-1"),
     prompt,
     size,
     numberOfImages,
     stream: true,
-  })
+  });
 
-  return toServerSentEventsResponse(stream)
+  return toServerSentEventsResponse(stream);
 }
 ```
 
 ### Client (React)
 
 ```tsx
-import { useGenerateImage, fetchServerSentEvents } from '@tanstack/ai-react'
-import { useState } from 'react'
+import { useGenerateImage, fetchServerSentEvents } from "@tanstack/ai-react";
+import { useState } from "react";
 
 function ImageGenerator() {
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState("");
   const { generate, result, isLoading, error, reset } = useGenerateImage({
-    connection: fetchServerSentEvents('/api/generate/image'),
-  })
+    connection: fetchServerSentEvents("/api/generate/image"),
+  });
 
   return (
     <div>
@@ -74,11 +74,8 @@ function ImageGenerator() {
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Describe an image..."
       />
-      <button
-        onClick={() => generate({ prompt })}
-        disabled={isLoading || !prompt.trim()}
-      >
-        {isLoading ? 'Generating...' : 'Generate'}
+      <button onClick={() => generate({ prompt })} disabled={isLoading || !prompt.trim()}>
+        {isLoading ? "Generating..." : "Generate"}
       </button>
 
       {error && <p>Error: {error.message}</p>}
@@ -87,13 +84,13 @@ function ImageGenerator() {
         <img
           key={i}
           src={img.url || `data:image/png;base64,${img.b64Json}`}
-          alt={img.revisedPrompt || 'Generated image'}
+          alt={img.revisedPrompt || "Generated image"}
         />
       ))}
 
       {result && <button onClick={reset}>Clear</button>}
     </div>
-  )
+  );
 }
 ```
 
@@ -105,40 +102,37 @@ parses it as SSE automatically:
 
 ```typescript
 // lib/server-functions.ts
-import { createServerFn } from '@tanstack/react-start'
-import { generateImage, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiImage } from '@tanstack/ai-openai'
+import { createServerFn } from "@tanstack/react-start";
+import { generateImage, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiImage } from "@tanstack/ai-openai";
 
-export const generateImageStreamFn = createServerFn({ method: 'POST' })
+export const generateImageStreamFn = createServerFn({ method: "POST" })
   .inputValidator((data: { prompt: string; model?: string }) => data)
   .handler(({ data }) => {
     return toServerSentEventsResponse(
       generateImage({
-        adapter: openaiImage(data.model ?? 'gpt-image-1'),
+        adapter: openaiImage(data.model ?? "gpt-image-1"),
         prompt: data.prompt,
         stream: true,
       }),
-    )
-  })
+    );
+  });
 ```
 
 ```tsx
-import { useGenerateImage } from '@tanstack/ai-react'
-import { generateImageStreamFn } from '../lib/server-functions'
+import { useGenerateImage } from "@tanstack/ai-react";
+import { generateImageStreamFn } from "../lib/server-functions";
 
 function ImageGenerator() {
   const { generate, result, isLoading } = useGenerateImage({
     fetcher: (input) => generateImageStreamFn({ data: input }),
-  })
+  });
 
   return (
-    <button
-      onClick={() => generate({ prompt: 'A sunset over mountains' })}
-      disabled={isLoading}
-    >
-      {isLoading ? 'Generating...' : 'Generate'}
+    <button onClick={() => generate({ prompt: "A sunset over mountains" })} disabled={isLoading}>
+      {isLoading ? "Generating..." : "Generate"}
     </button>
-  )
+  );
 }
 ```
 
@@ -153,36 +147,36 @@ gpt-image-1-mini) and `geminiImage` (gemini-3.1-flash-image-preview,
 imagen-4.0-generate-001, etc.).
 
 ```typescript
-import { generateImage } from '@tanstack/ai'
-import { openaiImage } from '@tanstack/ai-openai'
-import { geminiImage } from '@tanstack/ai-gemini'
+import { generateImage } from "@tanstack/ai";
+import { openaiImage } from "@tanstack/ai-openai";
+import { geminiImage } from "@tanstack/ai-gemini";
 
 // OpenAI with quality/background options
 const openaiResult = await generateImage({
-  adapter: openaiImage('gpt-image-1'),
-  prompt: 'A cat wearing a hat',
-  size: '1024x1024',
+  adapter: openaiImage("gpt-image-1"),
+  prompt: "A cat wearing a hat",
+  size: "1024x1024",
   numberOfImages: 2,
   modelOptions: {
-    quality: 'high',
-    background: 'transparent',
-    outputFormat: 'png',
+    quality: "high",
+    background: "transparent",
+    outputFormat: "png",
   },
-})
+});
 
 // Gemini native model with aspect-ratio sizes
 const geminiResult = await generateImage({
-  adapter: geminiImage('gemini-3.1-flash-image-preview'),
-  prompt: 'A futuristic cityscape at night',
-  size: '16:9_4K',
-})
+  adapter: geminiImage("gemini-3.1-flash-image-preview"),
+  prompt: "A futuristic cityscape at night",
+  size: "16:9_4K",
+});
 
 // Gemini Imagen model
 const imagenResult = await generateImage({
-  adapter: geminiImage('imagen-4.0-generate-001'),
-  prompt: 'A landscape photo',
-  modelOptions: { aspectRatio: '16:9' },
-})
+  adapter: geminiImage("imagen-4.0-generate-001"),
+  prompt: "A landscape photo",
+  modelOptions: { aspectRatio: "16:9" },
+});
 ```
 
 Result shape: `ImageGenerationResult` with `images` array where each entry
@@ -196,14 +190,14 @@ Supported adapters: `geminiAudio` (Lyria 3 Pro / Lyria 3 Clip) and
 `falAudio` (MiniMax Music, DiffRhythm, Stable Audio, ElevenLabs SFX, etc.).
 
 ```typescript
-import { generateAudio } from '@tanstack/ai'
-import { falAudio } from '@tanstack/ai-fal'
+import { generateAudio } from "@tanstack/ai";
+import { falAudio } from "@tanstack/ai-fal";
 
 const result = await generateAudio({
-  adapter: falAudio('fal-ai/diffrhythm'),
-  prompt: 'An upbeat electronic track with synths',
+  adapter: falAudio("fal-ai/diffrhythm"),
+  prompt: "An upbeat electronic track with synths",
   duration: 10,
-})
+});
 
 // result.audio.url or result.audio.b64Json (provider-dependent)
 // result.audio.contentType e.g. "audio/mpeg"
@@ -212,11 +206,11 @@ const result = await generateAudio({
 Client hook:
 
 ```tsx
-import { useGenerateAudio, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useGenerateAudio, fetchServerSentEvents } from "@tanstack/ai-react";
 
 const { generate, result, isLoading } = useGenerateAudio({
-  connection: fetchServerSentEvents('/api/generate/audio'),
-})
+  connection: fetchServerSentEvents("/api/generate/audio"),
+});
 
 // Trigger: generate({ prompt: 'Upbeat synths', duration: 10 })
 // Play:    <audio src={result.audio.url} controls />
@@ -227,16 +221,16 @@ const { generate, result, isLoading } = useGenerateAudio({
 Adapter: `openaiSpeech` (tts-1, tts-1-hd, gpt-4o-audio-preview).
 
 ```typescript
-import { generateSpeech } from '@tanstack/ai'
-import { openaiSpeech } from '@tanstack/ai-openai'
+import { generateSpeech } from "@tanstack/ai";
+import { openaiSpeech } from "@tanstack/ai-openai";
 
 const result = await generateSpeech({
-  adapter: openaiSpeech('tts-1-hd'),
-  text: 'Hello, welcome to TanStack AI!',
-  voice: 'alloy', // alloy | echo | fable | onyx | nova | shimmer | ash | ballad | coral | sage | verse
-  format: 'mp3', // mp3 | opus | aac | flac | wav | pcm
+  adapter: openaiSpeech("tts-1-hd"),
+  text: "Hello, welcome to TanStack AI!",
+  voice: "alloy", // alloy | echo | fable | onyx | nova | shimmer | ash | ballad | coral | sage | verse
+  format: "mp3", // mp3 | opus | aac | flac | wav | pcm
   speed: 1.0, // 0.25 to 4.0
-})
+});
 
 // result.audio is base64-encoded audio
 // result.format is the output format string
@@ -246,11 +240,11 @@ const result = await generateSpeech({
 Client hook:
 
 ```tsx
-import { useGenerateSpeech, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useGenerateSpeech, fetchServerSentEvents } from "@tanstack/ai-react";
 
 const { generate, result, isLoading } = useGenerateSpeech({
-  connection: fetchServerSentEvents('/api/generate/speech'),
-})
+  connection: fetchServerSentEvents("/api/generate/speech"),
+});
 
 // Trigger: generate({ text: 'Hello!', voice: 'alloy' })
 // Play:   <audio src={`data:audio/${result.format};base64,${result.audio}`} controls />
@@ -262,18 +256,18 @@ Adapter: `openaiTranscription` (whisper-1, gpt-4o-transcribe,
 gpt-4o-mini-transcribe).
 
 ```typescript
-import { generateTranscription } from '@tanstack/ai'
-import { openaiTranscription } from '@tanstack/ai-openai'
+import { generateTranscription } from "@tanstack/ai";
+import { openaiTranscription } from "@tanstack/ai-openai";
 
 const result = await generateTranscription({
-  adapter: openaiTranscription('whisper-1'),
+  adapter: openaiTranscription("whisper-1"),
   audio: audioFile, // File, Blob, base64 string, or data URL
-  language: 'en',
-  responseFormat: 'verbose_json',
+  language: "en",
+  responseFormat: "verbose_json",
   modelOptions: {
-    include: ['segment', 'word'],
+    include: ["segment", "word"],
   },
-})
+});
 
 // result.text       -- full transcribed text
 // result.language   -- detected/specified language
@@ -284,11 +278,11 @@ const result = await generateTranscription({
 Client hook:
 
 ```tsx
-import { useTranscription, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useTranscription, fetchServerSentEvents } from "@tanstack/ai-react";
 
 const { generate, result, isLoading } = useTranscription({
-  connection: fetchServerSentEvents('/api/transcribe'),
-})
+  connection: fetchServerSentEvents("/api/transcribe"),
+});
 
 // Trigger: generate({ audio: dataUrl, language: 'en' })
 ```
@@ -299,49 +293,44 @@ Video generation uses a jobs/polling architecture. The server creates a job,
 polls for status, and streams updates to the client.
 
 ```typescript
-import {
-  generateVideo,
-  getVideoJobStatus,
-  toServerSentEventsResponse,
-} from '@tanstack/ai'
-import { openaiVideo } from '@tanstack/ai-openai'
+import { generateVideo, getVideoJobStatus, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiVideo } from "@tanstack/ai-openai";
 
 // Non-streaming: manual polling loop
 const { jobId } = await generateVideo({
-  adapter: openaiVideo('sora-2'),
-  prompt: 'A golden retriever playing in sunflowers',
-  size: '1280x720',
+  adapter: openaiVideo("sora-2"),
+  prompt: "A golden retriever playing in sunflowers",
+  size: "1280x720",
   duration: 8,
-})
+});
 
-let status = await getVideoJobStatus({ adapter: openaiVideo('sora-2'), jobId })
-while (status.status !== 'completed' && status.status !== 'failed') {
-  await new Promise((r) => setTimeout(r, 5000))
-  status = await getVideoJobStatus({ adapter: openaiVideo('sora-2'), jobId })
+let status = await getVideoJobStatus({ adapter: openaiVideo("sora-2"), jobId });
+while (status.status !== "completed" && status.status !== "failed") {
+  await new Promise((r) => setTimeout(r, 5000));
+  status = await getVideoJobStatus({ adapter: openaiVideo("sora-2"), jobId });
 }
 
 // Streaming: server handles polling, client gets real-time updates
 const stream = generateVideo({
-  adapter: openaiVideo('sora-2'),
-  prompt: 'A flying car over a city',
+  adapter: openaiVideo("sora-2"),
+  prompt: "A flying car over a city",
   stream: true,
   pollingInterval: 3000,
   maxDuration: 600_000,
-})
-return toServerSentEventsResponse(stream)
+});
+return toServerSentEventsResponse(stream);
 ```
 
 Client hook with job tracking:
 
 ```tsx
-import { useGenerateVideo, fetchServerSentEvents } from '@tanstack/ai-react'
+import { useGenerateVideo, fetchServerSentEvents } from "@tanstack/ai-react";
 
 const { generate, result, jobId, videoStatus, isLoading } = useGenerateVideo({
-  connection: fetchServerSentEvents('/api/generate/video'),
-  onJobCreated: (id) => console.log('Job created:', id),
-  onStatusUpdate: (status) =>
-    console.log(`${status.status} (${status.progress}%)`),
-})
+  connection: fetchServerSentEvents("/api/generate/video"),
+  onJobCreated: (id) => console.log("Job created:", id),
+  onStatusUpdate: (status) => console.log(`${status.status} (${status.progress}%)`),
+});
 
 // videoStatus: { jobId, status, progress?, url?, error? }
 // result (on completion): { url }
@@ -369,12 +358,12 @@ to transform what is stored:
 
 ```tsx
 const { result } = useGenerateSpeech({
-  connection: fetchServerSentEvents('/api/generate/speech'),
+  connection: fetchServerSentEvents("/api/generate/speech"),
   onResult: (raw) => ({
     audioUrl: `data:${raw.contentType};base64,${raw.audio}`,
     duration: raw.duration,
   }),
-})
+});
 // result is typed as { audioUrl: string; duration?: number } | null
 ```
 
@@ -390,27 +379,27 @@ Agents trained on older code may still generate this pattern.
 **Wrong:**
 
 ```typescript
-import { embedding } from '@tanstack/ai'
-import { openaiEmbed } from '@tanstack/ai-openai'
+import { embedding } from "@tanstack/ai";
+import { openaiEmbed } from "@tanstack/ai-openai";
 
 const result = await embedding({
   adapter: openaiEmbed(),
-  model: 'text-embedding-3-small',
-  input: 'Hello, world!',
-})
+  model: "text-embedding-3-small",
+  input: "Hello, world!",
+});
 ```
 
 **Correct -- use the provider SDK directly:**
 
 ```typescript
-import OpenAI from 'openai'
+import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const result = await openai.embeddings.create({
-  model: 'text-embedding-3-small',
-  input: 'Hello, world!',
-})
+  model: "text-embedding-3-small",
+  input: "Hello, world!",
+});
 ```
 
 > Source: docs/migration/migration.md. Note: Fixed in v0.5.0 but agents
@@ -425,35 +414,31 @@ stream from a server function will not work.
 **Wrong:**
 
 ```typescript
-export const generateImageStreamFn = createServerFn({ method: 'POST' }).handler(
-  ({ data }) => {
-    // BUG: returning raw stream -- client cannot parse this
-    return generateImage({
-      adapter: openaiImage('gpt-image-1'),
-      prompt: data.prompt,
-      stream: true,
-    })
-  },
-)
+export const generateImageStreamFn = createServerFn({ method: "POST" }).handler(({ data }) => {
+  // BUG: returning raw stream -- client cannot parse this
+  return generateImage({
+    adapter: openaiImage("gpt-image-1"),
+    prompt: data.prompt,
+    stream: true,
+  });
+});
 ```
 
 **Correct:**
 
 ```typescript
-import { generateImage, toServerSentEventsResponse } from '@tanstack/ai'
-import { openaiImage } from '@tanstack/ai-openai'
+import { generateImage, toServerSentEventsResponse } from "@tanstack/ai";
+import { openaiImage } from "@tanstack/ai-openai";
 
-export const generateImageStreamFn = createServerFn({ method: 'POST' }).handler(
-  ({ data }) => {
-    return toServerSentEventsResponse(
-      generateImage({
-        adapter: openaiImage('gpt-image-1'),
-        prompt: data.prompt,
-        stream: true,
-      }),
-    )
-  },
-)
+export const generateImageStreamFn = createServerFn({ method: "POST" }).handler(({ data }) => {
+  return toServerSentEventsResponse(
+    generateImage({
+      adapter: openaiImage("gpt-image-1"),
+      prompt: data.prompt,
+      stream: true,
+    }),
+  );
+});
 ```
 
 > Source: maintainer interview.
@@ -466,15 +451,15 @@ immediately, or convert to base64 for persistence.
 
 ```typescript
 const result = await generateImage({
-  adapter: openaiImage('dall-e-3'),
-  prompt: 'A mountain landscape',
-})
+  adapter: openaiImage("dall-e-3"),
+  prompt: "A mountain landscape",
+});
 
 // GOOD: download immediately
 for (const img of result.images) {
   if (img.url) {
-    const response = await fetch(img.url)
-    const blob = await response.blob()
+    const response = await fetch(img.url);
+    const blob = await response.blob();
     // Save blob to storage...
   }
 }
@@ -506,19 +491,19 @@ are not in `GeminiAudioProviderOptions` — don't reach for them via `as any`.
 ```typescript
 // WRONG — both fields are silently ignored or rejected by the SDK
 generateAudio({
-  adapter: geminiAudio('lyria-3-pro-preview'),
-  prompt: 'ambient piano',
+  adapter: geminiAudio("lyria-3-pro-preview"),
+  prompt: "ambient piano",
   modelOptions: {
-    responseMimeType: 'audio/wav', // unsupported
-    negativePrompt: 'vocals', // unsupported
+    responseMimeType: "audio/wav", // unsupported
+    negativePrompt: "vocals", // unsupported
   } as any,
-})
+});
 
 // CORRECT — shape the prompt itself for what you want
 generateAudio({
-  adapter: geminiAudio('lyria-3-pro-preview'),
-  prompt: 'ambient piano, no vocals',
-})
+  adapter: geminiAudio("lyria-3-pro-preview"),
+  prompt: "ambient piano, no vocals",
+});
 ```
 
 > Source: Gemini API `GenerateContentConfig` type; docs/media/audio-generation.md.
@@ -535,17 +520,17 @@ for Lyria.
 ```typescript
 // For Lyria: put length guidance in the prompt
 generateAudio({
-  adapter: geminiAudio('lyria-3-pro-preview'),
-  prompt: 'A 2-minute ambient piano piece with gentle strings',
+  adapter: geminiAudio("lyria-3-pro-preview"),
+  prompt: "A 2-minute ambient piano piece with gentle strings",
   // duration: 120  // ← does nothing; rely on the prompt
-})
+});
 
 // For fal: duration works and is translated per-model
 generateAudio({
-  adapter: falAudio('fal-ai/minimax-music/v2'),
-  prompt: 'upbeat synth melody',
+  adapter: falAudio("fal-ai/minimax-music/v2"),
+  prompt: "upbeat synth melody",
   duration: 60, // → music_length_ms: 60_000
-})
+});
 ```
 
 > Source: Google Lyria 3 docs; docs/media/audio-generation.md.
@@ -558,23 +543,23 @@ generateAudio({
 
 ```typescript
 generateSpeech({
-  adapter: geminiSpeech('gemini-2.5-pro-preview-tts'),
-  text: '[Alice] Hi. [Bob] Hello!',
+  adapter: geminiSpeech("gemini-2.5-pro-preview-tts"),
+  text: "[Alice] Hi. [Bob] Hello!",
   modelOptions: {
     multiSpeakerVoiceConfig: {
       speakerVoiceConfigs: [
         {
-          speaker: 'Alice',
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+          speaker: "Alice",
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } },
         },
         {
-          speaker: 'Bob',
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+          speaker: "Bob",
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } },
         },
       ],
     },
   },
-})
+});
 ```
 
 > Source: Gemini TTS adapter validation; CodeRabbit review of PR #463.
@@ -589,10 +574,10 @@ instead of wiring up logging middleware.
 ```typescript
 // When a speech generation sounds wrong or a transcription returns garbage
 generateSpeech({
-  adapter: openaiSpeech('tts-1'),
-  text: 'Hello',
+  adapter: openaiSpeech("tts-1"),
+  text: "Hello",
   debug: { provider: true, output: true }, // raw SDK chunks + yielded chunks
-})
+});
 ```
 
 See the `ai-core/debug-logging` sub-skill for full details on categories

@@ -1,6 +1,6 @@
-import { convertSchemaToJsonSchema } from '@tanstack/ai'
-import type { ToolExecutionContext } from '@tanstack/ai'
-import type { CodeModeTool, ToolBinding } from '../types'
+import { convertSchemaToJsonSchema } from "@tanstack/ai";
+import type { ToolExecutionContext } from "@tanstack/ai";
+import type { CodeModeTool, ToolBinding } from "../types";
 
 /**
  * Convert an array of TanStack AI tools to a Record of ToolBindings
@@ -10,16 +10,16 @@ import type { CodeModeTool, ToolBinding } from '../types'
  */
 export function toolsToBindings(
   tools: Array<CodeModeTool>,
-  prefix: string = '',
+  prefix: string = "",
 ): Record<string, ToolBinding> {
-  const bindings: Record<string, ToolBinding> = {}
+  const bindings: Record<string, ToolBinding> = {};
 
   for (const tool of tools) {
-    const bindingName = `${prefix}${tool.name}`
-    bindings[bindingName] = toolToBinding(tool, prefix)
+    const bindingName = `${prefix}${tool.name}`;
+    bindings[bindingName] = toolToBinding(tool, prefix);
   }
 
-  return bindings
+  return bindings;
 }
 
 /**
@@ -29,43 +29,35 @@ export function toolsToBindings(
  * @param prefix - Optional prefix to add to binding name (e.g., 'external_')
  * @throws Error if the tool doesn't have an execute function
  */
-export function toolToBinding(
-  tool: CodeModeTool,
-  prefix: string = '',
-): ToolBinding {
+export function toolToBinding(tool: CodeModeTool, prefix: string = ""): ToolBinding {
   // Convert schemas (Zod or Standard Schema) to JSON Schema
   const inputSchema = convertSchemaToJsonSchema(tool.inputSchema) || {
-    type: 'object',
+    type: "object",
     properties: {},
-  }
+  };
 
-  const outputSchema = tool.outputSchema
-    ? convertSchemaToJsonSchema(tool.outputSchema)
-    : undefined
+  const outputSchema = tool.outputSchema ? convertSchemaToJsonSchema(tool.outputSchema) : undefined;
 
   // Get execute function
   // ServerTool has execute, ToolDefinition (without .server()) does not
-  let execute: (
-    args: unknown,
-    context?: ToolExecutionContext,
-  ) => Promise<unknown>
+  let execute: (args: unknown, context?: ToolExecutionContext) => Promise<unknown>;
 
-  if ('execute' in tool && typeof tool.execute === 'function') {
-    const toolExecute = tool.execute
+  if ("execute" in tool && typeof tool.execute === "function") {
+    const toolExecute = tool.execute;
     execute = (args: unknown, context?: ToolExecutionContext) => {
       // Pass context to the underlying tool so it can emit custom events
-      return Promise.resolve(toolExecute(args, context))
-    }
-  } else if ('__toolSide' in tool && tool.__toolSide === 'definition') {
+      return Promise.resolve(toolExecute(args, context));
+    };
+  } else if ("__toolSide" in tool && tool.__toolSide === "definition") {
     throw new Error(
       `Tool "${tool.name}" is a ToolDefinition without an execute function. ` +
         `Call .server(fn) to provide an implementation before using with Code Mode.`,
-    )
+    );
   } else {
     throw new Error(
       `Tool "${tool.name}" does not have an execute function. ` +
         `Code Mode requires tools with implementations.`,
-    )
+    );
   }
 
   return {
@@ -74,7 +66,7 @@ export function toolToBinding(
     inputSchema,
     outputSchema,
     execute,
-  }
+  };
 }
 
 /**
@@ -88,45 +80,45 @@ export function createEventAwareBindings(
   bindings: Record<string, ToolBinding>,
   emitCustomEvent: (eventName: string, data: Record<string, any>) => void,
 ): Record<string, ToolBinding> {
-  const wrapped: Record<string, ToolBinding> = {}
+  const wrapped: Record<string, ToolBinding> = {};
 
   for (const [name, binding] of Object.entries(bindings)) {
     wrapped[name] = {
       ...binding,
       execute: async (args: unknown) => {
         // Emit call event
-        emitCustomEvent('code_mode:external_call', {
+        emitCustomEvent("code_mode:external_call", {
           function: name,
           args,
           timestamp: Date.now(),
-        })
+        });
 
-        const startTime = Date.now()
+        const startTime = Date.now();
         try {
           // Create context for the underlying tool so it can also emit events
-          const toolContext: ToolExecutionContext = { emitCustomEvent }
-          const result = await binding.execute(args, toolContext)
+          const toolContext: ToolExecutionContext = { emitCustomEvent };
+          const result = await binding.execute(args, toolContext);
 
           // Emit result event
-          emitCustomEvent('code_mode:external_result', {
+          emitCustomEvent("code_mode:external_result", {
             function: name,
             result,
             duration: Date.now() - startTime,
-          })
+          });
 
-          return result
+          return result;
         } catch (error) {
           // Emit error event
-          emitCustomEvent('code_mode:external_error', {
+          emitCustomEvent("code_mode:external_error", {
             function: name,
             error: error instanceof Error ? error.message : String(error),
             duration: Date.now() - startTime,
-          })
-          throw error
+          });
+          throw error;
         }
       },
-    }
+    };
   }
 
-  return wrapped
+  return wrapped;
 }

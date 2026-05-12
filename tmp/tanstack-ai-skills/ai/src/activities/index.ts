@@ -14,13 +14,13 @@
 // Import the activity functions
 
 // Import adapter types for type definitions
-import type { AnyTextAdapter } from './chat/adapter'
-import type { AnySummarizeAdapter } from './summarize/adapter'
-import type { AnyImageAdapter } from './generateImage/adapter'
-import type { AnyAudioAdapter } from './generateAudio/adapter'
-import type { AnyVideoAdapter } from './generateVideo/adapter'
-import type { AnyTTSAdapter } from './generateSpeech/adapter'
-import type { AnyTranscriptionAdapter } from './generateTranscription/adapter'
+import type { AnyTextAdapter } from "./chat/adapter";
+import type { AnySummarizeAdapter } from "./summarize/adapter";
+import type { AnyImageAdapter } from "./generateImage/adapter";
+import type { AnyAudioAdapter } from "./generateAudio/adapter";
+import type { AnyVideoAdapter } from "./generateVideo/adapter";
+import type { AnyTTSAdapter } from "./generateSpeech/adapter";
+import type { AnyTranscriptionAdapter } from "./generateTranscription/adapter";
 
 // ===========================
 // Chat Activity
@@ -31,7 +31,7 @@ export {
   chat,
   type TextActivityOptions,
   type TextActivityResult,
-} from './chat/index'
+} from "./chat/index";
 
 export {
   BaseTextAdapter,
@@ -40,7 +40,7 @@ export {
   type TextAdapterConfig,
   type StructuredOutputOptions,
   type StructuredOutputResult,
-} from './chat/adapter'
+} from "./chat/adapter";
 
 // ===========================
 // Summarize Activity
@@ -52,14 +52,14 @@ export {
   type SummarizeActivityOptions,
   type SummarizeActivityResult,
   type SummarizeProviderOptions,
-} from './summarize/index'
+} from "./summarize/index";
 
 export {
   BaseSummarizeAdapter,
   type SummarizeAdapter,
   type SummarizeAdapterConfig,
   type AnySummarizeAdapter,
-} from './summarize/adapter'
+} from "./summarize/adapter";
 
 // ===========================
 // Image Activity
@@ -72,14 +72,14 @@ export {
   type ImageActivityResult,
   type ImageProviderOptionsForModel,
   type ImageSizeForModel,
-} from './generateImage/index'
+} from "./generateImage/index";
 
 export {
   BaseImageAdapter,
   type ImageAdapter,
   type ImageAdapterConfig,
   type AnyImageAdapter,
-} from './generateImage/adapter'
+} from "./generateImage/adapter";
 
 // ===========================
 // Audio Activity
@@ -91,14 +91,14 @@ export {
   type AudioActivityOptions,
   type AudioActivityResult,
   type AudioProviderOptions,
-} from './generateAudio/index'
+} from "./generateAudio/index";
 
 export {
   BaseAudioAdapter,
   type AudioAdapter,
   type AudioAdapterConfig,
   type AnyAudioAdapter,
-} from './generateAudio/adapter'
+} from "./generateAudio/adapter";
 
 // ===========================
 // Video Activity (Experimental)
@@ -114,14 +114,14 @@ export {
   type VideoCreateOptions,
   type VideoStatusOptions,
   type VideoUrlOptions,
-} from './generateVideo/index'
+} from "./generateVideo/index";
 
 export {
   BaseVideoAdapter,
   type VideoAdapter,
   type VideoAdapterConfig,
   type AnyVideoAdapter,
-} from './generateVideo/adapter'
+} from "./generateVideo/adapter";
 
 // ===========================
 // TTS Activity
@@ -133,14 +133,14 @@ export {
   type TTSActivityOptions,
   type TTSActivityResult,
   type TTSProviderOptions,
-} from './generateSpeech/index'
+} from "./generateSpeech/index";
 
 export {
   BaseTTSAdapter,
   type TTSAdapter,
   type TTSAdapterConfig,
   type AnyTTSAdapter,
-} from './generateSpeech/adapter'
+} from "./generateSpeech/adapter";
 
 // ===========================
 // Transcription Activity
@@ -152,14 +152,14 @@ export {
   type TranscriptionActivityOptions,
   type TranscriptionActivityResult,
   type TranscriptionProviderOptions,
-} from './generateTranscription/index'
+} from "./generateTranscription/index";
 
 export {
   BaseTranscriptionAdapter,
   type TranscriptionAdapter,
   type TranscriptionAdapterConfig,
   type AnyTranscriptionAdapter,
-} from './generateTranscription/adapter'
+} from "./generateTranscription/adapter";
 
 // ===========================
 // Adapter Union Types
@@ -173,14 +173,14 @@ export type AIAdapter =
   | AnyAudioAdapter
   | AnyVideoAdapter
   | AnyTTSAdapter
-  | AnyTranscriptionAdapter
+  | AnyTranscriptionAdapter;
 
 /** Union type of all adapter kinds */
 export type AdapterKind =
-  | 'text'
-  | 'summarize'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'tts'
-  | 'transcription'
+  | "text"
+  | "summarize"
+  | "image"
+  | "audio"
+  | "video"
+  | "tts"
+  | "transcription";

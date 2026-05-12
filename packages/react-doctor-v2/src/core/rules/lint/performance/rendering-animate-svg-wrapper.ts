@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { MOTION_ANIMATE_PROPS, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { MOTION_ANIMATE_PROPS, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const renderingAnimateSvgWrapper = defineRule<Rule>({
   recommendation:

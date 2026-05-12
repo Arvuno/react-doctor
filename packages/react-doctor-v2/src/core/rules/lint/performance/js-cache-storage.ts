@@ -4,8 +4,8 @@ import {
   STORAGE_OBJECTS,
   isMemberProperty,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const jsCacheStorage = defineRule<Rule>({
   recommendation:

@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { fileMentionsSuspense, isHookCall } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { fileMentionsSuspense, isHookCall } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoUseSearchParamsWithoutSuspense = defineRule<Rule>({
   recommendation:

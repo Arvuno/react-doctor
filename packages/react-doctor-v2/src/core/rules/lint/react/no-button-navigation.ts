@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { findJsxAttribute, getRootIdentifierName, walkAst, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { findJsxAttribute, getRootIdentifierName, walkAst, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const BUTTON_LIKE_COMPONENT_PATTERN = /Button$/;
 const ROUTER_NAVIGATION_METHOD_NAMES = new Set(["navigate", "push", "replace"]);

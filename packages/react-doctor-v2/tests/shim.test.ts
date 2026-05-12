@@ -9,17 +9,20 @@ describe("deprecated API shim", () => {
 
     expect(result).toEqual({
       diagnostics: [],
-      score: null,
+      score: {
+        score: 100,
+        label: "Great",
+      },
       project: {
         rootDirectory: path.resolve("src"),
-        projectName: "src",
+        projectName: "react-doctor-v2",
         reactVersion: null,
         tailwindVersion: null,
         framework: "unknown",
-        hasTypeScript: false,
+        hasTypeScript: true,
         hasReactCompiler: false,
         hasTanStackQuery: false,
-        sourceFileCount: 0,
+        sourceFileCount: expect.any(Number),
       },
       elapsedMilliseconds: expect.any(Number),
     });

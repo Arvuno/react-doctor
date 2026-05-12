@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { walkAst, walkServerFnChain, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { walkAst, walkServerFnChain, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const tanstackStartServerFnValidateInput = defineRule<Rule>({
   recommendation:

@@ -1,4 +1,5 @@
 import type { ReactDoctorIssue } from "../types.js";
+import type { CodebaseAnalysisResult } from "./codebase/analyzer/index.js";
 
 export interface ReactDoctorRuleExample {
   before: string;
@@ -20,7 +21,10 @@ export interface ReactDoctorRuleMetadata {
 
 export interface ReactDoctorRuleContext {
   rootDirectory: string;
+  includePaths?: string[];
+  excludePatterns?: string[];
   signal?: AbortSignal;
+  getCodebaseAnalysis?: () => Promise<CodebaseAnalysisResult>;
 }
 
 export interface ReactDoctorRuleResult {

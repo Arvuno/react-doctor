@@ -16,6 +16,8 @@ export default defineConfig({
       entry: {
         sdk: "./src/sdk/index.ts",
         compat: "./src/sdk/compat.ts",
+        "eslint-plugin": "./src/eslint-plugin.ts",
+        "oxlint-plugin": "./src/oxlint-plugin.ts",
       },
       dts: true,
       target: "node22",

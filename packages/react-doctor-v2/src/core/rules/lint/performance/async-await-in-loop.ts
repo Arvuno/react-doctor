@@ -6,8 +6,8 @@ import {
   isWrappedInPromiseConcurrency,
   walkAst,
   isNodeOfType,
-} from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+} from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const SLEEP_LIKE_FUNCTION_NAMES: ReadonlySet<string> = new Set([
   "sleep",

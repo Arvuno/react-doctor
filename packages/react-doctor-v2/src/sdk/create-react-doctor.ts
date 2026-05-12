@@ -6,6 +6,10 @@ export interface CreateReactDoctorOptions {
   includePaths?: string[];
   excludePatterns?: string[];
   rules?: InspectReactProjectOptions["rules"];
+  lint?: boolean;
+  deadCode?: boolean;
+  customRulesOnly?: boolean;
+  respectInlineDisables?: boolean;
 }
 
 export interface ReactDoctor {

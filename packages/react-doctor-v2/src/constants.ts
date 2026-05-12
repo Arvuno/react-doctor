@@ -1,3 +1,11 @@
 export const CANONICAL_GITHUB_URL = "https://github.com/millionco/react-doctor";
 export const DEFAULT_DIRECTORY = ".";
 export const EXIT_FAILURE_CODE = 1;
+export const REACT_DOCTOR_CONFIG_FILENAME = "react-doctor.config.json";
+export const PACKAGE_JSON_FILENAME = "package.json";
+export const PACKAGE_JSON_CONFIG_KEY = "reactDoctor";
+export const PERFECT_SCORE = 100;
+export const SCORE_GOOD_THRESHOLD = 90;
+export const SCORE_OK_THRESHOLD = 70;
+export const ERROR_RULE_PENALTY = 8;
+export const WARNING_RULE_PENALTY = 3;

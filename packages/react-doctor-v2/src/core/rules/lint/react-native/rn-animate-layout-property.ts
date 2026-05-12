@@ -1,6 +1,6 @@
 import { defineRule } from "../../registry.js";
-import { REANIMATED_LAYOUT_KEYS, findReturnedObject, isNodeOfType } from "./_utils.js";
-import type { EsTreeNode, Rule, RuleContext } from "./_utils.js";
+import { REANIMATED_LAYOUT_KEYS, findReturnedObject, isNodeOfType } from "./utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const rnAnimateLayoutProperty = defineRule<Rule>({
   recommendation:

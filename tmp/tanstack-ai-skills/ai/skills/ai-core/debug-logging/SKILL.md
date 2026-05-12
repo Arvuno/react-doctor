@@ -9,9 +9,9 @@ description: >
   log by default even when `debug` is omitted; silence with `debug: false`.
 type: sub-skill
 library: tanstack-ai
-library_version: '0.10.0'
+library_version: "0.10.0"
 sources:
-  - 'TanStack/ai:docs/advanced/debug-logging.md'
+  - "TanStack/ai:docs/advanced/debug-logging.md"
 ---
 
 # Debug Logging
@@ -27,14 +27,14 @@ printed, or pipe logs into a custom logger (pino, winston, etc.). The same
 ## Turn it on
 
 ```typescript
-import { chat } from '@tanstack/ai'
-import { openaiText } from '@tanstack/ai-openai'
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 
 const stream = chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   debug: true, // all categories on, prints to console
-})
+});
 ```
 
 Each log line is prefixed with an emoji and `[tanstack-ai:<category>]`:
@@ -50,10 +50,10 @@ Each log line is prefixed with an emoji and `[tanstack-ai:<category>]`:
 
 ```typescript
 chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   debug: false, // silence everything, including errors
-})
+});
 ```
 
 Omitting `debug` is **not** the same as `debug: false`. When omitted, the
@@ -63,20 +63,20 @@ Omitting `debug` is **not** the same as `debug: false`. When omitted, the
 ## `DebugOption` — the accepted shapes
 
 ```typescript
-type DebugOption = boolean | DebugConfig
+type DebugOption = boolean | DebugConfig;
 
 interface DebugConfig {
   // Per-category flags. Any flag omitted from a DebugConfig defaults to true.
-  request?: boolean
-  provider?: boolean
-  output?: boolean
-  middleware?: boolean
-  tools?: boolean
-  agentLoop?: boolean
-  config?: boolean
-  errors?: boolean
+  request?: boolean;
+  provider?: boolean;
+  output?: boolean;
+  middleware?: boolean;
+  tools?: boolean;
+  agentLoop?: boolean;
+  config?: boolean;
+  errors?: boolean;
   // Optional custom logger. Defaults to ConsoleLogger.
-  logger?: Logger
+  logger?: Logger;
 }
 ```
 
@@ -96,17 +96,17 @@ easiest to toggle by setting specific flags to `false`:
 
 ```typescript
 chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   debug: { middleware: false }, // everything except middleware
-})
+});
 ```
 
 To print only a specific set, set the rest to `false` explicitly:
 
 ```typescript
 chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   debug: {
     provider: true,
@@ -118,35 +118,35 @@ chat({
     errors: true, // keep errors on — they're cheap and important
     request: false,
   },
-})
+});
 ```
 
 ## Pipe into your own logger
 
 ```typescript
-import type { Logger } from '@tanstack/ai'
-import pino from 'pino'
+import type { Logger } from "@tanstack/ai";
+import pino from "pino";
 
-const pinoLogger = pino()
+const pinoLogger = pino();
 const logger: Logger = {
   debug: (msg, meta) => pinoLogger.debug(meta, msg),
   info: (msg, meta) => pinoLogger.info(meta, msg),
   warn: (msg, meta) => pinoLogger.warn(meta, msg),
   error: (msg, meta) => pinoLogger.error(meta, msg),
-}
+};
 
 chat({
-  adapter: openaiText('gpt-5.2'),
+  adapter: openaiText("gpt-5.2"),
   messages,
   debug: { logger }, // all categories on, piped to pino
-})
+});
 ```
 
 The default console logger is exported as `ConsoleLogger` if you want to wrap
 it:
 
 ```typescript
-import { ConsoleLogger } from '@tanstack/ai'
+import { ConsoleLogger } from "@tanstack/ai";
 ```
 
 ## Categories
@@ -170,11 +170,11 @@ concepts don't exist in their pipelines.
 Same `debug` option everywhere:
 
 ```typescript
-summarize({ adapter, text, debug: true })
-generateImage({ adapter, prompt: 'a cat', debug: { logger } })
-generateSpeech({ adapter, text, debug: { request: true } })
-generateTranscription({ adapter, audio, debug: false })
-generateVideo({ adapter, prompt: 'a wave', debug: { output: true } })
+summarize({ adapter, text, debug: true });
+generateImage({ adapter, prompt: "a cat", debug: { logger } });
+generateSpeech({ adapter, text, debug: { request: true } });
+generateTranscription({ adapter, audio, debug: false });
+generateVideo({ adapter, prompt: "a wave", debug: { output: true } });
 ```
 
 Realtime session adapters in provider packages (e.g. `openaiRealtime`,
@@ -188,12 +188,12 @@ categories don't apply.
 
 ```typescript
 // WRONG — expecting this to be completely silent
-chat({ adapter, messages })
+chat({ adapter, messages });
 // Errors still print via [tanstack-ai:errors] ... on failure.
 
 // CORRECT — explicit silence
-chat({ adapter, messages, debug: false })
-chat({ adapter, messages, debug: { errors: false } })
+chat({ adapter, messages, debug: false });
+chat({ adapter, messages, debug: { errors: false } });
 ```
 
 `debug` undefined means "only errors"; `debug: false` means "nothing at all".
@@ -205,19 +205,19 @@ Source: docs/advanced/debug-logging.md
 ```typescript
 // WRONG — writing logging middleware to see chunks flow
 const chunkLogger: ChatMiddleware = {
-  name: 'chunk-logger',
+  name: "chunk-logger",
   onChunk: (ctx, chunk) => {
-    console.log(chunk.type, chunk)
+    console.log(chunk.type, chunk);
   },
-}
-chat({ adapter, messages, middleware: [chunkLogger] })
+};
+chat({ adapter, messages, middleware: [chunkLogger] });
 
 // CORRECT — just turn on the relevant categories
 chat({
   adapter,
   messages,
   debug: { provider: true, output: true },
-})
+});
 ```
 
 For observing the built-in pipeline, the `debug` option is strictly faster
@@ -238,19 +238,19 @@ debug than loud ones.
 const fragile: Logger = {
   debug: (msg, meta) => console.debug(msg, JSON.stringify(meta)), // cyclic meta → throws
   /* ... */
-}
+};
 
 // CORRECT — guard serialization in the logger itself
 const safe: Logger = {
   debug: (msg, meta) => {
     try {
-      console.debug(msg, meta)
+      console.debug(msg, meta);
     } catch {
-      console.debug(msg)
+      console.debug(msg);
     }
   },
   /* ... */
-}
+};
 ```
 
 Source: packages/typescript/ai/src/logger/internal-logger.ts
