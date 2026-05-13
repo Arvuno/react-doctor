@@ -69,6 +69,50 @@ const createGraphNode = (
 const createPathToNodeMap = (nodes: Map<number, ModuleGraphNode>): Map<string, ModuleGraphNode> =>
   new Map([...nodes.values()].map((node) => [node.file.filePath, node]));
 
+interface ReverseImportEntry {
+  node: ModuleGraphNode;
+  resolvedImport: ResolvedImport;
+}
+
+interface ReExportSourceEntry {
+  node: ModuleGraphNode;
+  exportSymbol: GraphExportSymbol;
+}
+
+const buildReverseImportIndex = (
+  nodes: ReadonlyMap<number, ModuleGraphNode>,
+): Map<string, ReverseImportEntry[]> => {
+  const index = new Map<string, ReverseImportEntry[]>();
+  for (const node of nodes.values()) {
+    for (const resolvedImport of node.imports) {
+      if (resolvedImport.targetKind !== "internal" || !resolvedImport.targetFilePath) continue;
+      const importers = index.get(resolvedImport.targetFilePath) ?? [];
+      importers.push({ node, resolvedImport });
+      index.set(resolvedImport.targetFilePath, importers);
+    }
+  }
+  return index;
+};
+
+const buildReExportSourceIndex = (
+  nodes: ReadonlyMap<number, ModuleGraphNode>,
+): Map<string, ReExportSourceEntry[]> => {
+  const index = new Map<string, ReExportSourceEntry[]>();
+  for (const node of nodes.values()) {
+    for (const exportSymbol of node.exports.values()) {
+      if (!exportSymbol.isReExport || !exportSymbol.source) continue;
+      const sourceImport = node.imports.find(
+        (resolvedImport) => resolvedImport.importRecord.source === exportSymbol.source,
+      );
+      if (sourceImport?.targetKind !== "internal" || !sourceImport.targetFilePath) continue;
+      const entries = index.get(sourceImport.targetFilePath) ?? [];
+      entries.push({ node, exportSymbol });
+      index.set(sourceImport.targetFilePath, entries);
+    }
+  }
+  return index;
+};
+
 const connectReverseImports = (nodes: Map<number, ModuleGraphNode>): void => {
   const pathToNode = createPathToNodeMap(nodes);
   for (const node of nodes.values()) {
@@ -588,8 +632,7 @@ interface ReachableNamespaceReExport {
 }
 
 const enumerateReachableNamespaceReExports = (
-  nodes: Map<number, ModuleGraphNode>,
-  pathToNode: ReadonlyMap<string, ModuleGraphNode>,
+  reExportSourceIndex: ReadonlyMap<string, ReExportSourceEntry[]>,
   seedNode: ModuleGraphNode,
   seedExportName: string,
 ): ReachableNamespaceReExport[] => {
@@ -599,21 +642,13 @@ const enumerateReachableNamespaceReExports = (
     const key = `${item.node.file.id}:${item.exportName}`;
     if (reachableByKey.has(key)) continue;
     reachableByKey.set(key, item);
-    for (const candidateNode of nodes.values()) {
-      for (const candidateExport of candidateNode.exports.values()) {
-        if (!candidateExport.isReExport || !candidateExport.source) continue;
-        const candidateSourceNode = getInternalImportTarget(
-          candidateNode,
-          pathToNode,
-          candidateExport.source,
-        );
-        if (candidateSourceNode?.file.id !== item.node.file.id) continue;
-        if (candidateExport.isNamespace && candidateExport.exportedName !== "*") continue;
-        if (candidateExport.importedName === item.exportName) {
-          pending.push({ node: candidateNode, exportName: candidateExport.exportedName });
-        } else if (candidateExport.importedName === "*" && candidateExport.exportedName === "*") {
-          pending.push({ node: candidateNode, exportName: item.exportName });
-        }
+    const candidates = reExportSourceIndex.get(item.node.file.filePath) ?? [];
+    for (const { node: candidateNode, exportSymbol: candidateExport } of candidates) {
+      if (candidateExport.isNamespace && candidateExport.exportedName !== "*") continue;
+      if (candidateExport.importedName === item.exportName) {
+        pending.push({ node: candidateNode, exportName: candidateExport.exportedName });
+      } else if (candidateExport.importedName === "*" && candidateExport.exportedName === "*") {
+        pending.push({ node: candidateNode, exportName: item.exportName });
       }
     }
   }
@@ -622,6 +657,8 @@ const enumerateReachableNamespaceReExports = (
 
 const propagateNamespaceReExportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
   const pathToNode = createPathToNodeMap(nodes);
+  const reverseImportIndex = buildReverseImportIndex(nodes);
+  const reExportSourceIndex = buildReExportSourceIndex(nodes);
   for (const node of nodes.values()) {
     for (const exportSymbol of node.exports.values()) {
       if (
@@ -635,8 +672,7 @@ const propagateNamespaceReExportReferences = (nodes: Map<number, ModuleGraphNode
       const sourceNode = getInternalImportTarget(node, pathToNode, exportSymbol.source);
       if (!sourceNode) continue;
       const reachableExports = enumerateReachableNamespaceReExports(
-        nodes,
-        pathToNode,
+        reExportSourceIndex,
         node,
         exportSymbol.exportedName,
       );
@@ -664,7 +700,11 @@ const propagateNamespaceReExportReferences = (nodes: Map<number, ModuleGraphNode
         continue;
       }
       for (const reachableExport of reachableExports) {
-        for (const consumerNode of nodes.values()) {
+        const importers = reverseImportIndex.get(reachableExport.node.file.filePath) ?? [];
+        const visitedConsumerIds = new Set<number>();
+        for (const { node: consumerNode } of importers) {
+          if (visitedConsumerIds.has(consumerNode.file.id)) continue;
+          visitedConsumerIds.add(consumerNode.file.id);
           for (const reference of collectNamespaceReExportReferences(
             consumerNode,
             reachableExport.node,
@@ -740,34 +780,27 @@ const propagateStarReferenceToSource = (
 };
 
 const collectNamedImportReferencesToNode = (
-  nodes: ReadonlyMap<number, ModuleGraphNode>,
+  reverseImportIndex: ReadonlyMap<string, ReverseImportEntry[]>,
   targetNode: ModuleGraphNode,
 ): Map<string, GraphExportSymbol["references"]> => {
   const referencesByName = new Map<string, GraphExportSymbol["references"]>();
-  for (const importerNode of nodes.values()) {
-    for (const resolvedImport of importerNode.imports) {
+  const importers = reverseImportIndex.get(targetNode.file.filePath) ?? [];
+  for (const { node: importerNode, resolvedImport } of importers) {
+    for (const binding of resolvedImport.importRecord.bindings) {
       if (
-        resolvedImport.targetKind !== "internal" ||
-        resolvedImport.targetFilePath !== targetNode.file.filePath
+        binding.isNamespace ||
+        binding.importedName === "default" ||
+        binding.importedName === "*"
       ) {
         continue;
       }
-      for (const binding of resolvedImport.importRecord.bindings) {
-        if (
-          binding.isNamespace ||
-          binding.importedName === "default" ||
-          binding.importedName === "*"
-        ) {
-          continue;
-        }
-        const references = referencesByName.get(binding.importedName) ?? [];
-        references.push({
-          fromFileId: importerNode.file.id,
-          kind: "re-export",
-          importRecord: resolvedImport.importRecord,
-        });
-        referencesByName.set(binding.importedName, references);
-      }
+      const references = referencesByName.get(binding.importedName) ?? [];
+      references.push({
+        fromFileId: importerNode.file.id,
+        kind: "re-export",
+        importRecord: resolvedImport.importRecord,
+      });
+      referencesByName.set(binding.importedName, references);
     }
   }
   return referencesByName;
@@ -784,13 +817,24 @@ const collectReferencedExports = (
   return referencesByName;
 };
 
+const hasStarReExport = (node: ModuleGraphNode): boolean => {
+  for (const exportSymbol of node.exports.values()) {
+    if (exportSymbol.isReExport && exportSymbol.source && exportSymbol.exportedName === "*") {
+      return true;
+    }
+  }
+  return false;
+};
+
 const propagateStarReExportReferences = (
-  nodes: ReadonlyMap<number, ModuleGraphNode>,
+  reverseImportIndex: ReadonlyMap<string, ReverseImportEntry[]>,
   node: ModuleGraphNode,
   pathToNode: ReadonlyMap<string, ModuleGraphNode>,
 ): boolean => {
+  if (!hasStarReExport(node)) return false;
+
   let didChange = false;
-  const namedImportReferences = collectNamedImportReferencesToNode(nodes, node);
+  const namedImportReferences = collectNamedImportReferencesToNode(reverseImportIndex, node);
   const referencedExports = collectReferencedExports(node);
   for (const exportSymbol of node.exports.values()) {
     if (!exportSymbol.isReExport || !exportSymbol.source || exportSymbol.exportedName !== "*") {
@@ -860,11 +904,12 @@ const propagateNamedReExportReferences = (
 
 const propagateReExportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
   const pathToNode = createPathToNodeMap(nodes);
+  const reverseImportIndex = buildReverseImportIndex(nodes);
   let didChange = true;
   while (didChange) {
     didChange = false;
     for (const node of nodes.values()) {
-      didChange = propagateStarReExportReferences(nodes, node, pathToNode) || didChange;
+      didChange = propagateStarReExportReferences(reverseImportIndex, node, pathToNode) || didChange;
       for (const exportSymbol of node.exports.values()) {
         didChange = propagateNamedReExportReferences(node, pathToNode, exportSymbol) || didChange;
       }
