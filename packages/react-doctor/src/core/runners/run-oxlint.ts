@@ -385,9 +385,9 @@ const RULE_HELP_MAP: Record<string, string> = {
     "Move to server-side `process.env.SECRET_NAME`. Only `NEXT_PUBLIC_*` vars are safe for the client (and should not contain secrets)",
 
   "no-barrel-import":
-    "Import from the direct path: `import { Button } from '../../utils/components/Button.js'` instead of `./components`",
+    "Import from the direct path: `import { Button } from './components/Button'` instead of `./components`",
   "no-dynamic-import-path":
-    "Use a string-literal path: `import('../../utils/feature/heavy.js')` so the bundler can split this chunk",
+    "Use a string-literal path: `import('./feature/heavy.js')` so the bundler can split this chunk",
   "no-full-lodash-import":
     "Import the specific function: `import debounce from 'lodash/debounce'` — saves ~70kb",
   "no-moment":
@@ -479,7 +479,7 @@ const RULE_HELP_MAP: Record<string, string> = {
   "nextjs-no-font-link":
     '`import { Inter } from "next/font/google"` — self-hosted, zero layout shift, no render-blocking requests',
   "nextjs-no-css-link":
-    "Import CSS directly: `import './styles.css'` or use CSS Modules: `import styles from '../../utils/Button.module.css.js'`",
+    "Import CSS directly: `import './styles.css'` or use CSS Modules: `import styles from './Button.module.css'`",
   "nextjs-no-polyfill-script":
     "Next.js includes polyfills for fetch, Promise, Object.assign, Array.from, and 50+ others automatically",
   "nextjs-no-head-import":
