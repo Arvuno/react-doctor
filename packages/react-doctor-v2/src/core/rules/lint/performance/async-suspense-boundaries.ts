@@ -1,6 +1,10 @@
 import { defineRule } from "../../registry.js";
 import { isComponentAssignment, isUppercaseName } from "../react/utils/index.js";
-import { isNodeOfType } from "./utils/index.js";
+import {
+  ROUTE_HANDLER_FILE_PATTERN,
+  PAGE_OR_LAYOUT_FILE_PATTERN,
+  isNodeOfType,
+} from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const containsJsxSuspense = (node: EsTreeNode): boolean => {
@@ -33,7 +37,12 @@ export const asyncSuspenseBoundaries = defineRule<Rule>({
     },
   ],
   create: (context: RuleContext) => {
+    const filename = context.getFilename?.() ?? "";
+    const isSkippedFile =
+      PAGE_OR_LAYOUT_FILE_PATTERN.test(filename) || ROUTE_HANDLER_FILE_PATTERN.test(filename);
+
     const checkAsyncComponent = (node: EsTreeNode, body: EsTreeNode | null | undefined): void => {
+      if (isSkippedFile) return;
       if (!node.async || !body) return;
       if (containsJsxSuspense(body)) return;
       context.report({

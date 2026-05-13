@@ -1,5 +1,10 @@
 import { defineRule } from "../../registry.js";
-import { INTERNAL_PAGE_PATH_PATTERN, PAGE_FILE_PATTERN, isNodeOfType } from "./utils/index.js";
+import {
+  INTERNAL_PAGE_PATH_PATTERN,
+  NON_SEO_PAGE_PATTERN,
+  PAGE_FILE_PATTERN,
+  isNodeOfType,
+} from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsMissingMetadata = defineRule<Rule>({
@@ -16,6 +21,7 @@ export const nextjsMissingMetadata = defineRule<Rule>({
       const filename = context.getFilename?.() ?? "";
       if (!PAGE_FILE_PATTERN.test(filename)) return;
       if (INTERNAL_PAGE_PATH_PATTERN.test(filename)) return;
+      if (NON_SEO_PAGE_PATTERN.test(filename)) return;
 
       const hasMetadataExport = programNode.body?.some((statement: EsTreeNode) => {
         if (!isNodeOfType(statement, "ExportNamedDeclaration")) return false;

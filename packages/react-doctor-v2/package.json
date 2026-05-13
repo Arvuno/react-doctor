@@ -63,11 +63,13 @@
     "oxc-parser": "^0.130.0",
     "oxc-resolver": "^11.19.1",
     "oxlint": "^1.63.0",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@oxc-project/types": "^0.130.0",
     "@types/node": "^25.6.0",
+    "@types/prompts": "^2.4.9",
     "vite-plus": "^0.1.15"
   },
   "engines": {

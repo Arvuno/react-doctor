@@ -326,6 +326,11 @@ export const TEST_FILE_PATTERN = /\.(?:test|spec|stories)\.[tj]sx?$/;
 export const TEST_OR_INFRA_FILE_PATTERN =
   /(?:\.(?:test|spec|stories|e2e|integration)\.[tj]sx?$|\/(?:__tests__|tests?|__mocks__|__fixtures__|fixtures)\/)/;
 export const OG_ROUTE_PATTERN = /\/og\b/i;
+export const OG_IMAGE_FILE_PATTERN =
+  /\/(?:opengraph-image|twitter-image|icon|apple-icon)\.[jt]sx?$/;
+
+export const NON_SEO_PAGE_PATTERN =
+  /\/(?:install|callback|login|logout|signup|sign-up|sign-in|auth|verify|oauth)\//i;
 
 export const PAGES_DIRECTORY_PATTERN = /\/pages\//;
 

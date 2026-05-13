@@ -1,6 +1,7 @@
+import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { PACKAGE_JSON_FILENAME } from "./constants.js";
+import { IGNORED_DIRECTORY_NAMES, PACKAGE_JSON_FILENAME } from "./constants.js";
 import {
   collectDependencyNames,
   collectManifestDependencyNames,
@@ -295,6 +296,59 @@ const readTypeScriptConfigDependencyNames = async (directory: string): Promise<S
   (await readTypeScriptDirectoryOptions(path.join(directory, "tsconfig.json")))?.dependencyNames ??
   new Set();
 
+const CSS_EXTENSIONS = new Set([".css", ".scss", ".less"]);
+
+const CSS_IMPORT_PATTERN = /@import\s+["']([^"']+)["']/g;
+
+const isCssFile = (fileName: string): boolean =>
+  CSS_EXTENSIONS.has(path.extname(fileName).toLowerCase());
+
+const extractCssImportPackageNames = (sourceText: string): Set<string> => {
+  const packageNames = new Set<string>();
+  for (const match of sourceText.matchAll(CSS_IMPORT_PATTERN)) {
+    const specifier = match[1];
+    if (!specifier) continue;
+    const packageName = getPackageNameFromSpecifier(specifier);
+    if (packageName) packageNames.add(packageName);
+  }
+  return packageNames;
+};
+
+const discoverCssFilePaths = async (directory: string): Promise<string[]> => {
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const filePaths: string[] = [];
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory() && !IGNORED_DIRECTORY_NAMES.has(entry.name)) {
+      filePaths.push(...(await discoverCssFilePaths(entryPath)));
+    } else if (entry.isFile() && isCssFile(entry.name)) {
+      filePaths.push(entryPath);
+    }
+  }
+  return filePaths;
+};
+
+const readCssImportDependencyNames = async (directory: string): Promise<Set<string>> => {
+  const dependencyNames = new Set<string>();
+  const cssFilePaths = await discoverCssFilePaths(directory);
+  for (const filePath of cssFilePaths) {
+    try {
+      const sourceText = await fs.readFile(filePath, "utf8");
+      for (const packageName of extractCssImportPackageNames(sourceText)) {
+        dependencyNames.add(packageName);
+      }
+    } catch {
+      continue;
+    }
+  }
+  return dependencyNames;
+};
+
 const expandSimpleWorkspacePattern = async (
   rootDirectory: string,
   pattern: string,
@@ -394,6 +448,7 @@ export const discoverWorkspaces = async (
       manifestDependencyNames: collectManifestDependencyNames(manifest, dependencyNames),
       scriptDependencyNames: collectScriptDependencyNames(manifest, dependencyNames),
       typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(directory),
+      cssImportDependencyNames: await readCssImportDependencyNames(directory),
       sourceMaps: await readTypeScriptSourceMaps(directory),
     });
   }
@@ -417,6 +472,7 @@ export const discoverWorkspaces = async (
       typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(
         config.rootDirectory,
       ),
+      cssImportDependencyNames: await readCssImportDependencyNames(config.rootDirectory),
       sourceMaps: await readTypeScriptSourceMaps(config.rootDirectory),
     },
   ];

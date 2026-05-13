@@ -48,6 +48,8 @@ export {
   BARREL_INDEX_SUFFIXES,
   HEAVY_LIBRARIES,
   PASSIVE_EVENT_NAMES,
+  PAGE_OR_LAYOUT_FILE_PATTERN,
+  ROUTE_HANDLER_FILE_PATTERN,
 } from "../../constants.js";
 export {
   getEffectCallback,

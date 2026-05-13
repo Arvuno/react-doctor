@@ -7,7 +7,7 @@ Run top-to-bottom. Each phase has a hard pass criterion. Don't advance until the
 Two scoring changes are in flight; we sequence them so we can isolate regressions:
 
 1. **Phase 1** keeps v2 scoring **identical to v1** so score mismatch = a real rule-detection regression.
-2. **Phase 2** lands the proper log-scaled scoring — *only after* Phase 1 is green.
+2. **Phase 2** lands the proper log-scaled scoring — _only after_ Phase 1 is green.
 
 Parity surface: every v1 rule ID exists verbatim in v2 (confirmed — 178 shared IDs, zero renames). v2 adds 70 new rules; those are filtered out of the parity comparison.
 
@@ -34,11 +34,13 @@ Script lives at `packages/react-doctor-v2/scripts/parity.ts`. Both CLIs invoked 
 RhysSullivan/executor, nodejs/nodejs.org, tldraw/tldraw, pingdotgg/t3code, better-auth/better-auth, excalidraw/excalidraw, mastra-ai/mastra, payloadcms/payload, baptisteArno/typebot.io, makeplane/plane, medusajs/medusa, RocketChat/Rocket.Chat, twentyhq/twenty, unkeyed/unkey, shadcn-ui/ui, triggerdotdev/trigger.dev, formbricks/formbricks, langfuse/langfuse, ToolJet/ToolJet, onlook-dev/onlook, calcom/cal.com, PostHog/posthog, appsmithorg/appsmith, getsentry/sentry, lobehub/lobe-chat, dubinc/dub.
 
 **3 locals:**
+
 - `/Users/rasmus/dev/ami-2/apps/frontend`
 - `/Users/rasmus/dev/cheffect`
 - `/Users/rasmus/dev/bunnings-lite`
 
 **5 ecosystem libraries** (cover rule families leaderboard apps don't exercise):
+
 - TanStack/query
 - pmndrs/react-three-fiber
 - react-hook-form/react-hook-form
@@ -79,6 +81,10 @@ For every row in `parity-report.md` where v1 ≠ v2-filtered:
 - **`react-doctor/i18n-no-literal-jsx-text`** — same pedantic reclassification rationale as above. Adds small (1–2 point) drift on fixtures with i18n setups where literal JSX text is a known stylistic choice.
 - **`react-doctor/rendering-content-visibility`** — same pedantic reclassification rationale. Low signal-to-noise outside large landing pages.
 - **pnpm-workspace negation patterns honoured in v2 (PostHog/posthog)** — v2 respects `!pattern` exclusions in `pnpm-workspace.yaml` (the documented pnpm semantics), so `!tools/hedgebox-dummy` correctly excludes the dummy Next.js fixture from analysis. v1's `parsePnpmWorkspacePatterns` (`packages/react-doctor/src/utils/discover-project.ts:368`) treats `!`-prefixed lines as positive patterns and looks for a directory literally named `!tools/hedgebox-dummy`, finds nothing, but the workspace also matches `tools/*` so v1 ends up scanning it anyway. Reason: v2's behaviour matches pnpm's documented behaviour; v1 was inadvertently scanning a project the repo owner explicitly excluded. Affected fixtures: PostHog/posthog (4 unique rules drift — `nextjs-missing-metadata`, `nextjs-no-client-side-redirect`, `nextjs-no-img-element`, `react-compiler-destructure-method`).
+- **`react-doctor/server-fetch-without-revalidate`** — v2 now skips `route.ts` files (route handlers manage caching via HTTP response headers, not Next.js's fetch-cache mechanism; flagging `fetch()` inside a POST handler as "defaults to forever-caching" is incorrect). Affected: better-auth, trigger.dev, formbricks, onlook, cal.com, lobe-chat, dub (each loses 1 unique rule vs v1).
+- **`react-doctor/js-length-check-first`** — v2 tightened the rule to require an actual element-wise comparison (`===`/`!==` with indexed array access), not just any computed property access in the `.every()` callback body. v1's broader pattern produced false positives on non-comparison uses of the index parameter. Affected: excalidraw, payload, rocket.chat, twenty, trigger.dev, formbricks, onlook, sentry.
+- **`react-doctor/no-inline-exhaustive-style`** — v2 skips OG image files (`opengraph-image.tsx`, `twitter-image.tsx`, `icon.tsx`, `apple-icon.tsx`) where inline styles are the only styling mechanism (Satori doesn't support CSS classes).
+- **`react-doctor/design-no-redundant-*` / `design-no-space-on-flex-children` / `design-no-default-tailwind-palette` → `tailwind-*`** — recategorized from core (global) rules to ecosystem (Tailwind-only) rules. These are CSS utility class optimizations, not React-specific patterns. They now only fire when Tailwind is detected and `includeEcosystemRules` is enabled.
 - **v2-only rules catching extra true positives** — small per-fixture rule-logic improvements where v2's detection is strictly broader than v1's. Each rule was diffed against v1's plugin source and confirmed to be a true positive in the affected fixtures. Affected:
   - `react-doctor/no-secrets-in-client-code` on nodejs.org / tldraw / mastra-ai (v2 walks string-concatenation chains v1 misses; on nodejs.org this cancels at the score level with v1-only `nextjs-no-a-element`).
   - `react-doctor/js-min-max-loop` on excalidraw / mastra-ai.
@@ -113,7 +119,7 @@ Only start after Phase 2 is green and the parity report has score equality (or d
 - [x] v1 is being deprecated with v2 release — `packages/react-doctor/src/utils/calculate-score-locally.ts` deliberately left on the old formula so the v1 ↔ v2 parity script keeps comparing apples to apples until v1 is removed.
 - [x] Re-run the parity script. Done — distribution recorded in `progress.md` Phase 4 section. **Saturation finding:** the spec-literal formula floors most issue-heavy fixtures at `score = 0` because per-rule log-amplification compounds across v2's expanded rule surface (228 v1 keys + 70 v2-only). Documented for follow-up tuning; not a code bug.
 
-**Pass criterion:** Re-run report shows v2 scores in the same broad band as v1 (no flips by >40 points without a clear reason from the issue counts). **Met with caveat:** the *clear reason* for the >40-point flips is the formula's per-rule log-amplification interacting with v2's larger rule surface — exactly the kind of "by design" divergence the Phase preamble warned about. No fixture exhibits an inversion (`90 → 5` or `30 → 95`); every drop has a monotonic explanation from the issue counts. Empirical distribution (v1 raw → v2 raw, sorted by drop) is appended to `progress.md`; tuning the formula's softness is a follow-up decision, not a re-implementation.
+**Pass criterion:** Re-run report shows v2 scores in the same broad band as v1 (no flips by >40 points without a clear reason from the issue counts). **Met with caveat:** the _clear reason_ for the >40-point flips is the formula's per-rule log-amplification interacting with v2's larger rule surface — exactly the kind of "by design" divergence the Phase preamble warned about. No fixture exhibits an inversion (`90 → 5` or `30 → 95`); every drop has a monotonic explanation from the issue counts. Empirical distribution (v1 raw → v2 raw, sorted by drop) is appended to `progress.md`; tuning the formula's softness is a follow-up decision, not a re-implementation.
 
 ---
 
@@ -121,16 +127,16 @@ Only start after Phase 2 is green and the parity report has score equality (or d
 
 Tracked here for future cleanup. Do not block v2 release on these.
 
-| # | Footgun | Status |
-|---|---|---|
-| 1 | Config cache keyed by start dir (config.ts:19) | Deferred |
-| 2 | `shouldFailForIssues("warning")` fails on any issue (cli/index.ts:132-139) | Deferred |
-| 3 | Score counts unique rule IDs not issues | **Fixed in Phase 4** |
-| 4 | Unbounded recursive `error.cause` traversal | Deferred |
-| 5 | Inline `react-doctor-disable-line` ambiguity | Deferred — working as designed, undocumented |
-| 6 | Reachability role-aware (type-only) — dead-code rule must consult right flag | Deferred — verify via fixtures, not unit test |
-| 7 | Oxlint runs via `process.execPath` (Node subprocess, inherits Node version) | Deferred — design constraint |
-| 8 | Plugin contract shared eslint/oxlint via same `create()` | Deferred — design intent |
+| #   | Footgun                                                                      | Status                                        |
+| --- | ---------------------------------------------------------------------------- | --------------------------------------------- |
+| 1   | Config cache keyed by start dir (config.ts:19)                               | Deferred                                      |
+| 2   | `shouldFailForIssues("warning")` fails on any issue (cli/index.ts:132-139)   | Deferred                                      |
+| 3   | Score counts unique rule IDs not issues                                      | **Fixed in Phase 4**                          |
+| 4   | Unbounded recursive `error.cause` traversal                                  | Deferred                                      |
+| 5   | Inline `react-doctor-disable-line` ambiguity                                 | Deferred — working as designed, undocumented  |
+| 6   | Reachability role-aware (type-only) — dead-code rule must consult right flag | Deferred — verify via fixtures, not unit test |
+| 7   | Oxlint runs via `process.execPath` (Node subprocess, inherits Node version)  | Deferred — design constraint                  |
+| 8   | Plugin contract shared eslint/oxlint via same `create()`                     | Deferred — design intent                      |
 
 ---
 
@@ -145,7 +151,7 @@ Tracked here for future cleanup. Do not block v2 release on these.
   - Custom oxlint rule with quadratic per-file work — possible but not the leading cause; the apps/studio source set (3 537 TS/TSX files, ~440k lines) doesn't have unusually large individual rule targets.
   - Server-side or async rules doing whole-function dataflow analysis — same: plausible contributors, not the single root cause.
   - Per-rule visitor merging amplifying a slow rule across the codebase — confirmed mechanism (oxlint composes N visitors per node type via `createMerger`), but v2 has ~200 rules vs v1's ~130, so the multiplier alone explains most of the per-file overhead delta.
-  - File discovery — **confirmed root cause for the worst slice**: v2 does NOT honour ancestor `.prettierignore` files. supabase's monorepo-root `.prettierignore` excludes `apps/studio/public`, which contains the Monaco editor's bundled `tsWorker.js` (51 328 lines) plus a few other vendored JS files (`workerMain.js`, language-mode bundles, etc.). v1's `collectIgnorePatterns` reads `.eslintignore` / `.oxlintignore` / `.prettierignore` from the *current invocation directory* (the monorepo root) and passes them to oxlint via `--ignore-path`. v2's fan-out runs oxlint from each workspace's directory (e.g. `apps/studio`), where the ignore files don't live — so the patterns silently vanished and oxlint scanned every line of the Monaco bundle.
+  - File discovery — **confirmed root cause for the worst slice**: v2 does NOT honour ancestor `.prettierignore` files. supabase's monorepo-root `.prettierignore` excludes `apps/studio/public`, which contains the Monaco editor's bundled `tsWorker.js` (51 328 lines) plus a few other vendored JS files (`workerMain.js`, language-mode bundles, etc.). v1's `collectIgnorePatterns` reads `.eslintignore` / `.oxlintignore` / `.prettierignore` from the _current invocation directory_ (the monorepo root) and passes them to oxlint via `--ignore-path`. v2's fan-out runs oxlint from each workspace's directory (e.g. `apps/studio`), where the ignore files don't live — so the patterns silently vanished and oxlint scanned every line of the Monaco bundle.
 - [x] Once the dominant cost is identified, either: (a) optimise the rule (precompile regex, hoist scope-invariant checks, short-circuit early); (b) skip the rule on files exceeding a size threshold; (c) cap source-file count globally. Document the choice and the recovered wall-clock. **Choice:** ported v1's `collectIgnorePatterns` to v2 in `packages/react-doctor-v2/src/core/runners/collect-ignore-patterns.ts`, plus a walk-up from the workspace `rootDirectory` to the nearest `.git` and pattern translation so monorepo-root ignore entries (`apps/studio/public`) get rewritten to be relative to the workspace (`public`). v2's oxlint runner now passes `--ignore-path <combined>` whenever any pattern is collected, and `--tsconfig <./tsconfig.json>` whenever `project.hasTypeScript` (matches v1; only affects import resolution per oxlint help). Verified the generated `combined.ignore` for `apps/studio` correctly contains `public`, and the parity script still reports **15 match / 19 mismatch / 0 errored** (identical to iteration-5 totals — fix introduces zero regressions across the 34 leaderboard / ecosystem / local fixtures).
 - [x] Re-add supabase to the fixture set; re-run the parity script and confirm wall-clock stays under the 20-minute ceiling. **Done.** Full parity script with supabase included completes in **1262 s** wall-clock; supabase itself completes under the per-fixture 1 200 s ceiling and reports as `mismatch (v1=12 v2=6)` rather than `errored`. Earlier standalone runs from `apps/studio` had been hitting >1 000 s when invoked outside the parity-script pool, but with concurrency=4 the workspaces fan out and the per-fixture wall-clock stays within the timeout.
 

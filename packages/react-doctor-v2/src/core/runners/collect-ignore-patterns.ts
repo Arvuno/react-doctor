@@ -1,7 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const IGNORE_FILENAMES = [".eslintignore", ".oxlintignore", ".prettierignore"];
+const IGNORE_FILENAMES = [".eslintignore", ".oxlintignore"];
+const PRETTIERIGNORE_FILENAME = ".prettierignore";
+
+// HACK: `.prettierignore` patterns that would exclude source files by extension
+// (e.g. `*.ts`, `*.tsx`) must be dropped — Prettier uses these to skip
+// formatting, not to declare files off-limits for analysis. But directory-level
+// patterns (e.g. `apps/studio/public`) are legitimate exclusions (vendored
+// bundles, generated output) that mirror what `.eslintignore` would contain.
+const SOURCE_EXTENSION_GLOB_PATTERN = /^\*\.(?:[cm]?[jt]sx?|json|jsonc)$/;
 const LINGUIST_ATTRIBUTE_PATTERN = /^linguist-(?:vendored|generated)(?:=([a-zA-Z0-9]+))?$/i;
 const FALSY_LINGUIST_VALUES = new Set(["false", "0", "off", "no"]);
 
@@ -99,6 +107,11 @@ export const collectIgnorePatterns = (rootDirectory: string): string[] => {
         const translated = translatePattern(pattern, relPath);
         if (translated !== null) add(translated);
       }
+    }
+    for (const pattern of readIgnoreFile(path.join(currentDirectory, PRETTIERIGNORE_FILENAME))) {
+      if (SOURCE_EXTENSION_GLOB_PATTERN.test(pattern)) continue;
+      const translated = translatePattern(pattern, relPath);
+      if (translated !== null) add(translated);
     }
     for (const linguistPath of parseGitattributesLinguistPaths(
       path.join(currentDirectory, ".gitattributes"),

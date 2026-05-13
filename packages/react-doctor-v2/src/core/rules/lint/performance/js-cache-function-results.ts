@@ -2,9 +2,12 @@ import { defineRule } from "../../registry.js";
 import { isNodeOfType } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
+const REACT_HOOK_PATTERN = /^use[A-Z]/;
+
 const getSimpleCallKey = (node: EsTreeNode): string | null => {
   if (!isNodeOfType(node, "CallExpression")) return null;
   if (!isNodeOfType(node.callee, "Identifier")) return null;
+  if (REACT_HOOK_PATTERN.test(node.callee.name)) return null;
   const argumentKeys: string[] = [];
   for (const argument of node.arguments ?? []) {
     if (isNodeOfType(argument, "Identifier")) argumentKeys.push(argument.name);

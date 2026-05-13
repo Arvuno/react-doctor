@@ -2,6 +2,8 @@ import { defineRule } from "../../registry.js";
 import {
   APP_ROUTER_FILE_PATTERN,
   NON_PROJECT_PATH_PATTERN,
+  ROUTE_HANDLER_FILE_PATTERN,
+  hasDirective,
   isFetchCall,
   isNodeOfType,
   objectExpressionHasNextRevalidate,
@@ -27,17 +29,11 @@ export const serverFetchWithoutRevalidate = defineRule<Rule>({
           isServerSideFile = false;
           return;
         }
-        if (NON_PROJECT_PATH_PATTERN.test(filename)) {
+        if (NON_PROJECT_PATH_PATTERN.test(filename) || ROUTE_HANDLER_FILE_PATTERN.test(filename)) {
           isServerSideFile = false;
           return;
         }
-        const hasUseClient = (node.body ?? []).some(
-          (statement: EsTreeNode) =>
-            isNodeOfType(statement, "ExpressionStatement") &&
-            isNodeOfType(statement.expression, "Literal") &&
-            statement.expression.value === "use client",
-        );
-        isServerSideFile = !hasUseClient;
+        isServerSideFile = !hasDirective(node, "use client");
       },
       CallExpression(node: EsTreeNode) {
         if (!isServerSideFile) return;

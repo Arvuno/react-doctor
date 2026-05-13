@@ -1,5 +1,5 @@
 import { defineRule } from "../../registry.js";
-import { OG_ROUTE_PATTERN, isNodeOfType } from "./utils/index.js";
+import { OG_IMAGE_FILE_PATTERN, OG_ROUTE_PATTERN, isNodeOfType } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 export const nextjsNoImgElement = defineRule<Rule>({
@@ -13,11 +13,11 @@ export const nextjsNoImgElement = defineRule<Rule>({
   ],
   create: (context: RuleContext) => {
     const filename = context.getFilename?.() ?? "";
-    const isOgRoute = OG_ROUTE_PATTERN.test(filename);
+    const isOgImageFile = OG_ROUTE_PATTERN.test(filename) || OG_IMAGE_FILE_PATTERN.test(filename);
 
     return {
       JSXOpeningElement(node: EsTreeNode) {
-        if (isOgRoute) return;
+        if (isOgImageFile) return;
         if (isNodeOfType(node.name, "JSXIdentifier") && node.name.name === "img") {
           context.report({
             node,

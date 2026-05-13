@@ -1,5 +1,5 @@
 import { defineRule } from "../../registry.js";
-import { DERIVING_ARRAY_METHODS, isNodeOfType } from "./utils/index.js";
+import { DERIVING_ARRAY_METHODS, hasDirective, isNodeOfType } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
 const isUppercaseJsxElement = (node: EsTreeNode): boolean => {
@@ -16,31 +16,39 @@ export const serverSerialization = defineRule<Rule>({
       after: `<Client id={user.id} name={user.name} />`,
     },
   ],
-  create: (context: RuleContext) => ({
-    JSXOpeningElement(node: EsTreeNode) {
-      if (!isUppercaseJsxElement(node)) return;
-      for (const attribute of node.attributes ?? []) {
-        if (isNodeOfType(attribute, "JSXSpreadAttribute")) {
+  create: (context: RuleContext) => {
+    let isClientComponent = false;
+
+    return {
+      Program(programNode: EsTreeNode) {
+        isClientComponent = hasDirective(programNode, "use client");
+      },
+      JSXOpeningElement(node: EsTreeNode) {
+        if (isClientComponent) return;
+        if (!isUppercaseJsxElement(node)) return;
+        for (const attribute of node.attributes ?? []) {
+          if (isNodeOfType(attribute, "JSXSpreadAttribute")) {
+            context.report({
+              node: attribute,
+              message:
+                "spreading server data into a client boundary can serialize unused fields - pass only the primitive props the client component needs",
+            });
+            continue;
+          }
+          if (!isNodeOfType(attribute, "JSXAttribute")) continue;
+          if (!isNodeOfType(attribute.value, "JSXExpressionContainer")) continue;
+          const expression = attribute.value.expression;
+          if (!isNodeOfType(expression, "CallExpression")) continue;
+          if (!isNodeOfType(expression.callee, "MemberExpression")) continue;
+          if (!isNodeOfType(expression.callee.property, "Identifier")) continue;
+          if (!DERIVING_ARRAY_METHODS.has(expression.callee.property.name)) continue;
           context.report({
             node: attribute,
             message:
-              "spreading server data into a client boundary can serialize unused fields - pass only the primitive props the client component needs",
+              "derived collection is serialized as a separate client prop - pass the source data once and derive on the client to reduce RSC payload size",
           });
-          continue;
         }
-        if (!isNodeOfType(attribute, "JSXAttribute")) continue;
-        if (!isNodeOfType(attribute.value, "JSXExpressionContainer")) continue;
-        const expression = attribute.value.expression;
-        if (!isNodeOfType(expression, "CallExpression")) continue;
-        if (!isNodeOfType(expression.callee, "MemberExpression")) continue;
-        if (!isNodeOfType(expression.callee.property, "Identifier")) continue;
-        if (!DERIVING_ARRAY_METHODS.has(expression.callee.property.name)) continue;
-        context.report({
-          node: attribute,
-          message:
-            "derived collection is serialized as a separate client prop - pass the source data once and derive on the client to reduce RSC payload size",
-        });
-      }
-    },
-  }),
+      },
+    };
+  },
 });

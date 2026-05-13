@@ -1252,7 +1252,6 @@ describe("codebase rules", () => {
     expect(result.issues.map((issue) => issue.source?.ruleId).sort()).toEqual([
       "barrel-hotspot",
       "circular-import",
-      "client-server-boundary",
     ]);
   });
 
@@ -2014,7 +2013,6 @@ describe("codebase rules", () => {
         "unused-optional-peer-dependency",
         "type-only-dependency",
         "test-only-dependency",
-        "client-server-boundary",
         "barrel-hotspot",
         "circular-import",
       ]),

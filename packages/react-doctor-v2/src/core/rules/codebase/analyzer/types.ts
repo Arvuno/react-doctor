@@ -64,6 +64,7 @@ export interface WorkspaceInfo {
   manifestDependencyNames: Set<string>;
   scriptDependencyNames: Set<string>;
   typeScriptConfigDependencyNames: Set<string>;
+  cssImportDependencyNames: Set<string>;
   sourceMaps: WorkspaceSourceMap[];
 }
 

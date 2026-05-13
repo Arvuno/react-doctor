@@ -31,6 +31,8 @@ export { isButtonLikeTagName } from "./is-button-like-tag-name.js";
 export { isInsideExcludedAncestor } from "./is-inside-excluded-ancestor.js";
 export { tokenizeClassName } from "./tokenize-class-name.js";
 export {
+  OG_IMAGE_FILE_PATTERN,
+  OG_ROUTE_PATTERN,
   INLINE_STYLE_PROPERTY_THRESHOLD,
   LONG_TRANSITION_DURATION_THRESHOLD_MS,
   SIDE_TAB_BORDER_WIDTH_WITH_RADIUS_PX,

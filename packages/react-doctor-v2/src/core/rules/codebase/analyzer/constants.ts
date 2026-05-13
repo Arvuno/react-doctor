@@ -72,14 +72,22 @@ export const COMMON_ENTRY_STEMS = new Set(["App", "index", "main"]);
 export const FRAMEWORK_ROUTE_ENTRY_STEMS = new Set([
   "_app",
   "_document",
+  "apple-icon",
+  "default",
   "error",
   "global-error",
+  "icon",
   "layout",
   "loading",
+  "manifest",
   "not-found",
+  "opengraph-image",
   "page",
+  "robots",
   "route",
+  "sitemap",
   "template",
+  "twitter-image",
 ]);
 
 export const TEST_ENTRY_MARKERS = [".test.", ".spec.", ".testcase.", ".stories.", ".story."];

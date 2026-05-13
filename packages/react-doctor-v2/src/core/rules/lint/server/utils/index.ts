@@ -22,7 +22,7 @@ export { isDeferrableSideEffectCall } from "./is-deferrable-side-effect-call.js"
 export { isFetchCall } from "./is-fetch-call.js";
 export { isMutableConstInitializer } from "./is-mutable-const-initializer.js";
 export { objectExpressionHasNextRevalidate } from "./object-expression-has-next-revalidate.js";
-export { AUTH_CHECK_LOOKAHEAD_STATEMENTS } from "../../constants.js";
+export { AUTH_CHECK_LOOKAHEAD_STATEMENTS, ROUTE_HANDLER_FILE_PATTERN } from "../../constants.js";
 export {
   getRootIdentifierName,
   hasDirective,

@@ -115,6 +115,7 @@ const getUsedPackages = (graph: ModuleGraph, workspace: WorkspaceInfo): Set<stri
     ...workspace.manifestDependencyNames,
     ...workspace.scriptDependencyNames,
     ...workspace.typeScriptConfigDependencyNames,
+    ...workspace.cssImportDependencyNames,
     ...(graph.pluginResults.get(workspace.id)?.toolingDependencies ?? []),
   ]);
   addDefinitelyTypedCompanionPackages(workspace, usedPackages);
@@ -126,6 +127,7 @@ const getNonImportUsedPackages = (graph: ModuleGraph, workspace: WorkspaceInfo):
     ...workspace.manifestDependencyNames,
     ...workspace.scriptDependencyNames,
     ...workspace.typeScriptConfigDependencyNames,
+    ...workspace.cssImportDependencyNames,
     ...(graph.pluginResults.get(workspace.id)?.toolingDependencies ?? []),
   ]);
 

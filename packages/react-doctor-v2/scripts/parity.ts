@@ -75,6 +75,40 @@ const ECOSYSTEM_REPOS = [
   "expo/expo",
 ];
 
+const REGRESSION_TEST_REPOS = [
+  "vercel/next.js",
+  "facebook/react",
+  "bluesky-social/social-app",
+  "outline/outline",
+  "trpc/trpc",
+  "radix-ui/primitives",
+  "documenso/documenso",
+  "invoke-ai/InvokeAI",
+  "refinedev/refine",
+  "vercel/ai",
+  "vercel/commerce",
+  "cloudflare/next-on-pages",
+  "t3-oss/create-t3-app",
+  "steven-tey/novel",
+  "vercel/swr",
+  "pmndrs/zustand",
+  "tannerlinsley/react-ranger",
+  "jaredpalmer/formik",
+  "remix-run/react-router",
+  "withastro/astro",
+  "vitejs/vite",
+  "preactjs/preact",
+  "solidjs/solid-start",
+  "umami-software/umami",
+  "calcom/cal.com",
+  "nrwl/nx",
+  "novuhq/novu",
+  "highlight/highlight",
+  "n8n-io/n8n",
+  "immich-app/immich",
+  "grafana/grafana",
+];
+
 const LOCAL_FIXTURES = [
   "/Users/rasmus/dev/ami-2/apps/frontend",
   "/Users/rasmus/dev/cheffect",
@@ -280,7 +314,11 @@ const cloneSlugOnce = (
   return promise;
 };
 
-const ensureFixturePath = async (fixture: FixtureSpec, manifest: Manifest, refresh: boolean): Promise<string | null> => {
+const ensureFixturePath = async (
+  fixture: FixtureSpec,
+  manifest: Manifest,
+  refresh: boolean,
+): Promise<string | null> => {
   if (fixture.kind === "local") {
     if (!fixture.localPath || !fs.existsSync(fixture.localPath)) {
       return null;
@@ -346,13 +384,26 @@ const safeParse = <T>(stdout: string): T | null => {
   }
 };
 
+// HACK: v2 renamed some design-* rules to tailwind-*. Map v2 keys
+// back to v1 keys so the parity comparison treats them as the same rule.
+const V2_TO_V1_RULE_KEY: ReadonlyMap<string, string> = new Map([
+  [
+    "react-doctor/tailwind-no-redundant-padding-axes",
+    "react-doctor/design-no-redundant-padding-axes",
+  ],
+  ["react-doctor/tailwind-no-redundant-size-axes", "react-doctor/design-no-redundant-size-axes"],
+  [
+    "react-doctor/tailwind-no-space-on-flex-children",
+    "react-doctor/design-no-space-on-flex-children",
+  ],
+  ["react-doctor/tailwind-no-default-palette", "react-doctor/design-no-default-tailwind-palette"],
+]);
+
+const normalizeV2RuleKey = (key: string): string => V2_TO_V1_RULE_KEY.get(key) ?? key;
+
 const loadV1RuleSurface = async (): Promise<Set<string>> => {
   const source = await fsp.readFile(V1_OXLINT_CONFIG, "utf8");
   const surface = new Set<string>();
-  // Match plugin/rule keys inside oxlint rule maps. Captures any key whose
-  // value is a severity string (error|warn|off). knip/* rules live in a
-  // different module and have no oxlint counterpart in v2 — they're
-  // intentionally excluded so dead-code rules don't pollute the diff.
   const re = /["']([a-z][a-zA-Z0-9_-]*\/[a-zA-Z0-9_-]+)["']\s*:\s*["'](?:error|warn|off)["']/g;
   let match: RegExpExecArray | null = re.exec(source);
   while (match !== null) {
@@ -367,22 +418,16 @@ const v1RuleKey = (diagnostic: V1Diagnostic): string => `${diagnostic.plugin}/${
 const v2RuleKey = (issue: V2Issue): string | null => {
   const source = issue.source;
   if (!source) return null;
-  // v2's oxlint runner outputs custom-plugin rules with a parenthesized
-  // format like `react-doctor(no-foo)`, which lands in `ruleId` while
-  // `pluginName` is the generic "oxlint". Strip the wrapper so the key
-  // matches v1's `plugin/rule` form.
+  let key: string | null = null;
   if (source.ruleId) {
     const wrapped = /^([a-zA-Z][\w-]*)\(([^)]+)\)$/.exec(source.ruleId);
-    if (wrapped) return `${wrapped[1]}/${wrapped[2]}`;
+    if (wrapped) key = `${wrapped[1]}/${wrapped[2]}`;
   }
-  if (source.pluginName && source.ruleId) return `${source.pluginName}/${source.ruleId}`;
-  return null;
+  if (!key && source.pluginName && source.ruleId) key = `${source.pluginName}/${source.ruleId}`;
+  return key ? normalizeV2RuleKey(key) : null;
 };
 
-const scoreFromIssues = (
-  errorKeys: Set<string>,
-  warningKeys: Set<string>,
-): number => {
+const scoreFromIssues = (errorKeys: Set<string>, warningKeys: Set<string>): number => {
   const penalty = errorKeys.size * ERROR_PENALTY + warningKeys.size * WARNING_PENALTY;
   return Math.max(0, Math.round(PERFECT_SCORE - penalty));
 };
@@ -407,7 +452,12 @@ const collectRuleSets = (
 const collectV2RuleSets = (
   v2: V2Issue[],
   surface: Set<string>,
-): { errors: Set<string>; warnings: Set<string>; keys: Set<string>; tuples: Array<{ ruleId: string; file: string; line: number }> } => {
+): {
+  errors: Set<string>;
+  warnings: Set<string>;
+  keys: Set<string>;
+  tuples: Array<{ ruleId: string; file: string; line: number }>;
+} => {
   const errors = new Set<string>();
   const warnings = new Set<string>();
   const keys = new Set<string>();
@@ -522,9 +572,7 @@ const runFixture = async (
     const v1Triples = new Set(v1Tuples.map((t) => `${t.ruleId}|${t.file}|${t.line}`));
     const v2Triples = new Set(v2Sets.tuples.map((t) => `${t.ruleId}|${t.file}|${t.line}`));
 
-    outcome.missingInV2 = v1Tuples.filter(
-      (t) => !v2Triples.has(`${t.ruleId}|${t.file}|${t.line}`),
-    );
+    outcome.missingInV2 = v1Tuples.filter((t) => !v2Triples.has(`${t.ruleId}|${t.file}|${t.line}`));
     outcome.extraInV2 = v2Sets.tuples.filter(
       (t) => !v1Triples.has(`${t.ruleId}|${t.file}|${t.line}`),
     );
@@ -559,10 +607,7 @@ const fixtureLabel = (fixture: FixtureSpec): string => {
 
 const formatNumber = (value: number | null): string => (value === null ? "—" : String(value));
 
-const buildReport = (
-  fixtures: FixtureSpec[],
-  outcomes: Array<RunOutcome | null>,
-): string => {
+const buildReport = (fixtures: FixtureSpec[], outcomes: Array<RunOutcome | null>): string => {
   const lines: string[] = [];
   lines.push("# React Doctor v1↔v2 Parity Report");
   lines.push("");
@@ -635,7 +680,9 @@ const buildReport = (
     deltas.length === 0
       ? 0
       : deltas.reduce((acc, delta) => acc + Math.abs(delta), 0) / deltas.length;
-  lines.push(`**Score divergence from v1** (Δ = v2 filtered − v1 filtered, across ${deltas.length} fixtures):`);
+  lines.push(
+    `**Score divergence from v1** (Δ = v2 filtered − v1 filtered, across ${deltas.length} fixtures):`,
+  );
   lines.push("");
   lines.push("| Bucket | Count |");
   lines.push("|---|---:|");
@@ -657,9 +704,7 @@ const buildReport = (
     const maxRatio = ratios.reduce((acc, ratio) => Math.max(acc, ratio), 0);
     const sortedRatios = [...ratios].sort((a, b) => a - b);
     const medianRatio =
-      sortedRatios.length === 0
-        ? 0
-        : sortedRatios[Math.floor(sortedRatios.length / 2)] ?? 0;
+      sortedRatios.length === 0 ? 0 : (sortedRatios[Math.floor(sortedRatios.length / 2)] ?? 0);
     const topSlow = [...slowdowns].sort((a, b) => b.ratio - a.ratio).slice(0, 5);
     lines.push(
       `**Wall-clock slowdown** (v2 / v1, across ${ratios.length} fixtures; both CLIs spawned in parallel so the ratio reflects relative cost under shared load, not absolute):`,
@@ -698,13 +743,19 @@ const buildReport = (
     const fixture = fixtures[i];
     const outcome = outcomes[i];
     if (!outcome || !outcome.ok) continue;
-    if (outcome.v1FilteredScore === outcome.v2FilteredScore && outcome.missingInV2.length === 0 && outcome.extraInV2.length === 0) {
+    if (
+      outcome.v1FilteredScore === outcome.v2FilteredScore &&
+      outcome.missingInV2.length === 0 &&
+      outcome.extraInV2.length === 0
+    ) {
       continue;
     }
     const label = fixtureLabel(fixture);
     lines.push(`### ${label}`);
     lines.push("");
-    lines.push(`- v1 filtered score: **${outcome.v1FilteredScore}** vs v2 filtered: **${outcome.v2FilteredScore}**`);
+    lines.push(
+      `- v1 filtered score: **${outcome.v1FilteredScore}** vs v2 filtered: **${outcome.v2FilteredScore}**`,
+    );
     if (outcome.v1OnlyRules.length > 0) {
       lines.push(`- Unique rules in v1 only (drive v2's higher score):`);
       for (const rule of outcome.v1OnlyRules) {
@@ -729,7 +780,9 @@ const buildReport = (
         byRule.set(tuple.ruleId, (byRule.get(tuple.ruleId) ?? 0) + 1);
       }
       const top = [...byRule.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
-      lines.push("- Missing in v2 by (file, line) tuple (sampled — same-rule-different-line entries here don't move the score):");
+      lines.push(
+        "- Missing in v2 by (file, line) tuple (sampled — same-rule-different-line entries here don't move the score):",
+      );
       for (const [rule, count] of top) {
         lines.push(`  - \`${rule}\` × ${count}`);
       }
@@ -750,7 +803,9 @@ const buildReport = (
 
   lines.push("## Cross-fixture unique-rule rollup");
   lines.push("");
-  lines.push("Each rule below is one that fires on at least one fixture in one version but not the other. These are the rules whose alignment would close the score-parity gap.");
+  lines.push(
+    "Each rule below is one that fires on at least one fixture in one version but not the other. These are the rules whose alignment would close the score-parity gap.",
+  );
   lines.push("");
   if (v1OnlyFrequency.size > 0) {
     lines.push("### Rules firing in v1 but not v2 (sorted by fixture count)");
@@ -795,6 +850,7 @@ const main = async () => {
   const fixtures: FixtureSpec[] = [
     ...LEADERBOARD_REPOS.map((slug) => ({ id: slug, kind: "git" as const, slug })),
     ...ECOSYSTEM_REPOS.map((slug) => ({ id: slug, kind: "git" as const, slug })),
+    ...REGRESSION_TEST_REPOS.map((slug) => ({ id: slug, kind: "git" as const, slug })),
     ...MONOREPO_SUBPATH_FIXTURES.map(({ slug, subpath }) => ({
       id: `${slug}/${subpath}`,
       kind: "git" as const,

@@ -1708,7 +1708,8 @@ const collectAstFacts = (
       isAstNode(node.callee) &&
       node.callee.type === "Identifier" &&
       node.callee.name === "URL" &&
-      Array.isArray(node.arguments)
+      Array.isArray(node.arguments) &&
+      isImportMetaUrlExpression(node.arguments[1])
     ) {
       const source = getStringLiteralValue(node.arguments[0]);
       if (source)

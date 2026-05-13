@@ -7,7 +7,11 @@ import {
   TEST_ENTRY_MARKERS,
   TYPESCRIPT_DECLARATION_EXTENSIONS,
 } from "./constants.js";
-import { collectManifestEntrySpecifiers, collectManifestSupportSpecifiers } from "./manifest.js";
+import {
+  collectManifestEntrySpecifiers,
+  collectManifestSupportSpecifiers,
+  collectScriptFileEntryPaths,
+} from "./manifest.js";
 import { getFileStem, matchesAnyGlob, toRelativePath } from "./path-utils.js";
 import type {
   CodebaseAnalysisConfig,
@@ -151,6 +155,14 @@ export const discoverEntryPoints = (
         resolveEntrySpecifier(config, workspace, filesByPath, entry),
         "runtime",
         "package.json",
+      );
+    }
+    for (const entry of collectScriptFileEntryPaths(workspace.manifest)) {
+      pushEntryPoint(
+        entryPoints,
+        resolveEntrySpecifier(config, workspace, filesByPath, entry),
+        "support",
+        "script-file",
       );
     }
     const manifestSupportEntries = collectManifestSupportSpecifiers(workspace.manifest);

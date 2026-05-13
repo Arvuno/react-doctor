@@ -10,6 +10,7 @@ import {
   SCRIPT_RUNNER_COMMANDS,
   SCRIPT_WRAPPER_COMMANDS,
   SOURCE_ENTRY_FIELDS,
+  SOURCE_FILE_EXTENSIONS,
 } from "./constants.js";
 import type { DependencyBuckets, PackageJsonObject, WorkspaceInfo } from "./types.js";
 
@@ -158,6 +159,56 @@ export const collectScriptDependencyNames = (
     }
   }
   return scriptDependencyNames;
+};
+
+const SCRIPT_FILE_RUNNER_COMMANDS = new Set([
+  ...SCRIPT_IGNORED_COMMANDS,
+  ...SCRIPT_RUNNER_COMMANDS,
+  ...Object.keys(SCRIPT_BINARY_PACKAGE_NAME_ALIASES),
+]);
+
+const isSourceFilePath = (token: string): boolean =>
+  SOURCE_FILE_EXTENSIONS.some((extension) => token.endsWith(extension));
+
+const collectScriptFileEntries = (script: string): string[] => {
+  const entries: string[] = [];
+  const tokens = (script.match(/[^\s]+/g) ?? []).map(stripShellTokenQuotes);
+
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index] ?? "";
+    if (SCRIPT_COMMAND_SEPARATORS.has(token)) continue;
+    if (token.startsWith("-")) continue;
+
+    if (isSourceFilePath(token) && !token.startsWith("-")) {
+      entries.push(token);
+      continue;
+    }
+
+    const commandName = toCommandName(token);
+    if (!SCRIPT_FILE_RUNNER_COMMANDS.has(commandName)) continue;
+
+    for (let argumentIndex = index + 1; argumentIndex < tokens.length; argumentIndex++) {
+      const argument = tokens[argumentIndex] ?? "";
+      if (SCRIPT_COMMAND_SEPARATORS.has(argument)) break;
+      if (argument.startsWith("-")) continue;
+      if (argument === "run" || argument === "exec") continue;
+      if (isSourceFilePath(argument)) {
+        entries.push(argument);
+        break;
+      }
+      break;
+    }
+  }
+
+  return entries;
+};
+
+export const collectScriptFileEntryPaths = (manifest: PackageJsonObject): string[] => {
+  const entries: string[] = [];
+  for (const script of Object.values(manifest.scripts ?? EMPTY_OBJECT)) {
+    entries.push(...collectScriptFileEntries(script));
+  }
+  return entries;
 };
 
 const collectManifestDependencyNamesFromValue = (

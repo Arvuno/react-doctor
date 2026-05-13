@@ -18,10 +18,7 @@ const colorizeByScore = (text: string, score: number): string => {
 const buildScoreBar = (score: number): string => {
   const filledCount = Math.round((score / PERFECT_SCORE) * SCORE_BAR_WIDTH_CHARS);
   const emptyCount = SCORE_BAR_WIDTH_CHARS - filledCount;
-  return (
-    colorizeByScore("█".repeat(filledCount), score) +
-    highlighter.dim("░".repeat(emptyCount))
-  );
+  return colorizeByScore("█".repeat(filledCount), score) + highlighter.dim("░".repeat(emptyCount));
 };
 
 const getDoctorFace = (score: number): [string, string] => {

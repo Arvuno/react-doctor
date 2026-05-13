@@ -97,7 +97,8 @@ const collectDuplicateExports = (graph: ModuleGraph): DuplicateExportFinding[] =
     for (const exportSymbol of node.exports.values()) {
       if (
         exportSymbol.exportedName === DEFAULT_EXPORT_NAME ||
-        exportSymbol.exportedName === NAMESPACE_EXPORT_NAME
+        exportSymbol.exportedName === NAMESPACE_EXPORT_NAME ||
+        exportSymbol.isPluginUsed
       ) {
         continue;
       }

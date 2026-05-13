@@ -71,12 +71,15 @@ const isClientNode = (node: ModuleGraphNode): boolean =>
 
 const isServerOnlyTarget = (graph: ModuleGraph, resolvedImport: ResolvedImport): boolean => {
   if (resolvedImport.packageName === SERVER_ONLY_PACKAGE_NAME) return true;
+  return false;
+};
+
+const isServerActionBoundary = (graph: ModuleGraph, resolvedImport: ResolvedImport): boolean => {
   if (resolvedImport.targetKind !== "internal" || !resolvedImport.targetFilePath) return false;
   const targetFileId = graph.pathToFileId.get(resolvedImport.targetFilePath);
-  return Boolean(
-    typeof targetFileId === "number" &&
-    graph.nodes.get(targetFileId)?.directives.has(REACT_SERVER_DIRECTIVE),
-  );
+  if (typeof targetFileId !== "number") return false;
+  const targetNode = graph.nodes.get(targetFileId);
+  return Boolean(targetNode?.directives.has(REACT_SERVER_DIRECTIVE));
 };
 
 const collectClientBoundaryViolations = (graph: ModuleGraph): BoundaryViolationFinding[] => {
@@ -103,6 +106,7 @@ const collectClientBoundaryViolations = (graph: ModuleGraph): BoundaryViolationF
           });
           continue;
         }
+        if (isServerActionBoundary(graph, resolvedImport)) continue;
         if (resolvedImport.targetKind === "internal" && resolvedImport.targetFilePath) {
           const targetNode = graph.nodes.get(
             graph.pathToFileId.get(resolvedImport.targetFilePath) ?? -1,

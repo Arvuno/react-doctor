@@ -1,5 +1,6 @@
 import {
   ERROR_RULE_PENALTY,
+  PER_RULE_LOG_AMPLIFICATION_CAP,
   PERFECT_SCORE,
   SCORE_GOOD_THRESHOLD,
   SCORE_OK_THRESHOLD,
@@ -28,7 +29,8 @@ export const getScoreLabel = (score: number): string => {
 
 const rulePenalty = (severity: "error" | "warning", count: number): number => {
   const base = severity === "error" ? ERROR_RULE_PENALTY : WARNING_RULE_PENALTY;
-  return base * (1 + Math.log2(count));
+  const amplification = Math.min(1 + Math.log2(count), PER_RULE_LOG_AMPLIFICATION_CAP);
+  return base * amplification;
 };
 
 export const calculateScore = (
