@@ -98,6 +98,14 @@ export const AUTH_FUNCTION_NAMES = new Set([
   "currentUser",
   "getAuth",
   "validateSession",
+  "checkAdminAccess",
+  "requireAdmin",
+  "ensureAuth",
+  "ensureAuthenticated",
+  "requireSession",
+  "assertAuth",
+  "protectRoute",
+  "guardAuth",
 ]);
 
 export const SECRET_PATTERNS = [
@@ -471,6 +479,7 @@ export const UNSUBSCRIPTION_METHOD_NAMES = new Set([
   "unsubscribe",
   "removeEventListener",
   "removeListener",
+  "remove",
   "off",
   "unwatch",
   "unlisten",

@@ -37,11 +37,16 @@ export const containsAuthCheck = (statements: EsTreeNode[]): boolean => {
         callNode = child.argument;
       }
 
-      if (
-        isNodeOfType(callNode?.callee, "Identifier") &&
-        AUTH_FUNCTION_NAMES.has(callNode.callee.name)
-      ) {
-        foundAuthCall = true;
+      if (isNodeOfType(callNode?.callee, "Identifier")) {
+        const calleeName: string = callNode.callee.name;
+        if (
+          AUTH_FUNCTION_NAMES.has(calleeName) ||
+          /^(?:check|require|ensure|assert|verify|guard|protect|validate).*(?:auth|access|session|admin|permission|role)/i.test(
+            calleeName,
+          )
+        ) {
+          foundAuthCall = true;
+        }
       }
     });
   }

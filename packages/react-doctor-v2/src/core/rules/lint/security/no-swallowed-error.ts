@@ -1,6 +1,8 @@
 import { defineRule } from "../../registry.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
+const hasNoErrorParam = (node: EsTreeNode): boolean => !node.param;
+
 export const noSwallowedError = defineRule<Rule>({
   recommendation:
     "Handle caught errors with recovery, logging, or rethrowing; an empty catch only hides runtime evidence and lets broken states look fixed.",
@@ -14,6 +16,7 @@ export const noSwallowedError = defineRule<Rule>({
     CatchClause(node: EsTreeNode) {
       const bodyStatements = node.body?.body ?? [];
       if (bodyStatements.length > 0) return;
+      if (hasNoErrorParam(node)) return;
       context.report({
         node,
         message: "empty catch block swallows runtime evidence - log, recover, or rethrow the error",
