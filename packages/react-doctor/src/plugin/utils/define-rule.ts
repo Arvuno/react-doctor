@@ -1,6 +1,6 @@
 import type { Rule } from "./rule.js";
 
-export interface DefineRule {
+interface DefineRule {
   (rule: Rule): Rule;
   <RuleDefinition>(rule: RuleDefinition): RuleDefinition;
 }
