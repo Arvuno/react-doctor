@@ -1,4 +1,4 @@
-import { getErrorChainMessages } from "../../cli/format-error-chain.js";
+import { getErrorChainMessages } from "../format-error-chain.js";
 
 const PLUGIN_CONFIG_PATTERN = /(?:^|[/\\\s])([a-z][a-z0-9-]*)\.config\./i;
 const RC_DOTFILE_PATTERN = /(?:^|[/\\])\.([a-z][a-z0-9-]*?)rc(?:\.[a-z]+)?(?:\b|$)/i;

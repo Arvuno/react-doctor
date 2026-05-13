@@ -1,7 +1,7 @@
 import { SHARE_BASE_URL } from "../constants.js";
 import type { Diagnostic, ScoreResult } from "../types.js";
-import { highlighter } from "./highlighter.js";
-import { logger } from "./logger.js";
+import { highlighter } from "../core/highlighter.js";
+import { logger } from "../core/logger.js";
 import { collectAffectedFiles, formatElapsedTime } from "./render-diagnostics.js";
 import { printNoScoreHeader, printScoreHeader } from "./render-score-header.js";
 import { writeDiagnosticsDirectory } from "./write-diagnostics-directory.js";

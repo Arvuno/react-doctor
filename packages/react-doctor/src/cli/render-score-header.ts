@@ -6,8 +6,8 @@ import {
 } from "../constants.js";
 import type { ScoreResult } from "../types.js";
 import { colorizeByScore } from "./colorize-by-score.js";
-import { highlighter } from "./highlighter.js";
-import { logger } from "./logger.js";
+import { highlighter } from "../core/highlighter.js";
+import { logger } from "../core/logger.js";
 
 interface ScoreBarSegments {
   filledSegment: string;

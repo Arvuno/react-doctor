@@ -1,5 +1,5 @@
 import type { JsonReport, JsonReportMode } from "../types.js";
-import { getErrorChainMessages } from "../cli/format-error-chain.js";
+import { getErrorChainMessages } from "./format-error-chain.js";
 
 interface BuildJsonReportErrorInput {
   version: string;

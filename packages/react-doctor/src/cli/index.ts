@@ -19,10 +19,10 @@ import type {
 import { buildJsonReport } from "../core/build-json-report.js";
 import { buildJsonReportError } from "../core/build-json-report-error.js";
 import { filterSourceFiles, getDiffInfo } from "../core/runners/get-diff-files.js";
-import { highlighter } from "./highlighter.js";
+import { highlighter } from "../core/highlighter.js";
 import { loadConfigWithSource } from "../core/config/load-config.js";
 import { resolveConfigRootDir } from "../core/config/resolve-config-root-dir.js";
-import { logger, setLoggerSilent } from "./logger.js";
+import { logger, setLoggerSilent } from "../core/logger.js";
 import { prompts } from "./prompts.js";
 import { toRelativePath } from "../core/to-relative-path.js";
 import { encodeAnnotationProperty, encodeAnnotationMessage } from "./annotation-encoding.js";

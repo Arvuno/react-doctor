@@ -24,11 +24,11 @@ import {
 } from "./scoring/calculate-score.js";
 import { combineDiagnostics } from "./diagnostics/combine-diagnostics.js";
 import { discoverProject } from "./detection/discover-project.js";
-import { formatErrorChain } from "../cli/format-error-chain.js";
-import { highlighter } from "../cli/highlighter.js";
+import { formatErrorChain } from "./format-error-chain.js";
+import { highlighter } from "./highlighter.js";
 import { computeJsxIncludePaths } from "./runners/jsx-include-paths.js";
 import { loadConfigWithSource } from "./config/load-config.js";
-import { isLoggerSilent, logger, setLoggerSilent } from "../cli/logger.js";
+import { isLoggerSilent, logger, setLoggerSilent } from "./logger.js";
 import { resolveConfigRootDir } from "./config/resolve-config-root-dir.js";
 import { resolveLintIncludePaths } from "./runners/resolve-lint-include-paths.js";
 import { runKnip } from "./runners/run-knip.js";

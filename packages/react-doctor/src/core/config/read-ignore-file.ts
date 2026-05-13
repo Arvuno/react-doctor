@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { logger } from "../../cli/logger.js";
+import { logger } from "../logger.js";
 
 // HACK: per gitignore spec, a leading `\#` means a literal `#` in the
 // pattern (used to match files literally named `#config`), and `\!`

@@ -1,5 +1,5 @@
 import { OXLINT_NODE_REQUIREMENT, OXLINT_RECOMMENDED_NODE_MAJOR } from "../constants.js";
-import { logger } from "./logger.js";
+import { logger } from "../core/logger.js";
 import { prompts } from "./prompts.js";
 import {
   installNodeViaNvm,

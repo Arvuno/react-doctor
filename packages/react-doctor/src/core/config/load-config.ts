@@ -4,7 +4,7 @@ import type { ReactDoctorConfig } from "../../types.js";
 import { isFile } from "../is-file.js";
 import { isPlainObject } from "../is-plain-object.js";
 import { isMonorepoRoot } from "../detection/find-monorepo-root.js";
-import { logger } from "../../cli/logger.js";
+import { logger } from "../logger.js";
 import { validateConfigTypes } from "./validate-config-types.js";
 
 const CONFIG_FILENAME = "react-doctor.config.json";

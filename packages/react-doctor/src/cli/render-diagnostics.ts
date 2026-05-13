@@ -8,9 +8,9 @@ import {
 import type { Diagnostic } from "../types.js";
 import { buildHiddenDiagnosticsSummary } from "./build-hidden-diagnostics-summary.js";
 import { groupBy } from "../core/group-by.js";
-import { highlighter } from "./highlighter.js";
+import { highlighter } from "../core/highlighter.js";
 import { indentMultilineText } from "./indent-multiline-text.js";
-import { logger } from "./logger.js";
+import { logger } from "../core/logger.js";
 import { toRelativePath } from "../core/to-relative-path.js";
 import { wrapIndentedText } from "./wrap-indented-text.js";
 

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ReactDoctorConfig } from "../../types.js";
-import { logger } from "../../cli/logger.js";
+import { logger } from "../logger.js";
 
 export const resolveConfigRootDir = (
   config: ReactDoctorConfig | null,

@@ -1,7 +1,7 @@
 import { CANONICAL_GITHUB_URL } from "../constants.js";
 import type { HandleErrorOptions } from "../types.js";
-import { formatErrorChain } from "./format-error-chain.js";
-import { logger } from "./logger.js";
+import { formatErrorChain } from "../core/format-error-chain.js";
+import { logger } from "../core/logger.js";
 
 const DEFAULT_HANDLE_ERROR_OPTIONS: HandleErrorOptions = {
   shouldExit: true,
