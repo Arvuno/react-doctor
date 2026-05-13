@@ -448,7 +448,7 @@ export const rnNoInlineObjectInListItem: Rule = {
   create: (context: RuleContext) => {
     let renderItemDepth = 0;
 
-    const isRenderItemAttribute = (parent: EsTreeNode | undefined): boolean => {
+    const isRenderItemAttribute = (parent: EsTreeNode | null | undefined): boolean => {
       if (parent?.type !== "JSXAttribute") return false;
       const attrName = parent.name?.type === "JSXIdentifier" ? parent.name.name : null;
       return attrName ? RENDER_ITEM_PROP_NAMES.has(attrName) : false;
@@ -888,7 +888,7 @@ const detectInlineRowHandlers = (renderItemFn: EsTreeNode): EsTreeNode[] => {
   return inlineHandlers;
 };
 
-const isRenderItemJsxAttribute = (parent: EsTreeNode | undefined): boolean => {
+const isRenderItemJsxAttribute = (parent: EsTreeNode | null | undefined): boolean => {
   if (parent?.type !== "JSXAttribute") return false;
   const attrName = parent.name?.type === "JSXIdentifier" ? parent.name.name : null;
   return attrName === "renderItem";
