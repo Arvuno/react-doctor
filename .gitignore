@@ -8,3 +8,4 @@ review-report.md
 review-*.md
 *.review.md
 *.tgz
+.regression/

@@ -8,6 +8,15 @@ import type {
   ReactDoctorScore,
 } from "../core/types.js";
 
+export {
+  ReactDoctorError,
+  ReactDoctorAmbiguousProjectError as AmbiguousProjectError,
+  ReactDoctorNoReactDependencyError as NoReactDependencyError,
+  ReactDoctorPackageJsonNotFoundError as PackageJsonNotFoundError,
+  ReactDoctorProjectNotFoundError as ProjectNotFoundError,
+  isReactDoctorError,
+} from "../core/errors.js";
+
 export interface Diagnostic {
   filePath: string;
   plugin: string;

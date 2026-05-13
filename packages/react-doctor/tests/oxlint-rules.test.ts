@@ -453,4 +453,16 @@ describe("oxlint rules", () => {
       }),
     ).toBe(false);
   });
+
+  it("maps every react-doctor rule in the registry to a non-Other category", async () => {
+    const { reactDoctorOxlintRules } = await import("../src/core/rules/lint/rules.js");
+    const { resolveOxlintDiagnosticCategory } =
+      await import("../src/core/rules/lint/utils/resolve-oxlint-diagnostic-category.js");
+
+    const uncategorizedRules = Object.keys(reactDoctorOxlintRules).filter(
+      (ruleName) => resolveOxlintDiagnosticCategory("react-doctor", ruleName) === "Other",
+    );
+
+    expect(uncategorizedRules).toEqual([]);
+  });
 });

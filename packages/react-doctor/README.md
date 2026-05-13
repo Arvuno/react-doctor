@@ -269,6 +269,36 @@ nr format:check packages/react-doctor/src packages/react-doctor/tests
 nr lint packages/react-doctor/src packages/react-doctor/tests
 ```
 
+## Regression testing
+
+Drive the sandbox test suite in the sibling [`react-review`](https://github.com/millionco/react-review) repo against a fleet of real React projects, using the local working copy of `react-doctor` (packed into a tarball).
+
+```bash
+pnpm --filter react-doctor test:regression
+```
+
+The script builds the package, packs it into `packages/react-doctor/.regression/react-doctor-<version>.tgz`, then shells out to `~/Developer/react-review/apps/api` and runs `pnpm test` with:
+
+- `GITHUB_TOKEN` from `gh auth token` (required so GitHub does not 403 the tarball downloads).
+- `REACT_DOCTOR_SPECIFIERS` pointing at the local tarball — `react-review`'s sandbox test detects the `.tgz`, uploads it into the Vercel Sandbox, and installs via `file:`.
+- `REACT_DOCTOR_TEST_REPOS` defaulting to the first 10 repos from a curated fleet, comma-separated `owner/repo` entries.
+
+Preconditions the script checks for and surfaces clear errors when missing:
+
+- `gh auth token` succeeds (run `gh auth login` first if not).
+- `~/Developer/react-review/apps/api` exists.
+- `~/Developer/react-review/apps/api/.env.local` exists (run `vercel env pull` inside `~/Developer/react-review/apps/api` to populate `@vercel/sandbox` credentials).
+
+Overrides:
+
+```bash
+REACT_DOCTOR_REGRESSION_SAMPLE=25 pnpm --filter react-doctor test:regression
+REACT_DOCTOR_REGRESSION_SAMPLE=all pnpm --filter react-doctor test:regression
+REACT_DOCTOR_TEST_REPOS="vercel/ai-chatbot,shadcn-ui/ui" pnpm --filter react-doctor test:regression
+```
+
+Each repo runs sequentially inside a Vercel Sandbox; expect a few minutes per repo. The default 10-repo sample is the sane batch size for a single run.
+
 ## Leaderboard
 
 Top React codebases scanned by React Doctor, ranked by score. Updated automatically from [millionco/react-doctor-benchmarks](https://github.com/millionco/react-doctor-benchmarks).

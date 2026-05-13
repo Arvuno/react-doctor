@@ -65,7 +65,8 @@
     "dev": "vp pack --watch",
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && NODE_ENV=production vp pack",
     "typecheck": "tsc --noEmit",
-    "test": "vp test run"
+    "test": "vp test run",
+    "test:regression": "node --experimental-strip-types --no-warnings scripts/run-regression.ts"
   },
   "dependencies": {
     "agent-install": "0.0.5",
