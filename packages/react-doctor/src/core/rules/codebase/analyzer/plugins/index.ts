@@ -16,6 +16,12 @@ const builtInPlugins: CodebasePlugin[] = [
   {
     name: "nextjs",
     enablers: ["next"],
+    // `next.config.{...}` is intentionally NOT a runtime entry — it is
+    // already captured as a `support` entry via SUPPORT_ENTRY_PATTERNS in
+    // `analyzer/constants.ts`. Listing it as `runtime` here makes its
+    // build-time imports (`@next/bundle-analyzer`, MDX plugins, etc.)
+    // appear as runtime usage and falsely triggers `runtime-dev-dependency`
+    // for packages that are correctly declared in devDependencies.
     entryPatterns: [
       "{src/,}app/**/page.{js,jsx,ts,tsx}",
       "{src/,}app/**/layout.{js,jsx,ts,tsx}",
@@ -34,7 +40,6 @@ const builtInPlugins: CodebasePlugin[] = [
       "{src/,}app/**/robots.{js,ts}",
       "{src/,}app/**/manifest.{js,ts}",
       "{src/,}pages/**/*.{js,jsx,ts,tsx}",
-      "next.config.{js,mjs,cjs,ts}",
     ],
     entryRole: "runtime",
     alwaysUsedPatterns: [
@@ -118,7 +123,12 @@ const builtInPlugins: CodebasePlugin[] = [
   {
     name: "vite",
     enablers: ["vite"],
-    entryPatterns: ["index.html", "src/main.{js,jsx,ts,tsx}", "vite.config.{js,mjs,cjs,ts}"],
+    // `vite.config.{...}` is handled by SUPPORT_ENTRY_PATTERNS so it stays
+    // reachable for dependency tracking without being treated as runtime
+    // code — otherwise plugin imports (`@vitejs/plugin-react`,
+    // `@tailwindcss/vite`, etc.) get flagged as `runtime-dev-dependency`
+    // even though they're correctly listed in devDependencies.
+    entryPatterns: ["index.html", "src/main.{js,jsx,ts,tsx}"],
     entryRole: "runtime",
     toolingDependencies: ["vite"],
     virtualModulePrefixes: ["virtual:"],

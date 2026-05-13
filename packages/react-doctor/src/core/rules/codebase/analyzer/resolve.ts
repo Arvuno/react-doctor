@@ -1,3 +1,4 @@
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { ResolverFactory } from "oxc-resolver";
 import {
@@ -260,6 +261,22 @@ const toExternalPackageImport = (
   error: null,
 });
 
+const toRuntimeUrlAssetImport = (
+  module: CodebaseModule,
+  importRecord: CodebaseModule["imports"][number],
+  importSource: string,
+): ResolvedImport => {
+  const resolvedFilePath = path.resolve(path.dirname(module.file.filePath), importSource);
+  const hasExistingTarget = existsSync(resolvedFilePath) && statSync(resolvedFilePath).isFile();
+  return {
+    importRecord,
+    targetKind: "asset",
+    targetFilePath: hasExistingTarget ? resolvedFilePath : null,
+    packageName: null,
+    error: null,
+  };
+};
+
 const toContextGlobPattern = (
   rootDirectory: string,
   module: CodebaseModule,
@@ -432,6 +449,15 @@ const resolveImport = (
 
   if (packageName) {
     return toExternalPackageImport(importRecord, packageName);
+  }
+
+  // `new URL("./x", import.meta.url)` is also commonly used for path
+  // computation (e.g. wrapped in `fileURLToPath` in Node configs), where
+  // the target is a directory or a runtime-only file that does not need to
+  // resolve as a module. Treat unresolved asset URLs as silent assets so
+  // they don't surface as `unresolved-import` false positives.
+  if (importRecord.kind === "asset") {
+    return toRuntimeUrlAssetImport(module, importRecord, importSource);
   }
 
   return {

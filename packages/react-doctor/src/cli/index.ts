@@ -431,6 +431,10 @@ const printAnnotations = (issues: ReactDoctorIssue[], routeToStderr: boolean): v
     ? (line: string) => process.stderr.write(`${line}\n`)
     : (line: string) => process.stdout.write(`${line}\n`);
   for (const issue of issues) {
+    // `info` severity diagnostics are exempt from scoring and meant to be
+    // visible only in --verbose. Emitting them as `::warning` annotations
+    // floods CI reviews with low-signal noise (e.g. unused type exports).
+    if (issue.severity === "info") continue;
     const level = issue.severity === "error" ? "error" : "warning";
     const title = issue.title;
     const filePath = issue.location?.filePath ?? "";
@@ -1252,7 +1256,7 @@ const program = new Command()
   .argument("[directory]", "project directory to scan", DEFAULT_DIRECTORY)
   .option("--lint", "enable linting")
   .option("--no-lint", "skip oxlint checks")
-  .option("--dead-code", "enable dead code detection")
+  .option("--dead-code", "enable dead-code, dependency, and architecture graph checks (off by default)")
   .option("--no-dead-code", "skip codebase graph checks")
   .option("--verbose", "show every rule and per-file details (default shows top 3 rules)")
   .option("--custom-rules-only", "run only react-doctor custom oxlint rules")
@@ -1540,12 +1544,19 @@ const program = new Command()
         deadCode:
           shouldSkipSourceChecks || isActiveChangedFileMode(effectiveFlags, isDiffMode)
             ? false
-            : resolveBooleanInspectOption(
+            : // Temporarily off-by-default: the codebase graph (dead-code,
+              // dependencies, react-architecture) still produces too many
+              // false positives on large/monorepo codebases like PostHog
+              // (unresolved imports across non-standard module layouts,
+              // exports kept for downstream packages, runtime/test
+              // reachability gaps, etc.). Opt in with `--dead-code` or
+              // `"reactDoctor": { "deadCode": true }` in package.json.
+              resolveBooleanInspectOption(
                 command,
                 "deadCode",
                 flags.deadCode,
                 config.deadCode,
-                true,
+                false,
               ),
         customRulesOnly: resolveBooleanInspectOption(
           command,

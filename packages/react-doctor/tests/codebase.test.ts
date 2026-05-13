@@ -1663,6 +1663,90 @@ describe("codebase rules", () => {
     ]);
   });
 
+  it("does not flag new URL() path-computation patterns as unresolved imports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "package.json": JSON.stringify({ dependencies: { vite: "latest" } }),
+      "vite.config.ts": [
+        "import { fileURLToPath } from 'node:url';",
+        "import { defineConfig } from 'vite';",
+        "const srcDirectory = fileURLToPath(new URL('./src', import.meta.url));",
+        "const missingFile = fileURLToPath(new URL('./not-real.json', import.meta.url));",
+        "export default defineConfig({ resolve: { alias: { '~': srcDirectory } } });",
+        "console.log(missingFile);",
+      ].join("\n"),
+      "src/main.ts": "console.log('app');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEPENDENCIES_RULE_ID],
+      },
+    });
+
+    expect(result.issues.filter((issue) => issue.source?.ruleId === "unresolved-import")).toEqual(
+      [],
+    );
+  });
+
+  it("does not flag vite/next config file plugin imports as runtime-dev-dependency", async () => {
+    const rootDirectory = await createFixtureProject({
+      "package.json": JSON.stringify({
+        dependencies: { react: "latest" },
+        devDependencies: {
+          vite: "latest",
+          "@vitejs/plugin-react": "latest",
+          "@tailwindcss/vite": "latest",
+          next: "latest",
+          "@next/mdx": "latest",
+        },
+      }),
+      "vite.config.ts": [
+        "import { defineConfig } from 'vite';",
+        "import react from '@vitejs/plugin-react';",
+        "import tailwind from '@tailwindcss/vite';",
+        "export default defineConfig({ plugins: [react(), tailwind()] });",
+      ].join("\n"),
+      "next.config.ts": [
+        "import mdx from '@next/mdx';",
+        "export default mdx()({ reactStrictMode: true });",
+      ].join("\n"),
+      "src/main.tsx": "console.log('app');\n",
+      "node_modules/vite/package.json": JSON.stringify({ name: "vite", main: "index.js" }),
+      "node_modules/vite/index.js": "export const defineConfig = (config) => config;\n",
+      "node_modules/@vitejs/plugin-react/package.json": JSON.stringify({
+        name: "@vitejs/plugin-react",
+        main: "index.js",
+      }),
+      "node_modules/@vitejs/plugin-react/index.js": "export default () => ({});\n",
+      "node_modules/@tailwindcss/vite/package.json": JSON.stringify({
+        name: "@tailwindcss/vite",
+        main: "index.js",
+      }),
+      "node_modules/@tailwindcss/vite/index.js": "export default () => ({});\n",
+      "node_modules/next/package.json": JSON.stringify({ name: "next", main: "index.js" }),
+      "node_modules/next/index.js": "export default {};\n",
+      "node_modules/@next/mdx/package.json": JSON.stringify({
+        name: "@next/mdx",
+        main: "index.js",
+      }),
+      "node_modules/@next/mdx/index.js": "export default () => () => ({});\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEPENDENCIES_RULE_ID],
+      },
+    });
+
+    const ruleIds = result.issues.map((issue) => issue.source?.ruleId);
+    expect(ruleIds).not.toContain("runtime-dev-dependency");
+    expect(ruleIds).not.toContain("unused-dev-dependency");
+  });
+
   it("reports React architecture graph issues", async () => {
     const rootDirectory = await createFixtureProject({
       "src/main.tsx": [
