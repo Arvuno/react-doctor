@@ -1,0 +1,31 @@
+import { defineRule, findJsxAttribute } from "../../utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "../../utils/index.js";
+
+export const nextjsNoAElement = defineRule<Rule>({
+  create: (context: RuleContext) => ({
+    JSXOpeningElement(node: EsTreeNode) {
+      if (node.name?.type !== "JSXIdentifier" || node.name.name !== "a") return;
+
+      const hrefAttribute = findJsxAttribute(node.attributes ?? [], "href");
+      if (!hrefAttribute?.value) return;
+
+      let hrefValue = null;
+      if (hrefAttribute.value.type === "Literal") {
+        hrefValue = hrefAttribute.value.value;
+      } else if (
+        hrefAttribute.value.type === "JSXExpressionContainer" &&
+        hrefAttribute.value.expression?.type === "Literal"
+      ) {
+        hrefValue = hrefAttribute.value.expression.value;
+      }
+
+      if (typeof hrefValue === "string" && hrefValue.startsWith("/")) {
+        context.report({
+          node,
+          message:
+            "Use next/link instead of <a> for internal links — enables client-side navigation and prefetching",
+        });
+      }
+    },
+  }),
+});

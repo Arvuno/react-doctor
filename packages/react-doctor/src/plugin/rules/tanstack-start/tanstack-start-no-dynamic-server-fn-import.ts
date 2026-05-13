@@ -1,0 +1,27 @@
+import { TANSTACK_SERVER_FN_FILE_PATTERN } from "../../constants.js";
+import { defineRule } from "../../utils/index.js";
+import type { EsTreeNode, Rule, RuleContext } from "../../utils/index.js";
+
+export const tanstackStartNoDynamicServerFnImport = defineRule<Rule>({
+  create: (context: RuleContext) => ({
+    ImportExpression(node: EsTreeNode) {
+      const source = node.source;
+      if (!source) return;
+
+      let importPath: string | null = null;
+      if (source.type === "Literal" && typeof source.value === "string") {
+        importPath = source.value;
+      } else if (source.type === "TemplateLiteral" && source.quasis?.length === 1) {
+        importPath = source.quasis[0].value?.raw ?? null;
+      }
+
+      if (importPath && TANSTACK_SERVER_FN_FILE_PATTERN.test(importPath)) {
+        context.report({
+          node,
+          message:
+            "Dynamic import of server functions file — use static imports so the bundler can replace server code with RPC stubs",
+        });
+      }
+    },
+  }),
+});
