@@ -1509,6 +1509,13 @@ const program = new Command()
           cleanupSnapshot = snapshot.cleanup;
           unregisterCleanup = registerPendingCleanup(snapshot.cleanup);
 
+          // Strip rootDir + skip loadedConfig: the temp snapshot already
+          // mirrors the contents at the resolved rootDir, so re-anchoring
+          // via loadedConfig.sourceDirectory would redirect the scan back
+          // to the original working tree. Spread the config explicitly so
+          // ignore/ignoredTags/textComponents/adoptExistingLintConfig still
+          // propagate to the SDK.
+          const { rootDir: _stagedRootDir, ...stagedConfig } = config;
           const stagedInspectOptions = {
             lint: resolveBooleanInspectOption(command, "lint", flags.lint, config.lint, true),
             deadCode: false,
@@ -1528,8 +1535,8 @@ const program = new Command()
               true,
             ),
             silentLogs: isQuiet,
-            config,
-            loadedConfig,
+            config: stagedConfig,
+            loadedConfig: null,
           };
 
           const snapshotProjects = await discoverProjects(
