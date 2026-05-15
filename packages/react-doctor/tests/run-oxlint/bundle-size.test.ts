@@ -72,7 +72,7 @@ describe("runOxlint", () => {
       const projectDir = setupReactProject(tempRoot, "barrel-index-module", {
         files: {
           "src/components/Button.tsx": "export const Button = () => null;\n",
-          "src/components/index.ts": "export { Button } from './Button'; // UI component\n",
+          "src/components/index.ts": "export { Button } from './Button';\n",
           "src/import-directory.tsx": "import { Button } from './components';\nvoid Button;\n",
           "src/import-explicit-index.tsx":
             "import { Button } from './components/index';\nvoid Button;\n",
@@ -94,6 +94,23 @@ describe("runOxlint", () => {
       expect(
         hitFilePaths.some((filePath) => filePath.endsWith("src/import-js-extension.tsx")),
       ).toBe(true);
+    });
+
+    it("flags barrel re-exports with trailing inline comments", async () => {
+      const projectDir = setupReactProject(tempRoot, "commented-barrel-index-module", {
+        files: {
+          "src/components/Button.tsx": "export const Button = () => null;\n",
+          "src/components/index.ts": "export { Button } from './Button'; // UI component\n",
+          "src/import-directory.tsx": "import { Button } from './components';\nvoid Button;\n",
+        },
+      });
+
+      const hits = await collectRuleHits(projectDir, "no-barrel-import");
+
+      expect(hits).toHaveLength(1);
+      expect(hits[0]?.filePath.replaceAll("\\", "/").endsWith("src/import-directory.tsx")).toBe(
+        true,
+      );
     });
   });
 });
