@@ -15,6 +15,8 @@ describe("parseReactMajor", () => {
     expect(parseReactMajor(">=18 <20")).toBe(18);
     expect(parseReactMajor(">=18.3.1 <19")).toBe(18);
     expect(parseReactMajor("18 || 19")).toBe(18);
+    expect(parseReactMajor("^18.0.0 || ^19.0.0")).toBe(18);
+    expect(parseReactMajor(">=17.0.0 <20.0.0")).toBe(17);
   });
 
   it("returns null for upper-bound-only ranges", () => {
@@ -40,6 +42,9 @@ describe("parseReactMajor", () => {
 
   it("ignores leading whitespace and prefixes", () => {
     expect(parseReactMajor("  ^19.0.0  ")).toBe(19);
+    expect(parseReactMajor("npm:react@^19")).toBe(19);
+    expect(parseReactMajor("npm:@vendor/react@~18.2.0")).toBe(18);
+    expect(parseReactMajor("  v18.3.1  ")).toBe(18);
   });
 
   it("returns null for non-lower-bound comparators", () => {

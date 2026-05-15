@@ -10,13 +10,16 @@ const UNRESOLVABLE_PROTOCOL_VERSION = /^(?:file|git|github|https?|link|patch|por
 const DIST_TAG_VERSION = /^[a-z][a-z0-9._-]*$/i;
 const NON_LOWER_BOUND_COMPARATOR = /^(?:>(?!=)|!={0,2})\s*\d/;
 const WILDCARD_COMPARATOR = /^[*xX](?:\.[*xX])*$/;
+const NPM_ALIAS_VERSION = /^npm:(?:@[^/]+\/[^@]+|[^@]+)@(.+)$/i;
 
 const extractComparatorMajor = (comparator: string): number | null => {
-  if (UNRESOLVABLE_PROTOCOL_VERSION.test(comparator)) return null;
-  if (DIST_TAG_VERSION.test(comparator) && !/^v\d/i.test(comparator)) return null;
-  if (WILDCARD_COMPARATOR.test(comparator)) return null;
-  if (NON_LOWER_BOUND_COMPARATOR.test(comparator)) return null;
-  const firstIntegerMatch = comparator.match(/^(?:>=\s*|[~^=v]\s*)?(\d+)(?=$|[.*xX-])/);
+  const npmAliasMatch = comparator.match(NPM_ALIAS_VERSION);
+  const normalizedComparator = npmAliasMatch?.[1]?.trim() ?? comparator;
+  if (UNRESOLVABLE_PROTOCOL_VERSION.test(normalizedComparator)) return null;
+  if (DIST_TAG_VERSION.test(normalizedComparator) && !/^v\d/i.test(normalizedComparator)) return null;
+  if (WILDCARD_COMPARATOR.test(normalizedComparator)) return null;
+  if (NON_LOWER_BOUND_COMPARATOR.test(normalizedComparator)) return null;
+  const firstIntegerMatch = normalizedComparator.match(/^(?:>=\s*|[~^=v]\s*)?(\d+)(?=$|[.*xX-])/);
   if (!firstIntegerMatch) return null;
   const major = Number.parseInt(firstIntegerMatch[1], 10);
   return major >= 1 ? major : null;

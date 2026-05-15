@@ -25,6 +25,7 @@ const DIST_TAG_VERSION = /^[a-z][a-z0-9._-]*$/i;
 const WILDCARD_VERSION = /^[*xX](?:\.[*xX])*$/;
 const NON_LOWER_BOUND_COMPARATOR = /(?:^|[\s,|])(?:>(?!=)|!={0,2})\s*\d/;
 const LOWER_BOUND_MAJOR = /(?:^|[\s,|])(?:>=\s*|[~^=v]\s*)?(\d+)(?=$|[\s,|.*xX-])/g;
+const NPM_ALIAS_VERSION = /^npm:(?:@[^/]+\/[^@]+|[^@]+)@(.+)$/i;
 
 const getBranchLowestMajor = (branch: string): number | null => {
   if (NON_LOWER_BOUND_COMPARATOR.test(branch)) return null;
@@ -46,12 +47,14 @@ export const parseReactMajor = (reactVersion: string | null | undefined): number
   if (typeof reactVersion !== "string") return null;
   const trimmed = reactVersion.trim();
   if (trimmed.length === 0) return null;
-  if (UNRESOLVABLE_PROTOCOL_VERSION.test(trimmed)) return null;
-  if (DIST_TAG_VERSION.test(trimmed) && !/^v\d/i.test(trimmed)) return null;
-  if (WILDCARD_VERSION.test(trimmed)) return null;
+  const npmAliasMatch = trimmed.match(NPM_ALIAS_VERSION);
+  const normalizedVersion = npmAliasMatch?.[1]?.trim() ?? trimmed;
+  if (UNRESOLVABLE_PROTOCOL_VERSION.test(normalizedVersion)) return null;
+  if (DIST_TAG_VERSION.test(normalizedVersion) && !/^v\d/i.test(normalizedVersion)) return null;
+  if (WILDCARD_VERSION.test(normalizedVersion)) return null;
 
   let lowestMajor: number | null = null;
-  for (const branch of trimmed.split(OR_SEPARATOR).filter(Boolean)) {
+  for (const branch of normalizedVersion.split(OR_SEPARATOR).filter(Boolean)) {
     if (UNRESOLVABLE_PROTOCOL_VERSION.test(branch.trim())) return null;
     const branchLowestMajor = getBranchLowestMajor(branch);
     if (branchLowestMajor === null && HAS_UPPER_BOUND_COMPARATOR.test(branch)) return null;
