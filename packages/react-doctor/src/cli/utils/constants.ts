@@ -7,4 +7,4 @@ export const STAGED_FILES_TEMP_DIR_PREFIX = "react-doctor-staged-";
 // Last-resort fallback when buildJsonReportError itself throws — keeps
 // stdout valid JSON so downstream parsers don't see a half-written report.
 export const INTERNAL_ERROR_JSON_FALLBACK =
-  '{"schemaVersion":1,"ok":false,"error":{"message":"Internal error","name":"Error","chain":[]}}\n';
+  '{"schemaVersion":2,"ok":false,"error":{"message":"Internal error","name":"Error","chain":[]}}\n';

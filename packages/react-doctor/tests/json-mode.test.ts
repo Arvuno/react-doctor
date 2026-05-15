@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import type { JsonReport } from "@react-doctor/types";
 import {
   enableJsonMode,
@@ -10,7 +17,7 @@ import {
 } from "../src/cli/utils/json-mode.js";
 
 const buildOkReport = (overrides: Partial<JsonReport> = {}): JsonReport => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: "test",
   ok: true,
   directory: "/tmp/foo",
@@ -44,9 +51,11 @@ interface CapturedStdout {
 const captureStdout = (): CapturedStdout => {
   const lines: string[] = [];
   const spy = vi.spyOn(process.stdout, "write").mockImplementation(((
-    chunk: string | Uint8Array,
+    chunk: string | Uint8Array
   ) => {
-    lines.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf-8"));
+    lines.push(
+      typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf-8")
+    );
     return true;
   }) as never);
   return { lines, restore: () => spy.mockRestore() };
@@ -139,7 +148,11 @@ describe("json-mode lifecycle", () => {
     // buildJsonReportError's internal serialization to throw too.
     const exploding = new Proxy({} as unknown as Error, {
       get: (_, property) => {
-        if (property === "name" || property === "message" || property === "stack") {
+        if (
+          property === "name" ||
+          property === "message" ||
+          property === "stack"
+        ) {
           throw new Error("inner explosion");
         }
         return undefined;

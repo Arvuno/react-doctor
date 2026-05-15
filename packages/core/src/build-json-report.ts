@@ -28,7 +28,7 @@ const toJsonDiff = (diff: DiffInfo | null): JsonReportDiffInfo | null => {
 };
 
 const findWorstScoredProject = (
-  projects: JsonReportProjectEntry[],
+  projects: JsonReportProjectEntry[]
 ): JsonReportProjectEntry | null => {
   let worst: JsonReportProjectEntry | null = null;
   let worstScore = Number.POSITIVE_INFINITY;
@@ -44,14 +44,16 @@ const findWorstScoredProject = (
 };
 
 export const buildJsonReport = (input: BuildJsonReportInput): JsonReport => {
-  const projects: JsonReportProjectEntry[] = input.scans.map(({ directory, result }) => ({
-    directory,
-    project: result.project,
-    diagnostics: result.diagnostics,
-    score: result.score,
-    skippedChecks: result.skippedChecks,
-    elapsedMilliseconds: result.elapsedMilliseconds,
-  }));
+  const projects: JsonReportProjectEntry[] = input.scans.map(
+    ({ directory, result }) => ({
+      directory,
+      project: result.project,
+      diagnostics: result.diagnostics,
+      score: result.score,
+      skippedChecks: result.skippedChecks,
+      elapsedMilliseconds: result.elapsedMilliseconds,
+    })
+  );
 
   const flattenedDiagnostics = projects.flatMap((entry) => entry.diagnostics);
   const worstScoredProject = findWorstScoredProject(projects);
@@ -59,11 +61,11 @@ export const buildJsonReport = (input: BuildJsonReportInput): JsonReport => {
   const summary = summarizeDiagnostics(
     flattenedDiagnostics,
     worstScoredProject?.score?.score ?? null,
-    worstScoredProject?.score?.label ?? null,
+    worstScoredProject?.score?.label ?? null
   );
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     version: input.version,
     ok: true,
     directory: input.directory,

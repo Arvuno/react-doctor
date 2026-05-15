@@ -63,7 +63,7 @@ export interface JsonReportError {
 }
 
 export interface JsonReport {
-  schemaVersion: 1;
+  schemaVersion: 2;
   version: string;
   ok: boolean;
   directory: string;

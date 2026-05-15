@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import { buildJsonReport, buildJsonReportError } from "@react-doctor/core";
-import type { Diagnostic, InspectResult, ProjectInfo } from "@react-doctor/types";
+import type {
+  Diagnostic,
+  InspectResult,
+  ProjectInfo,
+} from "@react-doctor/types";
 
 const SAMPLE_PROJECT: ProjectInfo = {
   rootDirectory: "/repo",
@@ -14,7 +18,9 @@ const SAMPLE_PROJECT: ProjectInfo = {
   sourceFileCount: 42,
 };
 
-const buildSampleDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
+const buildSampleDiagnostic = (
+  overrides: Partial<Diagnostic> = {}
+): Diagnostic => ({
   filePath: "/repo/src/App.tsx",
   plugin: "react",
   rule: "no-danger",
@@ -30,7 +36,7 @@ const buildSampleDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic 
 const buildSampleScan = (
   diagnostics: Diagnostic[] = [],
   score = 82,
-  label = "Good",
+  label = "Good"
 ): InspectResult => ({
   diagnostics,
   score: { score, label },
@@ -43,8 +49,14 @@ describe("buildJsonReport", () => {
   it("produces a JSON-serializable structured report with summary counts", () => {
     const diagnostics = [
       buildSampleDiagnostic({ severity: "error", filePath: "/repo/src/A.tsx" }),
-      buildSampleDiagnostic({ severity: "warning", filePath: "/repo/src/A.tsx" }),
-      buildSampleDiagnostic({ severity: "warning", filePath: "/repo/src/B.tsx" }),
+      buildSampleDiagnostic({
+        severity: "warning",
+        filePath: "/repo/src/A.tsx",
+      }),
+      buildSampleDiagnostic({
+        severity: "warning",
+        filePath: "/repo/src/B.tsx",
+      }),
     ];
 
     const report = buildJsonReport({
@@ -56,7 +68,7 @@ describe("buildJsonReport", () => {
       totalElapsedMilliseconds: 5000,
     });
 
-    expect(report.schemaVersion).toBe(1);
+    expect(report.schemaVersion).toBe(2);
     expect(report.ok).toBe(true);
     expect(report.version).toBe("1.2.3");
     expect(report.mode).toBe("full");
@@ -76,7 +88,9 @@ describe("buildJsonReport", () => {
   });
 
   it("flattens diagnostics across workspace projects and picks the worst score", () => {
-    const projectADiagnostics = [buildSampleDiagnostic({ filePath: "/repo/a/X.tsx" })];
+    const projectADiagnostics = [
+      buildSampleDiagnostic({ filePath: "/repo/a/X.tsx" }),
+    ];
     const projectBDiagnostics = [
       buildSampleDiagnostic({ filePath: "/repo/b/Y.tsx", severity: "error" }),
     ];
@@ -87,8 +101,14 @@ describe("buildJsonReport", () => {
       mode: "full",
       diff: null,
       scans: [
-        { directory: "/repo/a", result: buildSampleScan(projectADiagnostics, 90, "Great") },
-        { directory: "/repo/b", result: buildSampleScan(projectBDiagnostics, 50, "Needs work") },
+        {
+          directory: "/repo/a",
+          result: buildSampleScan(projectADiagnostics, 90, "Great"),
+        },
+        {
+          directory: "/repo/b",
+          result: buildSampleScan(projectBDiagnostics, 50, "Needs work"),
+        },
       ],
       totalElapsedMilliseconds: 10_000,
     });
@@ -141,7 +161,11 @@ describe("buildJsonReportError", () => {
     });
 
     expect(report.ok).toBe(false);
-    expect(report.error).toEqual({ message: "boom", name: "TypeError", chain: ["boom"] });
+    expect(report.error).toEqual({
+      message: "boom",
+      name: "TypeError",
+      chain: ["boom"],
+    });
     expect(report.diagnostics).toEqual([]);
     expect(report.projects).toEqual([]);
     expect(report.summary.totalDiagnosticCount).toBe(0);
@@ -171,6 +195,10 @@ describe("buildJsonReportError", () => {
       error: top,
       elapsedMilliseconds: 1,
     });
-    expect(report.error?.chain).toEqual(["top error", "middle layer", "root cause"]);
+    expect(report.error?.chain).toEqual([
+      "top error",
+      "middle layer",
+      "root cause",
+    ]);
   });
 });

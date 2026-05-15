@@ -25,7 +25,9 @@ const safeGetErrorChain = (error: unknown): string[] => {
   }
 };
 
-export const buildJsonReportError = (input: BuildJsonReportErrorInput): JsonReport => {
+export const buildJsonReportError = (
+  input: BuildJsonReportErrorInput
+): JsonReport => {
   const chain = safeGetErrorChain(input.error);
   const errorPayload =
     input.error instanceof Error
@@ -37,7 +39,7 @@ export const buildJsonReportError = (input: BuildJsonReportErrorInput): JsonRepo
       : { message: safeStringify(input.error), name: "Error", chain };
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     version: input.version,
     ok: false,
     directory: input.directory,
