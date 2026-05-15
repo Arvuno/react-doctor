@@ -4,51 +4,18 @@ import { getCallbackStatements } from "../../utils/get-callback-statements.js";
 import { getEffectCallback } from "../../utils/get-effect-callback.js";
 import { getRootIdentifierName } from "../../utils/get-root-identifier-name.js";
 import { isHookCall } from "../../utils/is-hook-call.js";
-import { walkAst } from "../../utils/walk-ast.js";
+import { findDocumentClassListMutationName } from "./utils/find-document-class-list-mutation-name.js";
 import { findTriggeredSideEffectCalleeName } from "./utils/find-triggered-side-effect-callee-name.js";
-import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
-const DOCUMENT_CLASS_LIST_MUTATION_METHOD_NAMES = new Set(["add", "remove", "toggle"]);
-
-const getDocumentClassListMutationName = (consequentNode: EsTreeNode): string | null => {
-  let mutationName: string | null = null;
-  walkAst(consequentNode, (child: EsTreeNode) => {
-    if (mutationName) return false;
-    if (!isNodeOfType(child, "CallExpression")) return;
-    const callee = child.callee;
-    if (
-      !isNodeOfType(callee, "MemberExpression") ||
-      !isNodeOfType(callee.property, "Identifier") ||
-      !DOCUMENT_CLASS_LIST_MUTATION_METHOD_NAMES.has(callee.property.name)
-    ) {
-      return;
-    }
-    const classListExpression = callee.object;
-    if (
-      !isNodeOfType(classListExpression, "MemberExpression") ||
-      !isNodeOfType(classListExpression.property, "Identifier") ||
-      classListExpression.property.name !== "classList"
-    ) {
-      return;
-    }
-    const elementExpression = classListExpression.object;
-    if (
-      !isNodeOfType(elementExpression, "MemberExpression") ||
-      !isNodeOfType(elementExpression.object, "Identifier") ||
-      elementExpression.object.name !== "document" ||
-      !isNodeOfType(elementExpression.property, "Identifier") ||
-      elementExpression.property.name !== "body"
-    ) {
-      return;
-    }
-    mutationName = `document.body.classList.${callee.property.name}`;
-  });
-  return mutationName;
-};
+const hasEventLikeConsequent = (
+  consequentNode: EsTreeNodeOfType<"IfStatement">["consequent"],
+): boolean =>
+  findTriggeredSideEffectCalleeName(consequentNode) !== null ||
+  findDocumentClassListMutationName(consequentNode) !== null;
 
 export const noEffectEventHandler = defineRule<Rule>({
   id: "no-effect-event-handler",
@@ -86,10 +53,7 @@ export const noEffectEventHandler = defineRule<Rule>({
       const rootIdentifierName = getRootIdentifierName(soleStatement.test);
       if (!rootIdentifierName || !dependencyNames.has(rootIdentifierName)) return;
 
-      const sideEffectCalleeName =
-        findTriggeredSideEffectCalleeName(soleStatement.consequent) ??
-        getDocumentClassListMutationName(soleStatement.consequent);
-      if (!sideEffectCalleeName) return;
+      if (!hasEventLikeConsequent(soleStatement.consequent)) return;
 
       context.report({
         node,
