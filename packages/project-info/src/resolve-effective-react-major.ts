@@ -7,8 +7,10 @@ export const resolveEffectiveReactMajor = (
   packageJson: PackageJson,
 ): number | null => {
   const installedReactMajor = parseReactMajor(reactVersion);
-  const peerFloor = peerRangeMinMajor(packageJson.peerDependencies?.react);
-  return peerFloor !== null && installedReactMajor !== null
-    ? Math.min(installedReactMajor, peerFloor)
-    : (peerFloor ?? installedReactMajor);
+  const peerReactRange = packageJson.peerDependencies?.react;
+  if (typeof peerReactRange !== "string") return installedReactMajor;
+
+  const peerFloor = peerRangeMinMajor(peerReactRange);
+  if (peerFloor === null) return null;
+  return installedReactMajor !== null ? Math.min(installedReactMajor, peerFloor) : peerFloor;
 };

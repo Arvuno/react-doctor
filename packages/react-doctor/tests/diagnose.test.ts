@@ -121,6 +121,31 @@ export const Button = forwardRef<HTMLButtonElement>((_props, ref) => (
     expect(react19MigrationHits).toHaveLength(0);
   });
 
+  it("does NOT emit React 19 migration diagnostics for libraries with mixed upper-bound peer support", async () => {
+    const projectDir = setupReactProject(tempRoot, "diagnose-react-mixed-peer-upper-bound", {
+      packageJsonExtras: {
+        dependencies: {},
+        peerDependencies: { react: "<19 || ^19.0.0", "react-dom": "<19 || ^19.0.0" },
+        devDependencies: { react: "^19.0.0", "react-dom": "^19.0.0" },
+      },
+      files: {
+        "src/Button.tsx": `import { forwardRef } from "react";
+
+export const Button = forwardRef<HTMLButtonElement>((_props, ref) => (
+  <button ref={ref} />
+));
+`,
+      },
+    });
+
+    const result = await diagnose(projectDir, { lint: true });
+    const react19MigrationHits = result.diagnostics.filter(
+      (diagnostic) => diagnostic.rule === "no-react19-deprecated-apis",
+    );
+    expect(result.project.reactMajorVersion).toBeNull();
+    expect(react19MigrationHits).toHaveLength(0);
+  });
+
   // Regression: external review pipelines (e.g. the Vercel AI Code
   // Review sandbox) call `diagnose()` on the cloned repo root. Some
   // repos place their app code under `apps/web` (or similar) with NO

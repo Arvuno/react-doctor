@@ -17,6 +17,12 @@ describe("peerRangeMinMajor", () => {
     expect(peerRangeMinMajor("< 19")).toBeNull();
   });
 
+  it("returns null when any OR branch has only an upper bound", () => {
+    expect(peerRangeMinMajor("<19 || ^19.0.0")).toBeNull();
+    expect(peerRangeMinMajor("<=18 || ^19.0.0")).toBeNull();
+    expect(peerRangeMinMajor("^19.0.0 || <19")).toBeNull();
+  });
+
   it("returns null for wildcards, tags, and missing input", () => {
     expect(peerRangeMinMajor("*")).toBeNull();
     expect(peerRangeMinMajor("latest")).toBeNull();
