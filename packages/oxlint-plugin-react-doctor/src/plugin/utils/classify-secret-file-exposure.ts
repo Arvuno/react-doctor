@@ -16,6 +16,7 @@ import {
 export interface SecretFileExposureOptions {
   framework?: string;
   hasUseClientDirective?: boolean;
+  hasUseServerDirective?: boolean;
 }
 
 const SOURCE_FILE_EXTENSION_PATTERN = /\.[cm]?[jt]sx?$/;
@@ -81,6 +82,7 @@ export const classifySecretFileExposure = (
   if (SECRET_NEXT_PAGES_API_FILE_PATTERN.test(normalizedFilename)) return "server";
   if (sourceRootOwner && SECRET_SERVER_DIRECTORY_NAMES.has(sourceRootOwner)) return "server";
   if (isInsideDirectory(classifiablePathSegments, SECRET_SERVER_DIRECTORY_NAMES)) return "server";
+  if (options.hasUseServerDirective === true) return "server";
 
   if (options.hasUseClientDirective === true) return "client";
   if (SECRET_CLIENT_FILE_SUFFIX_PATTERN.test(normalizedFilename)) return "client";

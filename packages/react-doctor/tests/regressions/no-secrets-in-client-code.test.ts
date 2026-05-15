@@ -263,6 +263,24 @@ export const TokenDisplay = () => <div>{PUBLIC_BEARER_TOKEN_FALLBACK}</div>;
     await expect(getSecretIssues(projectDir, { framework: "nextjs" })).resolves.toEqual([]);
   });
 
+  it("does not run the weak variable-name heuristic in use-server files", async () => {
+    const projectDir = setupReactProject(tempRoot, "use-server-secret-false-positive", {
+      packageJsonExtras: {
+        dependencies: { next: "^15.0.0", react: "^19.0.0", "react-dom": "^19.0.0" },
+      },
+      files: {
+        "src/components/actions.ts": `"use server";
+
+const PUBLIC_BEARER_TOKEN_FALLBACK = "fixture_token_1234567890abcdef";
+
+export const getToken = async () => PUBLIC_BEARER_TOKEN_FALLBACK;
+`,
+      },
+    });
+
+    await expect(getSecretIssues(projectDir, { framework: "nextjs" })).resolves.toEqual([]);
+  });
+
   it("does not run the weak variable-name heuristic in Next.js Pages API routes", async () => {
     const projectDir = setupReactProject(tempRoot, "next-pages-api-secret-false-positive", {
       packageJsonExtras: {

@@ -43,6 +43,7 @@ export const noSecretsInClientCode = defineRule<Rule>({
           classifySecretFileExposure(filename, {
             framework,
             hasUseClientDirective: hasDirective(programNode, "use client"),
+            hasUseServerDirective: hasDirective(programNode, "use server"),
           }) === "client";
       },
       VariableDeclarator(node: EsTreeNodeOfType<"VariableDeclarator">) {
