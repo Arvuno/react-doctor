@@ -473,7 +473,7 @@ export class Legacy extends React.Component<{}, {}> {
     expect(hits.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("leaves all rules enabled when the React version is unknown (null) — assumes latest", async () => {
+  it("does NOT flag React-19-only defaultProps migration when the React version is unknown", async () => {
     const projectDir = setupReactProject(tempRoot, "gating-null-defaultProps", {
       reactVersion: "*",
       files: {
@@ -484,15 +484,10 @@ Button.defaultProps = { size: "md" };
     });
 
     const hits = await collectRuleHits(projectDir, "no-default-props", { reactMajorVersion: null });
-    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits).toHaveLength(0);
   });
 
-  // HACK: complement to the deprecation-warning case — `prefer-newer-api`
-  // rules ALSO run when version detection fails, on the assumption that
-  // the user is on the latest React major. Custom resolvers, monorepo
-  // overrides, and `workspace:*` references commonly produce `null`, and
-  // hiding the suggestion silently degrades the scan in those setups.
-  it("DOES flag prefer-use-effect-event when the React version is unknown (null) — assumes latest", async () => {
+  it("does NOT flag prefer-use-effect-event when the React version is unknown", async () => {
     const projectDir = setupReactProject(tempRoot, "gating-null-prefer-use-effect-event", {
       reactVersion: "*",
       files: {
@@ -513,6 +508,6 @@ export const Search = ({ onChange }: { onChange: (value: string) => void }) => {
     const hits = await collectRuleHits(projectDir, "prefer-use-effect-event", {
       reactMajorVersion: null,
     });
-    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits).toHaveLength(0);
   });
 });

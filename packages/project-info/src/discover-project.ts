@@ -48,11 +48,13 @@ export const discoverProject = (directory: string): ProjectInfo => {
     ...packageJson.dependencies,
     ...packageJson.devDependencies,
   };
+  const hasReactDeclaration = leafDependencies.react !== undefined;
+  const hasTailwindDeclaration = leafDependencies.tailwindcss !== undefined;
   const leafReactCatalogReference = extractCatalogName(leafDependencies.react ?? "") ?? null;
   const leafTailwindCatalogReference =
     extractCatalogName(leafDependencies.tailwindcss ?? "") ?? null;
 
-  if (!reactVersion) {
+  if (!reactVersion && hasReactDeclaration) {
     reactVersion = resolveCatalogVersion(
       packageJson,
       "react",
@@ -61,7 +63,7 @@ export const discoverProject = (directory: string): ProjectInfo => {
     );
   }
 
-  if (!tailwindVersion) {
+  if (!tailwindVersion && hasTailwindDeclaration) {
     tailwindVersion = resolveCatalogVersion(
       packageJson,
       "tailwindcss",
@@ -85,7 +87,7 @@ export const discoverProject = (directory: string): ProjectInfo => {
       const monorepoPackageJsonPath = path.join(monorepoRoot, "package.json");
       if (isFile(monorepoPackageJsonPath)) {
         const rootPackageJson = readPackageJson(monorepoPackageJsonPath);
-        if (!reactVersion) {
+        if (!reactVersion && hasReactDeclaration) {
           reactVersion = resolveCatalogVersion(
             rootPackageJson,
             "react",
@@ -93,7 +95,7 @@ export const discoverProject = (directory: string): ProjectInfo => {
             leafReactCatalogReference,
           );
         }
-        if (!tailwindVersion) {
+        if (!tailwindVersion && hasTailwindDeclaration) {
           tailwindVersion = resolveCatalogVersion(
             rootPackageJson,
             "tailwindcss",

@@ -49,6 +49,23 @@ describe("discoverProject", () => {
     expect(projectInfo.tailwindVersion).toBe("^3.4.1");
   });
 
+  it("prefers runtime React dependencies over conflicting devDependencies", () => {
+    const projectDirectory = path.join(tempDirectory, "react-runtime-over-dev-deps");
+    fs.mkdirSync(projectDirectory, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDirectory, "package.json"),
+      JSON.stringify({
+        name: "react-runtime-over-dev-deps",
+        dependencies: { react: "^18.3.1" },
+        devDependencies: { react: "^19.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(projectDirectory);
+    expect(projectInfo.reactVersion).toBe("^18.3.1");
+    expect(projectInfo.reactMajorVersion).toBe(18);
+  });
+
   it("returns null tailwindVersion when neither the project nor its monorepo root depend on Tailwind", () => {
     const projectDirectory = path.join(tempDirectory, "tw-not-installed");
     fs.mkdirSync(projectDirectory, { recursive: true });
@@ -104,6 +121,48 @@ describe("discoverProject", () => {
       path.join(FIXTURES_DIRECTORY, "pnpm-catalog-workspace", "packages", "ui"),
     );
     expect(projectInfo.reactVersion).toBe("^19.0.0");
+  });
+
+  it("prefers concrete workspace React versions over root catalog fallback", () => {
+    const monorepoRoot = path.join(tempDirectory, "workspace-react-over-root-catalog");
+    fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n\ncatalog:\n  react: ^19.0.0\n",
+    );
+    fs.writeFileSync(path.join(monorepoRoot, "package.json"), JSON.stringify({ name: "root" }));
+    fs.writeFileSync(
+      path.join(monorepoRoot, "apps", "web", "package.json"),
+      JSON.stringify({
+        name: "web",
+        dependencies: { react: "^18.3.1" },
+      }),
+    );
+
+    const projectInfo = discoverProject(monorepoRoot);
+    expect(projectInfo.reactVersion).toBe("^18.3.1");
+    expect(projectInfo.reactMajorVersion).toBe(18);
+  });
+
+  it("resolves workspace catalog React versions from the monorepo root", () => {
+    const monorepoRoot = path.join(tempDirectory, "root-scan-workspace-catalog");
+    fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n\ncatalog:\n  react: ^19.0.0\n",
+    );
+    fs.writeFileSync(path.join(monorepoRoot, "package.json"), JSON.stringify({ name: "root" }));
+    fs.writeFileSync(
+      path.join(monorepoRoot, "apps", "web", "package.json"),
+      JSON.stringify({
+        name: "web",
+        dependencies: { react: "catalog:" },
+      }),
+    );
+
+    const projectInfo = discoverProject(monorepoRoot);
+    expect(projectInfo.reactVersion).toBe("^19.0.0");
+    expect(projectInfo.reactMajorVersion).toBe(19);
   });
 
   it("resolves React version from pnpm workspace named catalog", () => {

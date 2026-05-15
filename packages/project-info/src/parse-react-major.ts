@@ -13,9 +13,9 @@
 //
 // Returning `null` for tags ("latest", "next"), workspace protocols,
 // and ranges that don't carry a concrete lower bound is intentional:
-// callers should treat `null` as "unknown — leave version-gated rules
-// enabled" so we never silently disable migration help for a project
-// we couldn't classify.
+// callers should treat `null` as "unknown — do not enable version-gated
+// rules" so React-19-only migrations don't false-positive on React 18
+// projects whose exact version could not be classified.
 export const parseReactMajor = (reactVersion: string | null | undefined): number | null => {
   if (typeof reactVersion !== "string") return null;
   const trimmed = reactVersion.trim();
@@ -26,9 +26,9 @@ export const parseReactMajor = (reactVersion: string | null | undefined): number
   // HACK: React publishes experimental / canary builds as
   // `0.0.0-experimental-<sha>` to keep stable consumers safe. The
   // first-integer scan would land on `0`, which is then `< 18` and
-  // silently disables every version-gated rule. Reject `0` → null so
-  // the "unknown major" branch leaves migration rules enabled (no
-  // realistic React project ships a true major-0 release we'd need to
+  // treats the build as pre-React. Reject `0` → null so experimental
+  // ranges remain unknown instead of being misclassified as ancient React
+  // (no realistic React project ships a true major-0 release we'd need to
   // distinguish — anything pre-1 predates the React rewrite by years).
   if (!Number.isFinite(major) || major <= 0) return null;
   return major;
