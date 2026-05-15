@@ -16,10 +16,7 @@ const getReactCatalogReference = (packageJson: PackageJson): string | null => {
   return extractCatalogName(allDependencies.react ?? "") ?? null;
 };
 
-const shouldReplaceReactVersion = (
-  currentVersion: string | null,
-  nextVersion: string,
-): boolean => {
+const shouldReplaceReactVersion = (currentVersion: string | null, nextVersion: string): boolean => {
   if (!currentVersion) return true;
 
   const currentMajor = parseReactMajor(currentVersion);
