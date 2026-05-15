@@ -32,7 +32,26 @@ export const SECRET_PATTERNS = [
 export const SECRET_VARIABLE_PATTERN = /(?:api_?key|secret|token|password|credential|auth)/i;
 
 export const NON_CLIENT_SECRET_HEURISTIC_FILE_PATTERN =
-  /(?:^|\/)(?:[^/]+\.config\.[cm]?[jt]s|\.?[a-z-]+rc\.[cm]?[jt]s|[^/]+\.(?:server|test|spec|stories|story|fixture|fixtures)\.[cm]?[jt]sx?)$|(?:^|\/)(?:scripts?|bin|tools?)\//;
+  /(?:^|\/)(?:[^/]+\.config\.[cm]?[jt]s|\.?[a-z-]+rc\.[cm]?[jt]s|[^/]+\.(?:server|test|spec|stories|story|fixture|fixtures)\.[cm]?[jt]sx?|(?:route|middleware)\.[cm]?[jt]sx?)$/;
+
+export const NON_CLIENT_SECRET_HEURISTIC_DIRECTORY_NAMES = new Set([
+  "api",
+  "apis",
+  "backend",
+  "bin",
+  "config",
+  "configs",
+  "functions",
+  "lambdas",
+  "lambda",
+  "middleware",
+  "script",
+  "scripts",
+  "server",
+  "servers",
+  "tooling",
+  "tools",
+]);
 
 export const SECRET_FALSE_POSITIVE_SUFFIXES = new Set([
   "modal",

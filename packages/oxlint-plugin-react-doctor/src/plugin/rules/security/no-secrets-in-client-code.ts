@@ -1,11 +1,11 @@
 import {
-  NON_CLIENT_SECRET_HEURISTIC_FILE_PATTERN,
   SECRET_FALSE_POSITIVE_SUFFIXES,
   SECRET_MIN_LENGTH_CHARS,
   SECRET_PATTERNS,
   SECRET_VARIABLE_PATTERN,
 } from "../../constants/security.js";
 import { defineRule } from "../../utils/define-rule.js";
+import { canUseSecretVariableNameHeuristic } from "../../utils/can-use-secret-variable-name-heuristic.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
@@ -18,10 +18,7 @@ export const noSecretsInClientCode = defineRule<Rule>({
     "Move secrets to server-only code. Public client environment variables are bundled into browser code and must not contain secrets",
   create: (context: RuleContext) => {
     const filename = context.getFilename?.() ?? "";
-    const normalizedFilename = filename.replaceAll("\\", "/");
-    const canUseVariableNameHeuristic =
-      normalizedFilename.length === 0 ||
-      !NON_CLIENT_SECRET_HEURISTIC_FILE_PATTERN.test(normalizedFilename);
+    const shouldUseVariableNameHeuristic = canUseSecretVariableNameHeuristic(filename);
 
     return {
       VariableDeclarator(node: EsTreeNodeOfType<"VariableDeclarator">) {
@@ -35,7 +32,7 @@ export const noSecretsInClientCode = defineRule<Rule>({
         const isUiConstant = SECRET_FALSE_POSITIVE_SUFFIXES.has(trailingSuffix);
 
         if (
-          canUseVariableNameHeuristic &&
+          shouldUseVariableNameHeuristic &&
           SECRET_VARIABLE_PATTERN.test(variableName) &&
           !isUiConstant &&
           literalValue.length > SECRET_MIN_LENGTH_CHARS

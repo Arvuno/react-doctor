@@ -18,40 +18,16 @@ import reactDoctorPlugin, {
   FRAMEWORK_SPECIFIC_RULE_KEYS,
 } from "oxlint-plugin-react-doctor";
 import type { CleanedDiagnostic, Diagnostic, OxlintOutput, ProjectInfo } from "@react-doctor/types";
-import { formatFrameworkName } from "@react-doctor/project-info";
+import { buildNoSecretsRecommendation } from "./utils/build-no-secrets-recommendation.js";
 import { neutralizeDisableDirectives } from "./neutralize-disable-directives.js";
-
-const getPublicEnvPrefix = (framework: ProjectInfo["framework"]): string | null => {
-  switch (framework) {
-    case "nextjs":
-      return "NEXT_PUBLIC_*";
-    case "vite":
-    case "tanstack-start":
-      return "VITE_*";
-    case "cra":
-      return "REACT_APP_*";
-    case "gatsby":
-      return "GATSBY_*";
-    default:
-      return null;
-  }
-};
-
-const buildNoSecretsRecommendation = (project: ProjectInfo): string => {
-  const publicEnvPrefix = getPublicEnvPrefix(project.framework);
-  if (!publicEnvPrefix) {
-    return (
-      reactDoctorPlugin.rules["no-secrets-in-client-code"]?.recommendation ??
-      "Move secrets to server-only code"
-    );
-  }
-  const frameworkName = formatFrameworkName(project.framework);
-  return `Move secrets to server-only code. In ${frameworkName}, only \`${publicEnvPrefix}\` env vars are exposed to the browser, and they must not contain secrets`;
-};
 
 const getRuleRecommendation = (ruleName: string, project: ProjectInfo): string | undefined => {
   if (ruleName === "no-secrets-in-client-code") {
-    return buildNoSecretsRecommendation(project);
+    return buildNoSecretsRecommendation(
+      project,
+      reactDoctorPlugin.rules["no-secrets-in-client-code"]?.recommendation ??
+        "Move secrets to server-only code",
+    );
   }
   return reactDoctorPlugin.rules[ruleName]?.recommendation;
 };

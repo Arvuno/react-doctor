@@ -200,4 +200,59 @@ export default {};
     );
     expect(secretIssues).toEqual([]);
   });
+
+  it("does not run the weak variable-name heuristic in server-only directories", async () => {
+    const projectDir = setupReactProject(tempRoot, "server-secret-false-positive", {
+      files: {
+        "src/server/auth.ts": `const PUBLIC_BEARER_TOKEN_FALLBACK = "fixture_token_1234567890abcdef";
+
+export const token = PUBLIC_BEARER_TOKEN_FALLBACK;
+`,
+        "src/api/token.ts": `const PUBLIC_BEARER_TOKEN_FALLBACK = "fixture_token_1234567890abcdef";
+
+export const token = PUBLIC_BEARER_TOKEN_FALLBACK;
+`,
+      },
+    });
+
+    const diagnostics = await runOxlint({
+      rootDirectory: projectDir,
+      project: buildTestProject({
+        rootDirectory: projectDir,
+      }),
+    });
+
+    const secretIssues = diagnostics.filter(
+      (diagnostic) => diagnostic.rule === "no-secrets-in-client-code",
+    );
+    expect(secretIssues).toEqual([]);
+  });
+
+  it("still reports literal values that match known secret shapes in config files", async () => {
+    const projectDir = setupReactProject(tempRoot, "config-real-secret-shape", {
+      packageJsonExtras: {
+        dependencies: { react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" },
+      },
+      files: {
+        "vite.config.ts": `const stripeSecret = "sk\\u005ftest_fixture_token_1234567890abcdef";
+
+export default {};
+`,
+      },
+    });
+
+    const diagnostics = await runOxlint({
+      rootDirectory: projectDir,
+      project: buildTestProject({
+        rootDirectory: projectDir,
+        framework: "vite",
+      }),
+    });
+
+    const secretIssues = diagnostics.filter(
+      (diagnostic) => diagnostic.rule === "no-secrets-in-client-code",
+    );
+    expect(secretIssues).toHaveLength(1);
+    expect(secretIssues[0].message).toContain("Hardcoded secret detected");
+  });
 });
