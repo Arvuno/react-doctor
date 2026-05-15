@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { DependencyInfo, PackageJson } from "@react-doctor/types";
 import { EMPTY_DEPENDENCY_INFO, extractDependencyInfo } from "./extract-dependency-info.js";
-import { getDependencyDeclaration } from "./get-dependency-declaration.js";
+import { getDependencyDeclaration } from "./utils/get-dependency-declaration.js";
 import { getWorkspacePatterns } from "./get-workspace-patterns.js";
 import { parseReactMajor } from "./parse-react-major.js";
 import { readPackageJson } from "./read-package-json.js";
@@ -107,6 +107,7 @@ export const findReactInWorkspaces = (
       const resultReactMajor = parseReactMajor(result.reactVersion);
       if (
         result.reactVersion &&
+        result.tailwindVersion &&
         result.framework !== "unknown" &&
         resultReactMajor !== null &&
         resultReactMajor <= 17

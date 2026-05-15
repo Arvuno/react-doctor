@@ -1,6 +1,6 @@
 import type { DependencyInfo, PackageJson } from "@react-doctor/types";
 import { detectFramework } from "./detect-framework.js";
-import { getDependencyDeclaration } from "./get-dependency-declaration.js";
+import { getDependencyDeclaration } from "./utils/get-dependency-declaration.js";
 import { isCatalogReference } from "./resolve-catalog-version.js";
 
 export const EMPTY_DEPENDENCY_INFO: DependencyInfo = {

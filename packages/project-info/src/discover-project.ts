@@ -9,7 +9,7 @@ import { extractDependencyInfo } from "./extract-dependency-info.js";
 import { findDependencyInfoFromMonorepoRoot } from "./find-dependency-info-from-monorepo-root.js";
 import { findMonorepoRoot, isMonorepoRoot } from "./find-monorepo-root.js";
 import { findReactInWorkspaces } from "./find-react-in-workspaces.js";
-import { getDependencyDeclaration } from "./get-dependency-declaration.js";
+import { getDependencyDeclaration } from "./utils/get-dependency-declaration.js";
 import { hasTanStackQuery } from "./has-tanstack-query.js";
 import { readPackageJson } from "./read-package-json.js";
 import { resolveCatalogVersion } from "./resolve-catalog-version.js";

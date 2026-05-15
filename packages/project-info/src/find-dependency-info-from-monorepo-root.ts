@@ -4,7 +4,7 @@ import { isFile } from "./utils/is-file.js";
 import { EMPTY_DEPENDENCY_INFO, extractDependencyInfo } from "./extract-dependency-info.js";
 import { findMonorepoRoot } from "./find-monorepo-root.js";
 import { findReactInWorkspaces } from "./find-react-in-workspaces.js";
-import { getDependencyDeclaration } from "./get-dependency-declaration.js";
+import { getDependencyDeclaration } from "./utils/get-dependency-declaration.js";
 import { readPackageJson } from "./read-package-json.js";
 import { resolveCatalogVersion } from "./resolve-catalog-version.js";
 

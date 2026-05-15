@@ -26,6 +26,11 @@ interface CatalogCollection {
   namedCatalogs: Record<string, Record<string, string>>;
 }
 
+interface ResolveCatalogVersionOptions {
+  catalogReference: string | null;
+  shouldSearchUnreferencedNamedCatalogs: boolean;
+}
+
 const parsePnpmWorkspaceCatalogs = (rootDirectory: string): CatalogCollection => {
   const workspacePath = path.join(rootDirectory, "pnpm-workspace.yaml");
   if (!isFile(workspacePath)) return { defaultCatalog: {}, namedCatalogs: {} };
@@ -102,14 +107,17 @@ const parsePnpmWorkspaceCatalogs = (rootDirectory: string): CatalogCollection =>
 const resolveCatalogVersionFromCollection = (
   catalogs: CatalogCollection,
   packageName: string,
-  catalogReference?: string | null,
+  options: ResolveCatalogVersionOptions,
 ): string | null => {
+  const { catalogReference, shouldSearchUnreferencedNamedCatalogs } = options;
   if (catalogReference) {
     const namedCatalog = catalogs.namedCatalogs[catalogReference];
     if (namedCatalog?.[packageName]) return namedCatalog[packageName];
   }
 
   if (catalogs.defaultCatalog[packageName]) return catalogs.defaultCatalog[packageName];
+
+  if (!shouldSearchUnreferencedNamedCatalogs) return null;
 
   for (const namedCatalog of Object.values(catalogs.namedCatalogs)) {
     if (namedCatalog[packageName]) return namedCatalog[packageName];
@@ -141,12 +149,14 @@ export const resolveCatalogVersion = (
     ...packageJson.devDependencies,
   };
   const rawVersion = allDependencies[packageName];
-  const catalogName =
-    explicitCatalogReference !== undefined
-      ? explicitCatalogReference
-      : rawVersion
-        ? extractCatalogName(rawVersion)
-        : null;
+  const hasExplicitCatalogReference = explicitCatalogReference !== undefined;
+  const catalogName = hasExplicitCatalogReference
+    ? explicitCatalogReference
+    : rawVersion
+      ? extractCatalogName(rawVersion)
+      : null;
+  const shouldSearchUnreferencedNamedCatalogs =
+    !hasExplicitCatalogReference && catalogName === null;
 
   if (isPlainObject(packageJson.catalog)) {
     const version = resolveVersionFromCatalog(packageJson.catalog, packageName);
@@ -159,10 +169,12 @@ export const resolveCatalogVersion = (
       const version = resolveVersionFromCatalog(namedCatalog, packageName);
       if (version) return version;
     }
-    for (const catalogEntries of Object.values(packageJson.catalogs)) {
-      if (isPlainObject(catalogEntries)) {
-        const version = resolveVersionFromCatalog(catalogEntries, packageName);
-        if (version) return version;
+    if (shouldSearchUnreferencedNamedCatalogs) {
+      for (const catalogEntries of Object.values(packageJson.catalogs)) {
+        if (isPlainObject(catalogEntries)) {
+          const version = resolveVersionFromCatalog(catalogEntries, packageName);
+          if (version) return version;
+        }
       }
     }
   }
@@ -180,10 +192,12 @@ export const resolveCatalogVersion = (
         const version = resolveVersionFromCatalog(namedCatalog, packageName);
         if (version) return version;
       }
-      for (const catalogEntries of Object.values(workspaces.catalogs)) {
-        if (isPlainObject(catalogEntries)) {
-          const version = resolveVersionFromCatalog(catalogEntries, packageName);
-          if (version) return version;
+      if (shouldSearchUnreferencedNamedCatalogs) {
+        for (const catalogEntries of Object.values(workspaces.catalogs)) {
+          if (isPlainObject(catalogEntries)) {
+            const version = resolveVersionFromCatalog(catalogEntries, packageName);
+            if (version) return version;
+          }
         }
       }
     }
@@ -191,7 +205,10 @@ export const resolveCatalogVersion = (
 
   if (rootDirectory) {
     const pnpmCatalogs = parsePnpmWorkspaceCatalogs(rootDirectory);
-    const pnpmVersion = resolveCatalogVersionFromCollection(pnpmCatalogs, packageName, catalogName);
+    const pnpmVersion = resolveCatalogVersionFromCollection(pnpmCatalogs, packageName, {
+      catalogReference: catalogName,
+      shouldSearchUnreferencedNamedCatalogs,
+    });
     if (pnpmVersion) return pnpmVersion;
   }
 

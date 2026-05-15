@@ -253,6 +253,27 @@ describe("discoverProject", () => {
     expect(projectInfo.reactMajorVersion).toBe(18);
   });
 
+  it("does not resolve default catalog references from unrelated named catalogs", () => {
+    const monorepoRoot = path.join(tempDirectory, "default-catalog-skips-unrelated-named-catalog");
+    fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n\ncatalogs:\n  react19:\n    react: ^19.0.0\n",
+    );
+    fs.writeFileSync(path.join(monorepoRoot, "package.json"), JSON.stringify({ name: "root" }));
+    fs.writeFileSync(
+      path.join(monorepoRoot, "apps", "web", "package.json"),
+      JSON.stringify({
+        name: "web",
+        dependencies: { react: "catalog:" },
+      }),
+    );
+
+    const projectInfo = discoverProject(path.join(monorepoRoot, "apps", "web"));
+    expect(projectInfo.reactVersion).toBeNull();
+    expect(projectInfo.reactMajorVersion).toBeNull();
+  });
+
   it("does not apply root React catalogs to workspaces without React declarations", () => {
     const monorepoRoot = path.join(tempDirectory, "root-catalog-skips-non-react-workspaces");
     fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
@@ -280,6 +301,36 @@ describe("discoverProject", () => {
     const projectInfo = discoverProject(monorepoRoot);
     expect(projectInfo.reactVersion).toBe("^18.3.1");
     expect(projectInfo.reactMajorVersion).toBe(18);
+  });
+
+  it("continues workspace scanning for Tailwind after finding React and a framework", () => {
+    const monorepoRoot = path.join(tempDirectory, "workspace-tailwind-after-react-framework");
+    fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
+    fs.mkdirSync(path.join(monorepoRoot, "packages", "ui"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n  - packages/*\n",
+    );
+    fs.writeFileSync(path.join(monorepoRoot, "package.json"), JSON.stringify({ name: "root" }));
+    fs.writeFileSync(
+      path.join(monorepoRoot, "apps", "web", "package.json"),
+      JSON.stringify({
+        name: "web",
+        dependencies: { react: "^17.0.2", vite: "^5.0.0" },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(monorepoRoot, "packages", "ui", "package.json"),
+      JSON.stringify({
+        name: "ui",
+        devDependencies: { tailwindcss: "^4.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(monorepoRoot);
+    expect(projectInfo.reactVersion).toBe("^17.0.2");
+    expect(projectInfo.framework).toBe("vite");
+    expect(projectInfo.tailwindVersion).toBe("^4.0.0");
   });
 
   it("does not apply monorepo dependency versions to a leaf without declarations", () => {

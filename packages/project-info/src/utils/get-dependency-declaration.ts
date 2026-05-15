@@ -1,5 +1,5 @@
 import type { PackageJson } from "@react-doctor/types";
-import { extractCatalogName } from "./resolve-catalog-version.js";
+import { extractCatalogName } from "../resolve-catalog-version.js";
 
 export interface DependencyDeclaration {
   catalogReference: string | null;
