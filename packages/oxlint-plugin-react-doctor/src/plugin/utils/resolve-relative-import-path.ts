@@ -48,6 +48,13 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
 
 const getConditionalExportEntry = (exportEntry: unknown): string | null => {
   if (typeof exportEntry === "string") return exportEntry;
+  if (Array.isArray(exportEntry)) {
+    for (const fallbackEntry of exportEntry) {
+      const resolvedFallbackEntry = getConditionalExportEntry(fallbackEntry);
+      if (resolvedFallbackEntry) return resolvedFallbackEntry;
+    }
+    return null;
+  }
   if (!isObjectRecord(exportEntry)) return null;
 
   for (const condition of PACKAGE_EXPORT_CONDITIONS) {

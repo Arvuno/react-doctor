@@ -283,5 +283,27 @@ describe("runOxlint", () => {
       expect(hits).toHaveLength(1);
       expect(hits[0]?.message).toContain('"./components/Button"');
     });
+
+    it("resolves package export array fallbacks", async () => {
+      const projectDir = setupReactProject(tempRoot, "package-export-array-barrel", {
+        files: {
+          "src/components/Button.tsx": "export const Button = () => null;\n",
+          "src/components/entry/index.ts": "export { Button } from '../Button';\n",
+          "src/components/package.json": JSON.stringify({
+            exports: [
+              {
+                import: "./entry",
+              },
+            ],
+          }),
+          "src/import-directory.tsx": "import { Button } from './components';\nvoid Button;\n",
+        },
+      });
+
+      const hits = await collectRuleHits(projectDir, "no-barrel-import");
+
+      expect(hits).toHaveLength(1);
+      expect(hits[0]?.message).toContain('"./components/Button"');
+    });
   });
 });

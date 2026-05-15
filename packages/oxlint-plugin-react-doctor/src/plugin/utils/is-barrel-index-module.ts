@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { parseExportSpecifiers } from "./parse-export-specifiers.js";
+import { stripJsComments } from "./strip-js-comments.js";
 
 const INDEX_MODULE_FILE_PATTERN = /^index\.(?:[cm]?[jt]sx?|mjs)$/;
-const BLOCK_COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;
-const LINE_COMMENT_PATTERN = /^\s*\/\/.*$/gm;
 const BINDING_IMPORT_DECLARATION_PATTERN =
   /^\s*import\s+(type\s+)?(?!["'])([^;]*?)\s+from\s+["']([^"']+)["']\s*;?\s*(?:(?:\/\/[^\n]*)?\s*)/gm;
 const BARREL_REEXPORT_DECLARATION_PATTERN =
@@ -32,16 +32,7 @@ interface ImportedBinding {
   didExport: boolean;
 }
 
-interface ExportSpecifier {
-  localName: string;
-  exportedName: string;
-  isTypeOnly: boolean;
-}
-
 const barrelIndexModuleInfoCache = new Map<string, BarrelIndexModuleInfo>();
-
-const stripComments = (sourceText: string): string =>
-  sourceText.replace(BLOCK_COMMENT_PATTERN, "").replace(LINE_COMMENT_PATTERN, "");
 
 const isIndexModuleFilePath = (filePath: string): boolean =>
   INDEX_MODULE_FILE_PATTERN.test(path.basename(filePath));
@@ -51,27 +42,6 @@ const createNonBarrelInfo = (): BarrelIndexModuleInfo => ({
   exportsByName: new Map<string, BarrelExportTarget>(),
   starExportSources: [],
 });
-
-const getSpecifierName = (rawName: string): string => rawName.replace(/^type\s+/, "").trim();
-
-const parseExportSpecifiers = (
-  specifiersText: string,
-  declarationIsTypeOnly: boolean,
-): ExportSpecifier[] =>
-  specifiersText
-    .split(",")
-    .map((specifierText) => specifierText.trim())
-    .filter(Boolean)
-    .map((specifierText) => {
-      const isTypeOnly = declarationIsTypeOnly || specifierText.startsWith("type ");
-      const [rawLocalName, rawExportedName] = specifierText.split(/\s+as\s+/);
-      const localName = getSpecifierName(rawLocalName ?? "");
-      return {
-        localName,
-        exportedName: getSpecifierName(rawExportedName ?? localName),
-        isTypeOnly,
-      };
-    });
 
 const addImportedBinding = (
   importedBindings: Map<string, ImportedBinding>,
@@ -86,18 +56,12 @@ const collectNamedImportBindings = (
   declarationIsTypeOnly: boolean,
   importedBindings: Map<string, ImportedBinding>,
 ): void => {
-  for (const specifierText of namedSpecifiersText.split(",")) {
-    const trimmedSpecifier = specifierText.trim();
-    if (!trimmedSpecifier) continue;
-
-    const isTypeOnly = declarationIsTypeOnly || trimmedSpecifier.startsWith("type ");
-    const [rawImportedName, rawLocalName] = trimmedSpecifier.split(/\s+as\s+/);
-    const importedName = getSpecifierName(rawImportedName ?? "");
+  for (const specifier of parseExportSpecifiers(namedSpecifiersText, declarationIsTypeOnly)) {
     addImportedBinding(importedBindings, {
-      localName: getSpecifierName(rawLocalName ?? importedName),
-      importedName,
+      localName: specifier.exportedName,
+      importedName: specifier.localName,
       source,
-      isTypeOnly,
+      isTypeOnly: specifier.isTypeOnly,
     });
   }
 };
@@ -225,7 +189,7 @@ const hasUnexportedRuntimeImport = (importedBindings: Map<string, ImportedBindin
 };
 
 const classifyBarrelModule = (sourceText: string): BarrelIndexModuleInfo => {
-  const strippedSource = stripComments(sourceText).trim();
+  const strippedSource = stripJsComments(sourceText).trim();
   if (!strippedSource) return createNonBarrelInfo();
 
   const importedBindings = new Map<string, ImportedBinding>();
