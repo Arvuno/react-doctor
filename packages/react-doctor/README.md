@@ -76,27 +76,11 @@ When `github-token` is set on `pull_request` events, findings are posted (and up
 
 #### PR feedback modes
 
-The action can surface findings on a PR in three ways. Pick whichever fits — they're independent and the workflow command output is always parsed by GitHub Actions regardless of where it appears.
+Pick one or both; they're independent.
 
-**Sticky comment only (default).** Set `github-token`, leave `annotations` unset. One updating comment lands on the PR with the full report and score:
-
-```yaml
-- uses: millionco/react-doctor@main
-  with:
-    diff: main
-    github-token: ${{ secrets.GITHUB_TOKEN }}
-```
-
-**Inline annotations only.** Set `annotations: true`, omit `github-token`. Each finding appears as a `::error` / `::warning` annotation pinned to its file and line in the PR's Files changed view, with no comment posted:
-
-```yaml
-- uses: millionco/react-doctor@main
-  with:
-    diff: main
-    annotations: true
-```
-
-**Both.** Enable both inputs to get inline annotations and a sticky summary comment on the same run. Annotation lines are stripped from the comment body so it stays readable:
+- **Comments only** (default): set `github-token`.
+- **Annotations only**: set `annotations: true`.
+- **Both**: set `github-token` and `annotations: true`. Annotation lines are stripped from the comment body.
 
 ```yaml
 - uses: millionco/react-doctor@main
