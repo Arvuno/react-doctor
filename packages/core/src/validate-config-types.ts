@@ -39,6 +39,11 @@ const SEVERITY_OVERRIDE_CHANNEL_NAMES = [
   "tags",
 ] as const satisfies ReadonlyArray<keyof SeverityOverrideControls>;
 
+const isSeverityOverrideChannel = (
+  key: string,
+): key is (typeof SEVERITY_OVERRIDE_CHANNEL_NAMES)[number] =>
+  (SEVERITY_OVERRIDE_CHANNEL_NAMES as ReadonlyArray<string>).includes(key);
+
 // HACK: write to stderr directly so the warning is visible even in
 // `--json` mode (where the logger is silenced to keep stdout a single
 // valid JSON document). Same pattern as `coerceDiffValue` in cli.ts.
@@ -178,10 +183,18 @@ const validateSeverityOverridesField = (
     return undefined;
   }
   const validated: SeverityOverrideControls = {};
-  for (const channelName of SEVERITY_OVERRIDE_CHANNEL_NAMES) {
-    if (rawOverrides[channelName] === undefined) continue;
-    const channel = validateSeverityOverrideChannel(channelName, rawOverrides[channelName]);
-    if (channel !== undefined) validated[channelName] = channel;
+  // Iterate user-provided keys (not the channel allowlist) so typos
+  // like `"rule"` instead of `"rules"` surface as a warning instead
+  // of silently doing nothing — matches `validateSurfacesField`.
+  for (const [key, value] of Object.entries(rawOverrides)) {
+    if (!isSeverityOverrideChannel(key)) {
+      warnConfigField(
+        `config field "severityOverrides.${key}" is not a known channel (expected one of: ${SEVERITY_OVERRIDE_CHANNEL_NAMES.join(", ")}); ignoring.`,
+      );
+      continue;
+    }
+    const channel = validateSeverityOverrideChannel(key, value);
+    if (channel !== undefined) validated[key] = channel;
   }
   return validated;
 };

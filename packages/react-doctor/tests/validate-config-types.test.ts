@@ -159,5 +159,16 @@ describe("validateConfigTypes", () => {
       expect(result.severityOverrides).toEqual({ categories: { Server: "off" } });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides.rules"));
     });
+
+    it("warns and ignores unknown channel keys (typos like `rule` / `category` / `tag`)", () => {
+      const result = validateConfigTypes({
+        severityOverrides: {
+          rule: { "react-doctor/no-array-index-as-key": "off" },
+          tags: { design: "off" },
+        } as unknown as ReactDoctorConfig["severityOverrides"],
+      });
+      expect(result.severityOverrides).toEqual({ tags: { design: "off" } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`severityOverrides.rule`));
+    });
   });
 });
