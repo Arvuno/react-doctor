@@ -3,10 +3,19 @@ import path from "node:path";
 import type { ReactDoctorConfig } from "@react-doctor/types";
 import { isFile, isMonorepoRoot, isPlainObject } from "@react-doctor/project-info";
 import { logger } from "./logger.js";
+import { mergeReactDoctorConfigs } from "./merge-configs.js";
 import { validateConfigTypes } from "./validate-config-types.js";
 
 const CONFIG_FILENAME = "react-doctor.config.json";
 const PACKAGE_JSON_CONFIG_KEY = "reactDoctor";
+
+// HACK: extends chains are flattened depth-first; a cycle guard caps
+// recursion at this depth in case `validate-config-types` accidentally
+// passes through a self-referential `extends`. Picked high enough to
+// cover the deepest realistic monorepo layout
+// (`packages/<x>/configs/<y>/react-doctor.config.json` extending two
+// or three ancestors) while still catching pathological loops.
+const MAX_EXTENDS_DEPTH = 16;
 
 interface LoadedReactDoctorConfig {
   config: ReactDoctorConfig;
@@ -19,24 +28,107 @@ interface LoadedReactDoctorConfig {
   sourceDirectory: string;
 }
 
+const readParsedJson = (filePath: string): unknown | null => {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch (error) {
+    logger.warn(
+      `Failed to parse ${path.basename(filePath)}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
+};
+
+const loadConfigFile = (
+  configFilePath: string,
+  visited: Set<string>,
+  depth: number,
+): ReactDoctorConfig | null => {
+  if (depth >= MAX_EXTENDS_DEPTH) {
+    logger.warn(
+      `react-doctor config "extends" chain at ${configFilePath} exceeded depth ${MAX_EXTENDS_DEPTH}; ignoring deeper parents.`,
+    );
+    return null;
+  }
+  const absoluteConfigPath = resolveVisitedKey(configFilePath);
+  if (visited.has(absoluteConfigPath)) {
+    logger.warn(
+      `react-doctor config "extends" cycle detected at ${configFilePath}; ignoring this branch.`,
+    );
+    return null;
+  }
+  visited.add(absoluteConfigPath);
+
+  const parsed = readParsedJson(configFilePath);
+  if (!isPlainObject(parsed)) return null;
+  const validated = validateConfigTypes(parsed as ReactDoctorConfig);
+  return resolveExtendsChain(validated, path.dirname(configFilePath), visited, depth);
+};
+
+const resolveExtendsChain = (
+  config: ReactDoctorConfig,
+  configDirectory: string,
+  visited: Set<string>,
+  depth: number,
+): ReactDoctorConfig => {
+  const extendsValue = config.extends;
+  if (extendsValue === undefined) return config;
+  const extendsEntries = Array.isArray(extendsValue) ? extendsValue : [extendsValue];
+
+  let resolvedConfig: ReactDoctorConfig = {};
+  for (const entry of extendsEntries) {
+    if (typeof entry !== "string" || entry.length === 0) continue;
+    const candidatePath = path.isAbsolute(entry) ? entry : path.resolve(configDirectory, entry);
+    if (!isFile(candidatePath)) {
+      logger.warn(
+        `react-doctor config "extends" target "${entry}" not found at ${candidatePath}; ignoring this parent.`,
+      );
+      continue;
+    }
+    const parentConfig = loadConfigFile(candidatePath, visited, depth + 1);
+    if (!parentConfig) continue;
+    // Documented semantics: later entries override earlier ones for
+    // scalar fields (consistent with tsconfig / eslint `extends`),
+    // and arrays concat in declaration order. The final
+    // `mergeReactDoctorConfigs` call below then layers the current
+    // config on top so its values always win over anything it extends.
+    resolvedConfig = mergeReactDoctorConfigs(resolvedConfig, parentConfig);
+  }
+
+  return mergeReactDoctorConfigs(resolvedConfig, config);
+};
+
+// Resolve a config path through the same lens `loadConfigFile` uses
+// when deduping the `extends` chain, so the visited set is keyed by
+// the realpath when symlinks are involved and the raw path otherwise.
+// Without this, a self-referencing `extends` from a symlinked root
+// would bypass cycle detection on the first re-entry and only be
+// caught by the depth guard.
+const resolveVisitedKey = (configFilePath: string): string => {
+  try {
+    return fs.realpathSync(configFilePath);
+  } catch {
+    return path.resolve(configFilePath);
+  }
+};
+
 const loadConfigFromDirectory = (directory: string): LoadedReactDoctorConfig | null => {
   const configFilePath = path.join(directory, CONFIG_FILENAME);
 
   if (isFile(configFilePath)) {
-    try {
-      const fileContent = fs.readFileSync(configFilePath, "utf-8");
-      const parsed: unknown = JSON.parse(fileContent);
-      if (isPlainObject(parsed)) {
-        return {
-          config: validateConfigTypes(parsed as ReactDoctorConfig),
-          sourceDirectory: directory,
-        };
-      }
-      logger.warn(`${CONFIG_FILENAME} must be a JSON object, ignoring.`);
-    } catch (error) {
-      logger.warn(
-        `Failed to parse ${CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    const parsed = readParsedJson(configFilePath);
+    if (isPlainObject(parsed)) {
+      const validated = validateConfigTypes(parsed as ReactDoctorConfig);
+      const resolved = resolveExtendsChain(
+        validated,
+        directory,
+        new Set([resolveVisitedKey(configFilePath)]),
+        0,
       );
+      return { config: resolved, sourceDirectory: directory };
+    }
+    if (parsed !== null) {
+      logger.warn(`${CONFIG_FILENAME} must be a JSON object, ignoring.`);
     }
   }
 
@@ -48,10 +140,9 @@ const loadConfigFromDirectory = (directory: string): LoadedReactDoctorConfig | n
       if (isPlainObject(packageJson)) {
         const embeddedConfig = packageJson[PACKAGE_JSON_CONFIG_KEY];
         if (isPlainObject(embeddedConfig)) {
-          return {
-            config: validateConfigTypes(embeddedConfig as ReactDoctorConfig),
-            sourceDirectory: directory,
-          };
+          const validated = validateConfigTypes(embeddedConfig as ReactDoctorConfig);
+          const resolved = resolveExtendsChain(validated, directory, new Set(), 0);
+          return { config: resolved, sourceDirectory: directory };
         }
       }
     } catch {

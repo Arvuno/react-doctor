@@ -116,9 +116,9 @@ Done:
   fix (`design`, `test-noise`, `react-native`, `server-action`,
   `migration-hint`) with copy-pasteable JSON examples.
 
-### [ ] Support mature-codebase adoption workflows natively
+### [x] Support mature-codebase adoption workflows natively
 
-Status: user feedback, `react-doctor@0.0.31`.
+Status: landed.
 
 Sources:
 
@@ -127,15 +127,37 @@ Sources:
 - Team disabled 8 CSS/animation perf rules after autofixes degraded `prefers-reduced-motion` behavior by making animations complete instantly and look stuck.
 - Team built custom pre-commit, CI, PR comment, dashboard, parallel worker, and per-module config plumbing around React Doctor.
 
-Remaining:
+Done:
 
-- Make CSS/animation autofixes `prefers-reduced-motion` aware and mark risky autofixes separately from safe ones.
-- Add native diff-only/touched-line enforcement for staged files and PRs.
-- Add baseline mode so existing violations can be tracked without blocking new commits.
-- Emit first-class PR comment data or provide built-in sticky PR comments with violation summaries and autofix guidance.
-- Support per-module/package reports, scores, trends, ownership, and backlog counts for monorepos.
-- Add native parallel runner controls and config inheritance/per-module overrides.
-- Make `no-barrel-import` bundler/framework aware, or add an official way to mark barrel files as intentional public APIs.
+- [x] Land/adopt `customRulesOnly` from #109 so teams can run only React Doctor-specific rules without duplicate ESLint noise.
+- [x] Mark risky CSS/animation autofixes with `fixSafety: "risky"` rule
+      metadata + `safeFixesOnly` config + `[risky-fix]` help-text marker
+      so blanket autofixes can be demoted without disabling the rule.
+- [x] Add `--touched-lines` flag (config: `touchedLinesOnly`) so PRs in
+      diff/staged mode are only graded on lines actually touched by the
+      diff. Hidden-by-touched-lines counts surface in the JSON report.
+- [x] Add baseline mode - `--baseline [path]` + `--update-baseline` with
+      a stable per-diagnostic fingerprint (rule + filepath + message,
+      line/column intentionally excluded). Surfaces baseline counts in
+      `InspectResult`, the JSON report, and the PR comment.
+- [x] Emit first-class PR comment data - `--format pr-comment-markdown`
+      prints a sticky-comment-ready markdown document with the
+      `<!-- react-doctor -->` marker, per-rule `<details>` groups,
+      suppression snippets, per-package summaries, baseline framing,
+      and a touched-lines footnote. The composite action prefers this
+      output over the legacy plaintext-in-fence path.
+- [x] Per-package reports for monorepos - JSON report already exposes
+      per-project entries; PR comment markdown now renders a
+      `### Per-package summary` block (worst project drives headline).
+- [x] Native parallel runner - `--concurrency <n>` + `concurrency`
+      config scan workspace projects in parallel; output ordering
+      preserved.
+- [x] Config inheritance - `extends: string | string[]` in
+      `react-doctor.config.json` with cycle / depth guards and
+      array-concatenate / scalar-replace merge semantics.
+- [x] Make `no-barrel-import` aware of intentional public APIs via the
+      `barrelAllowlist` config (glob list matched against the resolved
+      barrel index file path).
 
 ### [ ] Make test-noise suppression consistent
 

@@ -84,15 +84,110 @@ export interface SurfaceControls {
   excludeRules?: string[];
 }
 
+export interface BaselineConfig {
+  /**
+   * Path to the baseline file (relative to the config file that
+   * declared it, or absolute). Defaults to `react-doctor-baseline.json`
+   * at the config root when `baseline: true` is set without a path.
+   *
+   * The baseline records a fingerprint per existing diagnostic so a
+   * mature codebase can opt into react-doctor without immediately
+   * failing on historical issues. Subsequent scans subtract the
+   * baseline from their diagnostic list - only NEW violations count
+   * toward the `ciFailure` surface and the PR comment.
+   */
+  path?: string;
+  /**
+   * When `true`, baseline-matched diagnostics are still printed to the
+   * CLI surface tagged as `[baseline]` so developers stay aware of
+   * historical debt. Defaults to `false` (baseline diagnostics are
+   * hidden from every surface, including the CLI list).
+   */
+  showBaselineMatches?: boolean;
+}
+
 export interface ReactDoctorConfig {
+  /**
+   * One or more parent config files to inherit from. Paths are
+   * resolved relative to the config file that declares `extends`
+   * (NOT relative to the CWD). Each entry is loaded the same way the
+   * top-level config is - so a parent can itself extend further.
+   *
+   * Inheritance semantics (consistent with tsconfig / eslint `extends`):
+   *
+   * - Later entries override earlier entries on scalar conflicts.
+   * - The CURRENT config always wins over anything it extends.
+   * - Scalar fields (e.g. `lint`, `failOn`) replace.
+   * - Array fields (e.g. `ignore.files`, `surfaces.*.excludeTags`)
+   *   concatenate in declaration order, then deduplicate.
+   * - Nested objects merge field-by-field.
+   *
+   * Typical use: a monorepo keeps its shared "house" rules in
+   * `react-doctor.base.json` at the root, and each package's
+   * `react-doctor.config.json` extends it before adding package-local
+   * overrides (e.g. `customRulesOnly: true` in legacy packages still
+   * adopting react-doctor).
+   */
+  extends?: string | string[];
   ignore?: ReactDoctorIgnoreConfig;
   lint?: boolean;
   verbose?: boolean;
   diff?: boolean | string;
+  /**
+   * When `true`, diagnostics on lines NOT touched by the active diff
+   * are dropped before any surface evaluation. Only effective in diff
+   * mode (`--diff`, `--staged`, or `diff` set in config). Defaults to
+   * `false` (file-level diff filtering only - every diagnostic in
+   * every changed file still counts).
+   *
+   * The line ranges are taken from `git diff --unified=0`, so a
+   * one-character whitespace edit on a line does NOT pull in unrelated
+   * diagnostics from elsewhere in the file. Use this to keep PR-time
+   * gating tight on big mature codebases where touching one helper
+   * shouldn't make you responsible for the rest of the file's debt.
+   */
+  touchedLinesOnly?: boolean;
   failOn?: FailOnLevel;
   customRulesOnly?: boolean;
   share?: boolean;
   offline?: boolean;
+  /**
+   * Maximum number of workspace projects to scan in parallel when
+   * react-doctor is invoked against a monorepo. `1` runs every project
+   * serially - the historical default and the only safe value when
+   * each project might saturate CPU on its own (e.g. very large
+   * standalone Next.js apps). Override with the `--concurrency <n>`
+   * CLI flag.
+   */
+  concurrency?: number;
+  /**
+   * Baseline mode - record current diagnostics so historical debt
+   * doesn't fail the build, and only newly-introduced violations
+   * count. Set `baseline: true` (default path) or
+   * `baseline: { path: "..." }` to enable.
+   */
+  baseline?: boolean | BaselineConfig;
+  /**
+   * Per-glob allowlist for the `no-barrel-import` rule.
+   *
+   * Note: matches the resolved barrel index file path, not the
+   * importer's path - so a single entry exempts every importer of
+   * that barrel, where `ignore.overrides` would require listing
+   * every importer. Re-exports
+   * from index modules matching any pattern here are treated as
+   * intentional public APIs and the rule does NOT fire. Patterns are
+   * matched against the resolved on-disk path of the imported file
+   * relative to the package root.
+   *
+   * Use this when your project ships barrel files on purpose - for
+   * example a published component library's `src/index.ts`, or a
+   * shared `apps/web/src/components/ui/index.ts` whose ordering /
+   * grouping is part of the team contract.
+   *
+   * Globs accept `*`, `**`, and `?`. Patterns are case-sensitive on
+   * POSIX and case-insensitive on Windows.
+   */
+  barrelAllowlist?: string[];
   /**
    * Redirect react-doctor at a different project directory than the one
    * it was invoked against. Resolved relative to the location of the

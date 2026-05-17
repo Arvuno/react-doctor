@@ -40,6 +40,23 @@ const program = new Command()
     "tune CLI output for sticky PR comments (drops weak-signal rule families like `design` from the printed list and the fail-on gate; configure via config.surfaces)",
   )
   .option(
+    "--baseline [path]",
+    "enable baseline mode - diagnostics matching the baseline file are dropped from CI / PR comments. Defaults to react-doctor-baseline.json",
+  )
+  .option(
+    "--update-baseline",
+    "record current diagnostics into the baseline file (no filtering, no exit code from new violations)",
+  )
+  .option(
+    "--touched-lines",
+    "in diff/staged mode, only count diagnostics on lines actually touched by the diff",
+  )
+  .option("--concurrency <n>", "scan up to N workspace projects in parallel (default: 1)")
+  .option(
+    "--pr-comment-output <path>",
+    "write a sticky-PR-comment-ready markdown document to this file as a side effect of the scan (compose with --pr-comment for the build-log plaintext)",
+  )
+  .option(
     "--explain <file:line>",
     "diagnose why a rule fired or why a suppression didn't apply at a specific location",
   )

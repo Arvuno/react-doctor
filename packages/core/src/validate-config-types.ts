@@ -1,6 +1,7 @@
 import type {
   DiagnosticSurface,
   ReactDoctorConfig,
+  RuleSeverityControls,
   RuleSeverityOverride,
   SurfaceControls,
 } from "@react-doctor/types";
@@ -19,6 +20,7 @@ const BOOLEAN_FIELD_NAMES = [
   "respectInlineDisables",
   "adoptExistingLintConfig",
   "offline",
+  "touchedLinesOnly",
 ] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
 
 const STRING_FIELD_NAMES = ["rootDir"] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
@@ -33,6 +35,10 @@ const SURFACE_CONTROL_FIELD_NAMES = [
 ] as const satisfies ReadonlyArray<keyof SurfaceControls>;
 
 const SEVERITY_FIELD_NAMES = ["rules", "categories"] as const satisfies ReadonlyArray<
+  keyof RuleSeverityControls
+>;
+
+const STRING_ARRAY_FIELD_NAMES = ["barrelAllowlist"] as const satisfies ReadonlyArray<
   keyof ReactDoctorConfig
 >;
 
@@ -136,9 +142,9 @@ const validateSurfacesField = (
   return validated;
 };
 
-// Validates one of the three top-level severity maps (`rules` /
-// `categories` / `tags`) — ESLint / oxlint-shaped severity surface.
-// Returns the validated map, dropping invalid entries with a warning.
+// Validates one of the severity maps (`rules` / `categories`) - ESLint /
+// oxlint-shaped severity surface. Returns the validated map, dropping
+// invalid entries with a warning.
 const validateSeverityMap = (
   fieldName: string,
   rawMap: unknown,
@@ -162,6 +168,60 @@ const validateSeverityMap = (
       continue;
     }
     validated[key] = value;
+  }
+  return validated;
+};
+
+const validateExtendsField = (value: unknown): string | string[] | undefined => {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    const collected: string[] = [];
+    for (const entry of value) {
+      if (typeof entry !== "string" || entry.length === 0) {
+        warnConfigField(`config field "extends" contains a non-string entry; ignoring the entry.`);
+        continue;
+      }
+      collected.push(entry);
+    }
+    return collected.length > 0 ? collected : undefined;
+  }
+  warnConfigField(
+    `config field "extends" must be a string or array of strings (got ${typeof value}); ignoring this field.`,
+  );
+  return undefined;
+};
+
+const validateConcurrencyField = (value: unknown): number | undefined => {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    warnConfigField(
+      `config field "concurrency" must be a positive integer (got ${typeof value === "number" ? value : typeof value}); ignoring this field.`,
+    );
+    return undefined;
+  }
+  return value;
+};
+
+const validateBaselineField = (
+  rawBaseline: unknown,
+): boolean | { path?: string; showBaselineMatches?: boolean } | undefined => {
+  if (typeof rawBaseline === "boolean") return rawBaseline;
+  if (!isPlainObject(rawBaseline)) {
+    warnConfigField(
+      `config field "baseline" must be a boolean or object (got ${typeof rawBaseline}); ignoring this field.`,
+    );
+    return undefined;
+  }
+  const validated: { path?: string; showBaselineMatches?: boolean } = {};
+  if (rawBaseline.path !== undefined) {
+    const validatedPath = validateString("baseline.path", rawBaseline.path);
+    if (validatedPath !== undefined) validated.path = validatedPath;
+  }
+  if (rawBaseline.showBaselineMatches !== undefined) {
+    const coerced = coerceMaybeBooleanString(
+      "baseline.showBaselineMatches",
+      rawBaseline.showBaselineMatches,
+    );
+    if (coerced !== undefined) validated.showBaselineMatches = coerced;
   }
   return validated;
 };
@@ -200,11 +260,19 @@ export const validateConfigTypes = (config: ReactDoctorConfig): ReactDoctorConfi
   for (const fieldName of STRING_FIELD_NAMES) {
     applyFieldValidator(config, validated, fieldName, (value) => validateString(fieldName, value));
   }
+  for (const fieldName of STRING_ARRAY_FIELD_NAMES) {
+    applyFieldValidator(config, validated, fieldName, (value) =>
+      validateStringArrayField(fieldName, value),
+    );
+  }
   applyFieldValidator(config, validated, "surfaces", validateSurfacesField);
   for (const fieldName of SEVERITY_FIELD_NAMES) {
     applyFieldValidator(config, validated, fieldName, (value) =>
       validateSeverityMap(fieldName, value),
     );
   }
+  applyFieldValidator(config, validated, "extends", validateExtendsField);
+  applyFieldValidator(config, validated, "concurrency", validateConcurrencyField);
+  applyFieldValidator(config, validated, "baseline", validateBaselineField);
   return validated;
 };
