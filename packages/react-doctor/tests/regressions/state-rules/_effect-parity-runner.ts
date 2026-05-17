@@ -39,15 +39,60 @@ const loadFixture = (ruleId: string): UpstreamFixture =>
 // not by resolved import, so this works.
 const upstreamShimPrelude = "";
 
-export const runUpstreamParity = (ruleId: string): void => {
-  const tempRoot = createScopedTempRoot(`effect-${ruleId}-parity`);
-  const fixture = loadFixture(ruleId);
+export interface RunUpstreamParityOptions {
+  /**
+   * Override the rule id we filter diagnostics by — defaults to the
+   * fixture name. Used by the `syntax` fixture, which captures cases
+   * upstream runs through the `no-derived-state` rule but lives under
+   * a different fixture filename.
+   */
+  ruleId?: string;
+  /**
+   * When true, assert that NONE of the 8 ported `react-doctor/*` rules
+   * fire on each `valid:` case (instead of just filtering by `ruleId`).
+   * Mirrors upstream `real-world.test.js`, which runs the full
+   * `recommended` config and asserts no diagnostics.
+   */
+  assertNoneOfPortedRules?: boolean;
+}
+
+const PORTED_RULE_IDS: ReadonlyArray<string> = [
+  "no-derived-state",
+  "no-chain-state-updates",
+  "no-event-handler",
+  "no-adjust-state-on-prop-change",
+  "no-reset-all-state-on-prop-change",
+  "no-pass-live-state-to-parent",
+  "no-pass-data-to-parent",
+  "no-initialize-state",
+];
+
+const collectAnyPortedRuleHits = async (
+  projectDir: string,
+): Promise<Array<{ rule: string; message: string }>> => {
+  const aggregated: Array<{ rule: string; message: string }> = [];
+  for (const ruleId of PORTED_RULE_IDS) {
+    const hits = await collectRuleHits(projectDir, ruleId);
+    for (const hit of hits) {
+      aggregated.push({ rule: ruleId, message: hit.message });
+    }
+  }
+  return aggregated;
+};
+
+export const runUpstreamParity = (
+  fixtureName: string,
+  options: RunUpstreamParityOptions = {},
+): void => {
+  const ruleIdToFilter = options.ruleId ?? fixtureName;
+  const tempRoot = createScopedTempRoot(`effect-${fixtureName}-parity`);
+  const fixture = loadFixture(fixtureName);
 
   const wrapAsTsx = (code: string): string => {
     return `${upstreamShimPrelude}\n// === upstream snippet ===\n${code}\n`;
   };
 
-  describe(`${ruleId} parity (port of eslint-plugin-react-you-might-not-need-an-effect)`, () => {
+  describe(`${fixtureName} parity (port of eslint-plugin-react-you-might-not-need-an-effect)`, () => {
     for (const validCase of fixture.valid) {
       const itFn = validCase.todo ? it.skip : it;
       itFn(`valid #${validCase.idx} "${validCase.name}"`, async () => {
@@ -58,12 +103,27 @@ export const runUpstreamParity = (ruleId: string): void => {
             files: { "src/Component.tsx": wrapAsTsx(validCase.code) },
           },
         );
-        const hits = await collectRuleHits(projectDir, ruleId);
+        if (options.assertNoneOfPortedRules) {
+          const hits = await collectAnyPortedRuleHits(projectDir);
+          if (hits.length !== 0) {
+            const fs = await import("node:fs");
+            fs.appendFileSync(
+              "/tmp/parity-failures.log",
+              `[${fixtureName}/any-ported] valid #${validCase.idx} "${validCase.name}" expected=0 got=${hits.length}\n  code:\n${validCase.code
+                .split("\n")
+                .map((l) => `    ${l}`)
+                .join("\n")}\n  hits:\n${JSON.stringify(hits, null, 2)}\n---\n`,
+            );
+          }
+          expect(hits).toHaveLength(0);
+          return;
+        }
+        const hits = await collectRuleHits(projectDir, ruleIdToFilter);
         if (hits.length !== 0) {
           const fs = await import("node:fs");
           fs.appendFileSync(
             "/tmp/parity-failures.log",
-            `[${ruleId}] valid #${validCase.idx} "${validCase.name}" expected=0 got=${hits.length}\n  code:\n${validCase.code
+            `[${ruleIdToFilter}] valid #${validCase.idx} "${validCase.name}" expected=0 got=${hits.length}\n  code:\n${validCase.code
               .split("\n")
               .map((l) => `    ${l}`)
               .join("\n")}\n  hits:\n${JSON.stringify(hits, null, 2)}\n---\n`,
@@ -83,12 +143,12 @@ export const runUpstreamParity = (ruleId: string): void => {
             files: { "src/Component.tsx": wrapAsTsx(invalidCase.code) },
           },
         );
-        const hits = await collectRuleHits(projectDir, ruleId);
+        const hits = await collectRuleHits(projectDir, ruleIdToFilter);
         if (hits.length !== (invalidCase.errors ?? 1)) {
           const fs = await import("node:fs");
           fs.appendFileSync(
             "/tmp/parity-failures.log",
-            `[${ruleId}] invalid #${invalidCase.idx} "${invalidCase.name}" expected=${invalidCase.errors ?? 1} got=${hits.length}\n  code:\n${invalidCase.code
+            `[${ruleIdToFilter}] invalid #${invalidCase.idx} "${invalidCase.name}" expected=${invalidCase.errors ?? 1} got=${hits.length}\n  code:\n${invalidCase.code
               .split("\n")
               .map((l) => `    ${l}`)
               .join("\n")}\n  hits:\n${JSON.stringify(hits, null, 2)}\n---\n`,
