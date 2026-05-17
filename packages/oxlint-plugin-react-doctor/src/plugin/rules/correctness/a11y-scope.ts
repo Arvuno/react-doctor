@@ -6,7 +6,8 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 import { HTML_TAGS } from "../../utils/jsx-a11y-helpers.js";
 
-const MESSAGE = "The `scope` prop can only be used on `<th>` elements. Remove the `scope` prop on elements other than `<th>`.";
+const MESSAGE =
+  "The `scope` prop can only be used on `<th>` elements. Remove the `scope` prop on elements other than `<th>`.";
 
 export const a11yScope = defineRule<Rule>({
   id: "a11y-scope",

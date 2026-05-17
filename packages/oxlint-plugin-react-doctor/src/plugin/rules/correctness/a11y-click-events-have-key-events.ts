@@ -11,7 +11,8 @@ import {
   hasSpreadAttribute,
 } from "../../utils/jsx-a11y-helpers.js";
 
-const MESSAGE = "Visible, non-interactive elements with click handlers must have at least one keyboard listener (`onKeyDown`, `onKeyUp`, or `onKeyPress`).";
+const MESSAGE =
+  "Visible, non-interactive elements with click handlers must have at least one keyboard listener (`onKeyDown`, `onKeyUp`, or `onKeyPress`).";
 
 export const a11yClickEventsHaveKeyEvents = defineRule<Rule>({
   id: "a11y-click-events-have-key-events",

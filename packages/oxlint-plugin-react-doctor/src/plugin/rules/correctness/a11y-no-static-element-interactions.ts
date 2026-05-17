@@ -16,13 +16,31 @@ import {
 } from "../../utils/jsx-a11y-helpers.js";
 
 const EVENT_HANDLER_PROPS = [
-  "onClick", "onMouseDown", "onMouseUp", "onKeyPress", "onKeyDown", "onKeyUp",
-  "onDblClick", "onContextMenu", "onDrag", "onDragEnd", "onDragEnter", "onDragExit",
-  "onDragLeave", "onDragOver", "onDragStart", "onDrop", "onMouseEnter", "onMouseLeave",
-  "onMouseMove", "onMouseOut", "onMouseOver",
+  "onClick",
+  "onMouseDown",
+  "onMouseUp",
+  "onKeyPress",
+  "onKeyDown",
+  "onKeyUp",
+  "onDblClick",
+  "onContextMenu",
+  "onDrag",
+  "onDragEnd",
+  "onDragEnter",
+  "onDragExit",
+  "onDragLeave",
+  "onDragOver",
+  "onDragStart",
+  "onDrop",
+  "onMouseEnter",
+  "onMouseLeave",
+  "onMouseMove",
+  "onMouseOut",
+  "onMouseOver",
 ];
 
-const MESSAGE = "Static HTML elements with event handlers require a role. Add a `role` attribute to the element.";
+const MESSAGE =
+  "Static HTML elements with event handlers require a role. Add a `role` attribute to the element.";
 
 export const a11yNoStaticElementInteractions = defineRule<Rule>({
   id: "a11y-no-static-element-interactions",

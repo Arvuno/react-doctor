@@ -4,7 +4,8 @@ import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
-const MESSAGE = "Avoid using dangerouslySetInnerHTML — it bypasses React's DOM diffing and can cause XSS vulnerabilities";
+const MESSAGE =
+  "Avoid using dangerouslySetInnerHTML — it bypasses React's DOM diffing and can cause XSS vulnerabilities";
 
 export const noDanger = defineRule<Rule>({
   id: "no-danger",

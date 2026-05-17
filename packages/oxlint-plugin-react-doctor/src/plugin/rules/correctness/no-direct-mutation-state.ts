@@ -9,7 +9,11 @@ const MESSAGE = "Do not mutate this.state directly — use this.setState() inste
 
 const isThisStateMember = (node: EsTreeNode): boolean => {
   if (!isNodeOfType(node, "MemberExpression")) return false;
-  if (isNodeOfType(node.object, "ThisExpression") && isNodeOfType(node.property, "Identifier") && node.property.name === "state")
+  if (
+    isNodeOfType(node.object, "ThisExpression") &&
+    isNodeOfType(node.property, "Identifier") &&
+    node.property.name === "state"
+  )
     return true;
   if (isNodeOfType(node.object, "MemberExpression")) return isThisStateMember(node.object);
   return false;
@@ -18,7 +22,11 @@ const isThisStateMember = (node: EsTreeNode): boolean => {
 const isInsideConstructor = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
-    if (isNodeOfType(current, "MethodDefinition") && isNodeOfType(current.key, "Identifier") && current.key.name === "constructor")
+    if (
+      isNodeOfType(current, "MethodDefinition") &&
+      isNodeOfType(current.key, "Identifier") &&
+      current.key.name === "constructor"
+    )
       return true;
     if (isNodeOfType(current, "ClassBody")) return false;
     current = current.parent;
@@ -29,7 +37,8 @@ const isInsideConstructor = (node: EsTreeNode): boolean => {
 const isInsideClassComponent = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
-    if (isNodeOfType(current, "ClassDeclaration") || isNodeOfType(current, "ClassExpression")) return true;
+    if (isNodeOfType(current, "ClassDeclaration") || isNodeOfType(current, "ClassExpression"))
+      return true;
     current = current.parent;
   }
   return false;

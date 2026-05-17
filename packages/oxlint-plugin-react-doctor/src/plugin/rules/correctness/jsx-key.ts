@@ -19,9 +19,7 @@ const hasKeyProp = (node: EsTreeNode): boolean => {
   return false;
 };
 
-const getJsxOpeningElement = (
-  node: EsTreeNode,
-): EsTreeNodeOfType<"JSXOpeningElement"> | null => {
+const getJsxOpeningElement = (node: EsTreeNode): EsTreeNodeOfType<"JSXOpeningElement"> | null => {
   if (isNodeOfType(node, "JSXElement") && node.openingElement) return node.openingElement;
   if (isNodeOfType(node, "JSXFragment")) return null;
   return null;
@@ -49,10 +47,7 @@ const isInsideArrayOrIterator = (node: EsTreeNode): "array" | "iterator" | null 
     return checkIfCallbackInIterator(functionParent);
   }
 
-  if (
-    isNodeOfType(parent, "ArrowFunctionExpression") &&
-    parent.body === node
-  ) {
+  if (isNodeOfType(parent, "ArrowFunctionExpression") && parent.body === node) {
     return checkIfCallbackInIterator(parent);
   }
 
@@ -150,8 +145,8 @@ export const jsxKey = defineRule<Rule>({
       if (hasKeyProp(node.openingElement)) return;
       const message =
         location === "array"
-          ? "Missing \"key\" prop for element in array — add a unique key to avoid rendering issues"
-          : "Missing \"key\" prop for element in iterator — add a unique key to each element returned from .map() or Array.from()";
+          ? 'Missing "key" prop for element in array — add a unique key to avoid rendering issues'
+          : 'Missing "key" prop for element in iterator — add a unique key to each element returned from .map() or Array.from()';
       context.report({ node, message });
     },
     JSXFragment(node: EsTreeNodeOfType<"JSXFragment">) {
@@ -160,8 +155,8 @@ export const jsxKey = defineRule<Rule>({
       if (!location) return;
       const message =
         location === "array"
-          ? "Missing \"key\" prop for fragment in array — use <Fragment key={...}> instead of shorthand <></>"
-          : "Missing \"key\" prop for fragment in iterator — use <Fragment key={...}> instead of shorthand <></>";
+          ? 'Missing "key" prop for fragment in array — use <Fragment key={...}> instead of shorthand <></>'
+          : 'Missing "key" prop for fragment in iterator — use <Fragment key={...}> instead of shorthand <></>';
       context.report({ node, message });
     },
   }),

@@ -10,11 +10,7 @@ export const getJsxElementName = (
     const parts: string[] = [];
     let current: unknown = name;
     while (isNodeOfType(current, "JSXMemberExpression")) {
-      parts.unshift(
-        isNodeOfType(current.property, "JSXIdentifier")
-          ? current.property.name
-          : "",
-      );
+      parts.unshift(isNodeOfType(current.property, "JSXIdentifier") ? current.property.name : "");
       current = current.object;
     }
     if (isNodeOfType(current, "JSXIdentifier")) parts.unshift(current.name);

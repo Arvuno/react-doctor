@@ -5,7 +5,8 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { findJsxAttribute } from "../../utils/find-jsx-attribute.js";
 
-const MESSAGE = "The `autoFocus` attribute can cause usability issues for sighted and non-sighted users. Remove the `autoFocus` attribute.";
+const MESSAGE =
+  "The `autoFocus` attribute can cause usability issues for sighted and non-sighted users. Remove the `autoFocus` attribute.";
 
 const isFalseValue = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
   const value = attribute.value;
@@ -17,7 +18,11 @@ const isFalseValue = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
       if (expression.value === false) return true;
       if (expression.value === "false") return true;
     }
-    if (isNodeOfType(expression, "TemplateLiteral") && expression.expressions?.length === 0 && expression.quasis?.length === 1) {
+    if (
+      isNodeOfType(expression, "TemplateLiteral") &&
+      expression.expressions?.length === 0 &&
+      expression.quasis?.length === 1
+    ) {
       const rawValue = expression.quasis[0]?.value?.cooked ?? expression.quasis[0]?.value?.raw;
       if (rawValue === "false") return true;
     }

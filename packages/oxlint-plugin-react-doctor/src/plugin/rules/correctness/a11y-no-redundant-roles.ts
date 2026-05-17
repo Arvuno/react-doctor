@@ -4,9 +4,13 @@ import type { RuleContext } from "../../utils/rule-context.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
-import { getJsxAttributeStringValue, ELEMENT_IMPLICIT_ROLES } from "../../utils/jsx-a11y-helpers.js";
+import {
+  getJsxAttributeStringValue,
+  ELEMENT_IMPLICIT_ROLES,
+} from "../../utils/jsx-a11y-helpers.js";
 
-const MESSAGE = "Elements should not have redundant ARIA roles that match their implicit role. Remove the explicit `role` attribute.";
+const MESSAGE =
+  "Elements should not have redundant ARIA roles that match their implicit role. Remove the explicit `role` attribute.";
 
 export const a11yNoRedundantRoles = defineRule<Rule>({
   id: "a11y-no-redundant-roles",

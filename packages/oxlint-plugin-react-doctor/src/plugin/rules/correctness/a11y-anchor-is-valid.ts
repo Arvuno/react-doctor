@@ -7,8 +7,10 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 import { getJsxAttributeStringValue, hasSpreadAttribute } from "../../utils/jsx-a11y-helpers.js";
 
-const NO_HREF_MESSAGE = "The `href` attribute is required for an anchor to be keyboard accessible. Provide a valid, navigable address as the `href` value. If you cannot provide an `href`, but still need the element to resemble a link, use a `<button>` and change it with appropriate styles.";
-const INVALID_HREF_MESSAGE = "The `href` attribute requires a valid value to be accessible. Provide a valid, navigable address as the `href` value. If you cannot provide a valid `href`, but still need the element to resemble a link, use a `<button>` and change it with appropriate styles.";
+const NO_HREF_MESSAGE =
+  "The `href` attribute is required for an anchor to be keyboard accessible. Provide a valid, navigable address as the `href` value. If you cannot provide an `href`, but still need the element to resemble a link, use a `<button>` and change it with appropriate styles.";
+const INVALID_HREF_MESSAGE =
+  "The `href` attribute requires a valid value to be accessible. Provide a valid, navigable address as the `href` value. If you cannot provide a valid `href`, but still need the element to resemble a link, use a `<button>` and change it with appropriate styles.";
 
 const INVALID_HREF_VALUES = new Set(["#", "javascript:void(0)", "javascript:void(0);"]);
 
@@ -40,12 +42,19 @@ export const a11yAnchorIsValid = defineRule<Rule>({
           context.report({ node, message: INVALID_HREF_MESSAGE });
           return;
         }
-        if (isNodeOfType(expression, "Literal") && typeof expression.value === "string" && isInvalidHrefValue(expression.value)) {
+        if (
+          isNodeOfType(expression, "Literal") &&
+          typeof expression.value === "string" &&
+          isInvalidHrefValue(expression.value)
+        ) {
           context.report({ node, message: INVALID_HREF_MESSAGE });
           return;
         }
       }
-      if (isNodeOfType(hrefAttribute.value, "Literal") && typeof hrefAttribute.value.value === "string") {
+      if (
+        isNodeOfType(hrefAttribute.value, "Literal") &&
+        typeof hrefAttribute.value.value === "string"
+      ) {
         if (isInvalidHrefValue(hrefAttribute.value.value)) {
           context.report({ node, message: INVALID_HREF_MESSAGE });
         }

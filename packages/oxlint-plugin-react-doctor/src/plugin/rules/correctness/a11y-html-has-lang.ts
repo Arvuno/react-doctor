@@ -6,8 +6,10 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 
-const MISSING_LANG = "Missing lang attribute. Add a `lang` attribute to the `html` element whose value represents the primary language of the document.";
-const MISSING_LANG_VALUE = "Missing value for `lang` attribute. Must have meaningful value for `lang` prop.";
+const MISSING_LANG =
+  "Missing lang attribute. Add a `lang` attribute to the `html` element whose value represents the primary language of the document.";
+const MISSING_LANG_VALUE =
+  "Missing value for `lang` attribute. Must have meaningful value for `lang` prop.";
 
 const isValidLangValue = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
   const value = attribute.value;
@@ -17,15 +19,23 @@ const isValidLangValue = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean 
     const expression = value.expression;
     if (isNodeOfType(expression, "Identifier") && expression.name === "undefined") return false;
     if (isNodeOfType(expression, "Literal")) {
-      if (expression.value === null || expression.value === false || typeof expression.value === "number") return false;
+      if (
+        expression.value === null ||
+        expression.value === false ||
+        typeof expression.value === "number"
+      )
+        return false;
       if (typeof expression.value === "string") return expression.value !== "";
     }
     if (isNodeOfType(expression, "JSXEmptyExpression")) return false;
     if (isNodeOfType(expression, "TemplateLiteral")) {
       if (expression.expressions?.length > 0) return true;
-      return expression.quasis?.some((quasi: EsTreeNodeOfType<"TemplateElement">) =>
-        quasi.value?.raw && quasi.value.raw !== ""
-      ) ?? false;
+      return (
+        expression.quasis?.some(
+          (quasi: EsTreeNodeOfType<"TemplateElement">) =>
+            quasi.value?.raw && quasi.value.raw !== "",
+        ) ?? false
+      );
     }
     return true;
   }

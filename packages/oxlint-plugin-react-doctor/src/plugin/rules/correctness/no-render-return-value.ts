@@ -30,11 +30,7 @@ const isUsedAsValue = (node: EsTreeNode): boolean => {
   if (isNodeOfType(parent, "AssignmentExpression")) return true;
   if (isNodeOfType(parent, "Property")) return true;
   if (isNodeOfType(parent, "ReturnStatement")) return true;
-  if (
-    isNodeOfType(parent, "ArrowFunctionExpression") &&
-    parent.body === node
-  )
-    return true;
+  if (isNodeOfType(parent, "ArrowFunctionExpression") && parent.body === node) return true;
   return false;
 };
 

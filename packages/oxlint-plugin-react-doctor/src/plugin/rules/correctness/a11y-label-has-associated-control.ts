@@ -7,7 +7,8 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 import { isJsxAttributeValueTruthy, hasSpreadAttribute } from "../../utils/jsx-a11y-helpers.js";
 
-const MESSAGE = "A form label must be associated with a control. Ensure the label has an `htmlFor` attribute, wraps a form control, or has an `aria-label` or `aria-labelledby` attribute.";
+const MESSAGE =
+  "A form label must be associated with a control. Ensure the label has an `htmlFor` attribute, wraps a form control, or has an `aria-label` or `aria-labelledby` attribute.";
 
 const CONTROL_ELEMENTS = new Set(["input", "meter", "output", "progress", "select", "textarea"]);
 
@@ -45,7 +46,10 @@ export const a11yLabelHasAssociatedControl = defineRule<Rule>({
       if (tagName !== "label") return;
       if (hasSpreadAttribute(node.openingElement.attributes ?? [])) return;
 
-      const htmlForAttribute = findJsxAttributeIgnoreCase(node.openingElement.attributes, "htmlFor");
+      const htmlForAttribute = findJsxAttributeIgnoreCase(
+        node.openingElement.attributes,
+        "htmlFor",
+      );
       if (htmlForAttribute && isJsxAttributeValueTruthy(htmlForAttribute)) return;
 
       const forAttribute = findJsxAttributeIgnoreCase(node.openingElement.attributes, "for");
@@ -54,7 +58,10 @@ export const a11yLabelHasAssociatedControl = defineRule<Rule>({
       const ariaLabel = findJsxAttributeIgnoreCase(node.openingElement.attributes, "aria-label");
       if (ariaLabel && isJsxAttributeValueTruthy(ariaLabel)) return;
 
-      const ariaLabelledBy = findJsxAttributeIgnoreCase(node.openingElement.attributes, "aria-labelledby");
+      const ariaLabelledBy = findJsxAttributeIgnoreCase(
+        node.openingElement.attributes,
+        "aria-labelledby",
+      );
       if (ariaLabelledBy && isJsxAttributeValueTruthy(ariaLabelledBy)) return;
 
       if (hasNestedControl(node.children)) return;

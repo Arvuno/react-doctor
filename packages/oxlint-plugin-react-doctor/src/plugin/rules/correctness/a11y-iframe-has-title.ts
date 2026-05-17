@@ -6,7 +6,8 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 import { isJsxAttributeValueTruthy } from "../../utils/jsx-a11y-helpers.js";
 
-const MESSAGE = "Missing `title` attribute for the `iframe` element. Provide `title` property for `iframe` element.";
+const MESSAGE =
+  "Missing `title` attribute for the `iframe` element. Provide `title` property for `iframe` element.";
 
 export const a11yIframeHasTitle = defineRule<Rule>({
   id: "a11y-iframe-has-title",

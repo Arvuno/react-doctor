@@ -27,7 +27,11 @@ const getHookName = (node: EsTreeNodeOfType<"CallExpression">): string | null =>
 
 const getEnclosingFunction = (
   node: EsTreeNode,
-): EsTreeNodeOfType<"FunctionDeclaration"> | EsTreeNodeOfType<"FunctionExpression"> | EsTreeNodeOfType<"ArrowFunctionExpression"> | null => {
+):
+  | EsTreeNodeOfType<"FunctionDeclaration">
+  | EsTreeNodeOfType<"FunctionExpression">
+  | EsTreeNodeOfType<"ArrowFunctionExpression">
+  | null => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
     if (
@@ -42,7 +46,10 @@ const getEnclosingFunction = (
 };
 
 const getFunctionName = (
-  node: EsTreeNodeOfType<"FunctionDeclaration"> | EsTreeNodeOfType<"FunctionExpression"> | EsTreeNodeOfType<"ArrowFunctionExpression">,
+  node:
+    | EsTreeNodeOfType<"FunctionDeclaration">
+    | EsTreeNodeOfType<"FunctionExpression">
+    | EsTreeNodeOfType<"ArrowFunctionExpression">,
 ): string | null => {
   if (isNodeOfType(node, "FunctionDeclaration") && node.id) return node.id.name;
   if (isNodeOfType(node, "FunctionExpression") && node.id) return node.id.name;
@@ -113,10 +120,7 @@ const isInsideClassComponent = (node: EsTreeNode): boolean => {
   return false;
 };
 
-const isInsideNestedCallback = (
-  node: EsTreeNode,
-  componentFunction: EsTreeNode,
-): boolean => {
+const isInsideNestedCallback = (node: EsTreeNode, componentFunction: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current && current !== componentFunction) {
     if (
@@ -137,10 +141,7 @@ const isMemoOrForwardRefCallback = (node: EsTreeNode): boolean => {
   const callee = parent.callee;
   if (isNodeOfType(callee, "Identifier"))
     return callee.name === "memo" || callee.name === "forwardRef";
-  if (
-    isNodeOfType(callee, "MemberExpression") &&
-    isNodeOfType(callee.property, "Identifier")
-  )
+  if (isNodeOfType(callee, "MemberExpression") && isNodeOfType(callee.property, "Identifier"))
     return callee.property.name === "memo" || callee.property.name === "forwardRef";
   return false;
 };

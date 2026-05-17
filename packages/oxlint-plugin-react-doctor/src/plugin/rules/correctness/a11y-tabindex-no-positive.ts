@@ -5,7 +5,8 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
 
-const MESSAGE = "Avoid positive `tabIndex` property values to synchronize the flow of the page with keyboard tab order. Use 0 or -1 instead.";
+const MESSAGE =
+  "Avoid positive `tabIndex` property values to synchronize the flow of the page with keyboard tab order. Use 0 or -1 instead.";
 
 export const a11yTabindexNoPositive = defineRule<Rule>({
   id: "a11y-tabindex-no-positive",
@@ -30,7 +31,11 @@ export const a11yTabindexNoPositive = defineRule<Rule>({
       }
       if (isNodeOfType(value, "JSXExpressionContainer")) {
         const expression = value.expression;
-        if (isNodeOfType(expression, "Literal") && typeof expression.value === "number" && expression.value > 0) {
+        if (
+          isNodeOfType(expression, "Literal") &&
+          typeof expression.value === "number" &&
+          expression.value > 0
+        ) {
           context.report({ node: tabindexAttribute, message: MESSAGE });
         }
       }

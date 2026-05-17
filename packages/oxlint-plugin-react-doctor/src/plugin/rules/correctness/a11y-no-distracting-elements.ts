@@ -6,7 +6,8 @@ import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 
 const DISTRACTING_ELEMENTS = new Set(["marquee", "blink"]);
 
-const MESSAGE = "Do not use distracting elements like `<marquee>` or `<blink>` as they can create visual accessibility issues and are deprecated.";
+const MESSAGE =
+  "Do not use distracting elements like `<marquee>` or `<blink>` as they can create visual accessibility issues and are deprecated.";
 
 export const a11yNoDistractingElements = defineRule<Rule>({
   id: "a11y-no-distracting-elements",

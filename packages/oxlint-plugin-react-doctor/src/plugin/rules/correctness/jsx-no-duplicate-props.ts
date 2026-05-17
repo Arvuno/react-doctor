@@ -7,7 +7,8 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const jsxNoDuplicateProps = defineRule<Rule>({
   id: "jsx-no-duplicate-props",
   severity: "error",
-  recommendation: "Remove the duplicate prop — the last value silently wins and the earlier one is ignored",
+  recommendation:
+    "Remove the duplicate prop — the last value silently wins and the earlier one is ignored",
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
       const seenProps = new Set<string>();

@@ -5,7 +5,8 @@ import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 
-const MESSAGE = "render() method must return a value — components without a return statement render nothing";
+const MESSAGE =
+  "render() method must return a value — components without a return statement render nothing";
 
 const blockHasReturnStatement = (body: EsTreeNodeOfType<"BlockStatement">): boolean => {
   for (const statement of body.body) {
@@ -44,9 +45,17 @@ const statementReturns = (node: EsTreeNode): boolean => {
 };
 
 const isRenderMethod = (node: EsTreeNode): boolean => {
-  if (isNodeOfType(node, "MethodDefinition") && isNodeOfType(node.key, "Identifier") && node.key.name === "render")
+  if (
+    isNodeOfType(node, "MethodDefinition") &&
+    isNodeOfType(node.key, "Identifier") &&
+    node.key.name === "render"
+  )
     return true;
-  if (isNodeOfType(node, "Property") && isNodeOfType(node.key, "Identifier") && node.key.name === "render")
+  if (
+    isNodeOfType(node, "Property") &&
+    isNodeOfType(node.key, "Identifier") &&
+    node.key.name === "render"
+  )
     return true;
   return false;
 };
@@ -54,7 +63,8 @@ const isRenderMethod = (node: EsTreeNode): boolean => {
 const isInsideClassComponent = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
-    if (isNodeOfType(current, "ClassDeclaration") || isNodeOfType(current, "ClassExpression")) return true;
+    if (isNodeOfType(current, "ClassDeclaration") || isNodeOfType(current, "ClassExpression"))
+      return true;
     current = current.parent;
   }
   return false;
