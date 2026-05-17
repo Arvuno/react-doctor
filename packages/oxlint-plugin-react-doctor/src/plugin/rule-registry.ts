@@ -8,6 +8,20 @@
 
 import type { Rule } from "./utils/rule.js";
 
+import { a11yAltText } from "./rules/correctness/a11y-alt-text.js";
+import { a11yAnchorIsValid } from "./rules/correctness/a11y-anchor-is-valid.js";
+import { a11yClickEventsHaveKeyEvents } from "./rules/correctness/a11y-click-events-have-key-events.js";
+import { a11yHeadingHasContent } from "./rules/correctness/a11y-heading-has-content.js";
+import { a11yHtmlHasLang } from "./rules/correctness/a11y-html-has-lang.js";
+import { a11yIframeHasTitle } from "./rules/correctness/a11y-iframe-has-title.js";
+import { a11yLabelHasAssociatedControl } from "./rules/correctness/a11y-label-has-associated-control.js";
+import { a11yNoAutofocus } from "./rules/correctness/a11y-no-autofocus.js";
+import { a11yNoDistractingElements } from "./rules/correctness/a11y-no-distracting-elements.js";
+import { a11yNoRedundantRoles } from "./rules/correctness/a11y-no-redundant-roles.js";
+import { a11yNoStaticElementInteractions } from "./rules/correctness/a11y-no-static-element-interactions.js";
+import { a11yRoleHasRequiredAriaProps } from "./rules/correctness/a11y-role-has-required-aria-props.js";
+import { a11yScope } from "./rules/correctness/a11y-scope.js";
+import { a11yTabindexNoPositive } from "./rules/correctness/a11y-tabindex-no-positive.js";
 import { advancedEventHandlerRefs } from "./rules/state-and-effects/advanced-event-handler-refs.js";
 import { asyncAwaitInLoop } from "./rules/js-performance/async-await-in-loop.js";
 import { asyncDeferAwait } from "./rules/performance/async-defer-await.js";
@@ -201,6 +215,76 @@ import { tanstackStartServerFnValidateInput } from "./rules/tanstack-start/tanst
 import { useLazyMotion } from "./rules/bundle-size/use-lazy-motion.js";
 
 export const ruleRegistry: Record<string, Rule> = {
+  "a11y-alt-text": {
+    ...a11yAltText,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-anchor-is-valid": {
+    ...a11yAnchorIsValid,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-click-events-have-key-events": {
+    ...a11yClickEventsHaveKeyEvents,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-heading-has-content": {
+    ...a11yHeadingHasContent,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-html-has-lang": {
+    ...a11yHtmlHasLang,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-iframe-has-title": {
+    ...a11yIframeHasTitle,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-label-has-associated-control": {
+    ...a11yLabelHasAssociatedControl,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-no-autofocus": {
+    ...a11yNoAutofocus,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-no-distracting-elements": {
+    ...a11yNoDistractingElements,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-no-redundant-roles": {
+    ...a11yNoRedundantRoles,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-no-static-element-interactions": {
+    ...a11yNoStaticElementInteractions,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-role-has-required-aria-props": {
+    ...a11yRoleHasRequiredAriaProps,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-scope": {
+    ...a11yScope,
+    framework: "global",
+    category: "Correctness",
+  },
+  "a11y-tabindex-no-positive": {
+    ...a11yTabindexNoPositive,
+    framework: "global",
+    category: "Correctness",
+  },
   "advanced-event-handler-refs": {
     ...advancedEventHandlerRefs,
     framework: "global",

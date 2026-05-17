@@ -84,7 +84,7 @@ export const createOxlintConfig = ({
       style: "off",
       nursery: "off",
     },
-    plugins: customRulesOnly ? [] : ["jsx-a11y"],
+    plugins: [],
     jsPlugins: [...jsPlugins, pluginPath],
     settings: {
       "react-doctor": {
@@ -96,7 +96,6 @@ export const createOxlintConfig = ({
       },
     },
     rules: {
-      ...(customRulesOnly ? {} : BUILTIN_A11Y_RULES),
       ...reactCompilerRules,
       ...youMightNotNeedEffectRules,
       ...enabledReactDoctorRules,
