@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import reactDoctorPlugin from "oxlint-plugin-react-doctor";
+import type { Rule } from "oxlint-plugin-react-doctor";
 
 const getRuleTags = (ruleId: string): ReadonlyArray<string> => {
   const rule = reactDoctorPlugin.rules[ruleId];
@@ -7,11 +8,17 @@ const getRuleTags = (ruleId: string): ReadonlyArray<string> => {
   return rule.tags ?? [];
 };
 
+const collectRuleIdsMatching = (predicate: (rule: Rule) => boolean): string[] => {
+  const matched: string[] = [];
+  for (const [ruleId, rule] of Object.entries(reactDoctorPlugin.rules)) {
+    if (predicate(rule)) matched.push(ruleId);
+  }
+  return matched;
+};
+
 describe("rule tag registration", () => {
   it('tags every React Native bucket rule with "react-native"', () => {
-    const reactNativeRuleIds = Object.entries(reactDoctorPlugin.rules)
-      .filter(([, rule]) => rule.framework === "react-native")
-      .map(([ruleId]) => ruleId);
+    const reactNativeRuleIds = collectRuleIdsMatching((rule) => rule.framework === "react-native");
     expect(reactNativeRuleIds.length).toBeGreaterThan(0);
     for (const ruleId of reactNativeRuleIds) {
       expect(getRuleTags(ruleId)).toContain("react-native");
@@ -19,9 +26,7 @@ describe("rule tag registration", () => {
   });
 
   it('tags every server bucket rule with "server-action"', () => {
-    const serverRuleIds = Object.entries(reactDoctorPlugin.rules)
-      .filter(([, rule]) => rule.category === "Server")
-      .map(([ruleId]) => ruleId);
+    const serverRuleIds = collectRuleIdsMatching((rule) => rule.category === "Server");
     expect(serverRuleIds.length).toBeGreaterThan(0);
     for (const ruleId of serverRuleIds) {
       expect(getRuleTags(ruleId)).toContain("server-action");
