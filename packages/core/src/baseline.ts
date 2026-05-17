@@ -99,18 +99,26 @@ export const resolveBaselineSettings = (
   // or a string for `--baseline=<path>` (Commander's optional-arg shape).
   if (cliFlag !== undefined) {
     enabled = Boolean(cliFlag);
-    if (typeof cliFlag === "string") resolvedPath = cliFlag;
+    if (typeof cliFlag === "string" && cliFlag.length > 0) resolvedPath = cliFlag;
   } else if (baselineConfig === true) {
     enabled = true;
   } else if (typeof baselineConfig === "object" && baselineConfig !== null) {
     enabled = true;
-    resolvedPath = (baselineConfig as BaselineConfig).path;
+    const configuredPath = (baselineConfig as BaselineConfig).path;
+    // Empty-string paths fall through to the default - the standard
+    // `??` fallback below would otherwise leave `path.resolve` with
+    // `""`, which resolves to the project root *directory* rather
+    // than a file.
+    if (typeof configuredPath === "string" && configuredPath.length > 0) {
+      resolvedPath = configuredPath;
+    }
     showBaselineMatches = Boolean((baselineConfig as BaselineConfig).showBaselineMatches);
   }
 
-  const filePath = path.isAbsolute(resolvedPath ?? "")
-    ? (resolvedPath as string)
-    : path.resolve(projectRoot, resolvedPath ?? DEFAULT_BASELINE_FILENAME);
+  const filePath =
+    resolvedPath && path.isAbsolute(resolvedPath)
+      ? resolvedPath
+      : path.resolve(projectRoot, resolvedPath ?? DEFAULT_BASELINE_FILENAME);
 
   return { enabled, filePath, showBaselineMatches };
 };

@@ -138,6 +138,17 @@ describe("resolveBaselineSettings", () => {
     expect(resolved.filePath).toBe(path.resolve(projectRoot, "react-doctor-baseline.json"));
   });
 
+  it("falls back to the default file when baseline.path is an empty string", () => {
+    const resolved = resolveBaselineSettings({ baseline: { path: "" } }, undefined, projectRoot);
+    expect(resolved.enabled).toBe(true);
+    expect(resolved.filePath).toBe(path.resolve(projectRoot, "react-doctor-baseline.json"));
+  });
+
+  it("falls back to the default file when the CLI flag is an empty string", () => {
+    const resolved = resolveBaselineSettings(null, "", projectRoot);
+    expect(resolved.filePath).toBe(path.resolve(projectRoot, "react-doctor-baseline.json"));
+  });
+
   it("reads showBaselineMatches from a baseline config object", () => {
     const resolved = resolveBaselineSettings(
       { baseline: { path: "qa.json", showBaselineMatches: true } },

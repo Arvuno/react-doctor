@@ -112,13 +112,14 @@ export const mergeReactDoctorConfigs = (
 
   if (parent.surfaces || child.surfaces) {
     const mergedSurfaces: NonNullable<ReactDoctorConfig["surfaces"]> = { ...parent.surfaces };
-    for (const [surfaceName, controls] of Object.entries(child.surfaces ?? {})) {
-      if (!controls) continue;
-      const merged = mergeSurfaceControls(
+    for (const [surfaceName, childControls] of Object.entries(child.surfaces ?? {})) {
+      if (!childControls) continue;
+      const mergedControls = mergeSurfaceControls(
         parent.surfaces?.[surfaceName as keyof typeof mergedSurfaces],
-        controls,
+        childControls,
       );
-      if (merged) mergedSurfaces[surfaceName as keyof typeof mergedSurfaces] = merged;
+      if (mergedControls)
+        mergedSurfaces[surfaceName as keyof typeof mergedSurfaces] = mergedControls;
     }
     merged.surfaces = mergedSurfaces;
   }
