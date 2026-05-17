@@ -1,6 +1,6 @@
 import type { Diagnostic, ReactDoctorConfig, ReactDoctorIgnoreOverride } from "@react-doctor/types";
 import { isPlainObject } from "@react-doctor/project-info";
-import { compileGlobPattern } from "./utils/match-glob-pattern.js";
+import { compileGlobPattern, InvalidGlobPatternError } from "./utils/match-glob-pattern.js";
 import { toRelativePath } from "./utils/to-relative-path.js";
 
 interface CompiledIgnoreOverride {
@@ -55,7 +55,19 @@ export const compileIgnoreOverrides = (
   return overrides.flatMap((entry, index) => {
     const validated = validateOverrideEntry(entry, index);
     if (!validated) return [];
-    const filePatterns = collectStringList(validated.files).map(compileGlobPattern);
+    const filePatterns = collectStringList(validated.files)
+      .map((pattern) => {
+        try {
+          return compileGlobPattern(pattern);
+        } catch (caughtError) {
+          if (caughtError instanceof InvalidGlobPatternError) {
+            warnConfigField(`ignore.overrides[${index}]: ${caughtError.message}`);
+            return null;
+          }
+          throw caughtError;
+        }
+      })
+      .filter((compiled): compiled is RegExp => compiled !== null);
     if (filePatterns.length === 0) return [];
     const ruleIds = new Set(collectStringList(validated.rules));
     return [{ filePatterns, ruleIds }];
