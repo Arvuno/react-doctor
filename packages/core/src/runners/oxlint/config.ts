@@ -73,16 +73,16 @@ export const createOxlintConfig = ({
     // and activate unconditionally once any tag filters pass.
     if (rule.framework !== "global" && !rule.requires) continue;
     if (!shouldEnableRule(rule.requires, rule.tags, capabilities, ignoredTags)) continue;
-    // Severity overrides applied at registration time so `"off"` short-
-    // circuits before the rule ever runs (removes it from every surface,
-    // every score input, and every CI gate). `"error"` / `"warn"` simply
-    // re-stamp the registered severity.
-    const overrideSeverity = resolveRuleSeverityOverride(
-      { ruleKey: fullKey, category: rule.category, tags: rule.tags },
-      severityOverrides,
-    );
-    if (overrideSeverity === "off") continue;
-    enabledReactDoctorRules[fullKey] = overrideSeverity ?? rule.severity;
+    // `"off"` short-circuits the rule before registration (it never runs,
+    // never emits, never reaches any surface). `"error"` / `"warn"` flow
+    // straight into the oxlint config as the registered severity.
+    const severity =
+      resolveRuleSeverityOverride(
+        { ruleKey: fullKey, category: rule.category, tags: rule.tags },
+        severityOverrides,
+      ) ?? rule.severity;
+    if (severity === "off") continue;
+    enabledReactDoctorRules[fullKey] = severity;
   }
 
   return {

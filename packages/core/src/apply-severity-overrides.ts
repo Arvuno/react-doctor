@@ -1,25 +1,36 @@
-import reactDoctorPlugin from "oxlint-plugin-react-doctor";
-import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
+import type { Diagnostic, ReactDoctorConfig, RuleSeverityOverride } from "@react-doctor/types";
+import { getDiagnosticRuleIdentity } from "./get-diagnostic-rule-identity.js";
 import { resolveRuleSeverityOverride } from "./resolve-rule-severity-override.js";
 
-const getRuleTagsForDiagnostic = (diagnostic: Diagnostic): ReadonlyArray<string> | undefined => {
-  if (diagnostic.plugin !== "react-doctor") return undefined;
-  return reactDoctorPlugin.rules[diagnostic.rule]?.tags;
+const SEVERITY_FOR_OVERRIDE: Record<
+  Exclude<RuleSeverityOverride, "off">,
+  Diagnostic["severity"]
+> = {
+  error: "error",
+  warn: "warning",
+};
+
+const restampSeverity = (
+  diagnostic: Diagnostic,
+  override: Exclude<RuleSeverityOverride, "off">,
+): Diagnostic => {
+  const targetSeverity = SEVERITY_FOR_OVERRIDE[override];
+  if (diagnostic.severity === targetSeverity) return diagnostic;
+  return { ...diagnostic, severity: targetSeverity };
 };
 
 /**
  * Applies the user's `severityOverrides` to a post-lint diagnostic list:
  *
- * - `"off"` removes the diagnostic entirely. For react-doctor rules
- *   this is normally already handled at lint registration time, but
- *   this post-filter also covers external plugins (`react/*`,
- *   `jsx-a11y/*`, custom adopted configs) whose severities we don't
- *   control at registration.
+ * - `"off"` drops the diagnostic entirely. For react-doctor rules
+ *   this also happens at lint-registration time; this post-filter
+ *   covers external plugins (`react/*`, `jsx-a11y/*`, custom adopted
+ *   configs) whose severities the lint config can't reach.
  * - `"warn"` / `"error"` re-stamps `diagnostic.severity` so downstream
- *   consumers — `--fail-on`, the score input, the CLI summary —
- *   see the user-chosen severity rather than the rule's built-in one.
+ *   consumers — `--fail-on`, the score input, the CLI summary — see
+ *   the user-chosen severity rather than the rule's built-in one.
  *
- * Returns the input array unchanged when no overrides are configured,
+ * Returns the input array by identity when no overrides are configured
  * so the common path stays allocation-free.
  */
 export const applySeverityOverrides = (
@@ -29,25 +40,11 @@ export const applySeverityOverrides = (
   const overrides = config?.severityOverrides;
   if (!overrides) return diagnostics;
 
-  const result: Diagnostic[] = [];
+  const adjusted: Diagnostic[] = [];
   for (const diagnostic of diagnostics) {
-    const override = resolveRuleSeverityOverride(
-      {
-        ruleKey: `${diagnostic.plugin}/${diagnostic.rule}`,
-        category: diagnostic.category,
-        tags: getRuleTagsForDiagnostic(diagnostic),
-      },
-      overrides,
-    );
+    const override = resolveRuleSeverityOverride(getDiagnosticRuleIdentity(diagnostic), overrides);
     if (override === "off") continue;
-    if (override === "error" || override === "warn") {
-      const targetSeverity = override === "error" ? "error" : "warning";
-      if (diagnostic.severity !== targetSeverity) {
-        result.push({ ...diagnostic, severity: targetSeverity });
-        continue;
-      }
-    }
-    result.push(diagnostic);
+    adjusted.push(override === undefined ? diagnostic : restampSeverity(diagnostic, override));
   }
-  return result;
+  return adjusted;
 };

@@ -139,24 +139,17 @@ const importLines = ruleEntries
 // has nothing to rewrite. Single-line entries would be reformatted when
 // they exceed the 100-char default width, and the registry-overwrite-on-
 // codegen contract would loop forever.
-const PRETTIER_WIDTH = 100;
-
 const formatAutoTagsLine = (entry) => {
   if (entry.autoTags.length === 0) return "";
+  // Merge bucket-derived auto-tags with rule-authored tags at runtime,
+  // deduped so a rule that explicitly repeats the bucket tag doesn't
+  // end up with `["react-native", "react-native"]`. The `[...new Set(...)]`
+  // form keeps every emitted line under prettier's 100-char limit (the
+  // longest rule identifier in the project still fits comfortably) so
+  // we don't have to mirror prettier's wrap decision at codegen time
+  // — `gen:check` stays idempotent.
   const autoTagLiteral = entry.autoTags.map((tag) => `"${tag}"`).join(", ");
-  // Merge bucket-derived auto-tags with rule-authored tags at runtime.
-  // Dedup so a rule that explicitly repeats the bucket tag doesn't end
-  // up with `["react-native", "react-native"]`.
-  const singleLine = `      tags: Array.from(new Set([${autoTagLiteral}, ...(${entry.identifier}.tags ?? [])])),`;
-  // Match prettier's behavior: collapsed when it fits, otherwise wrapped.
-  // Picking the same shape ahead of time keeps the regen-equals-formatted
-  // contract enforced by `gen:check` from looping.
-  if (singleLine.length <= PRETTIER_WIDTH) return `${singleLine}\n`;
-  return (
-    `      tags: Array.from(\n` +
-    `        new Set([${autoTagLiteral}, ...(${entry.identifier}.tags ?? [])]),\n` +
-    `      ),\n`
-  );
+  return `      tags: [...new Set([${autoTagLiteral}, ...(${entry.identifier}.tags ?? [])])],\n`;
 };
 
 const ruleLines = ruleEntries

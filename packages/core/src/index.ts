@@ -18,6 +18,7 @@ export * from "./find-enclosing-jsx-opener.js";
 export * from "./find-jsx-opener-span.js";
 export * from "./find-stacked-disable-comments.js";
 export * from "./format-error-chain.js";
+export * from "./get-diagnostic-rule-identity.js";
 export * from "./get-diff-files.js";
 export * from "./highlighter.js";
 export * from "./is-ignored-file.js";

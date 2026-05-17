@@ -1916,7 +1916,7 @@ export const reactDoctorRules = [
       ...rnAnimateLayoutProperty,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnAnimateLayoutProperty.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnAnimateLayoutProperty.tags ?? [])])],
     },
   },
   {
@@ -1930,7 +1930,7 @@ export const reactDoctorRules = [
       ...rnAnimationReactionAsDerived,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnAnimationReactionAsDerived.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnAnimationReactionAsDerived.tags ?? [])])],
     },
   },
   {
@@ -1944,7 +1944,7 @@ export const reactDoctorRules = [
       ...rnBottomSheetPreferNative,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnBottomSheetPreferNative.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnBottomSheetPreferNative.tags ?? [])])],
     },
   },
   {
@@ -1958,7 +1958,7 @@ export const reactDoctorRules = [
       ...rnListCallbackPerRow,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnListCallbackPerRow.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnListCallbackPerRow.tags ?? [])])],
     },
   },
   {
@@ -1972,7 +1972,7 @@ export const reactDoctorRules = [
       ...rnListDataMapped,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnListDataMapped.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnListDataMapped.tags ?? [])])],
     },
   },
   {
@@ -1986,7 +1986,7 @@ export const reactDoctorRules = [
       ...rnListRecyclableWithoutTypes,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnListRecyclableWithoutTypes.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnListRecyclableWithoutTypes.tags ?? [])])],
     },
   },
   {
@@ -2000,7 +2000,7 @@ export const reactDoctorRules = [
       ...rnNoDeprecatedModules,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoDeprecatedModules.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoDeprecatedModules.tags ?? [])])],
     },
   },
   {
@@ -2014,7 +2014,7 @@ export const reactDoctorRules = [
       ...rnNoDimensionsGet,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoDimensionsGet.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoDimensionsGet.tags ?? [])])],
     },
   },
   {
@@ -2028,7 +2028,7 @@ export const reactDoctorRules = [
       ...rnNoInlineFlatlistRenderitem,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoInlineFlatlistRenderitem.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoInlineFlatlistRenderitem.tags ?? [])])],
     },
   },
   {
@@ -2042,7 +2042,7 @@ export const reactDoctorRules = [
       ...rnNoInlineObjectInListItem,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoInlineObjectInListItem.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoInlineObjectInListItem.tags ?? [])])],
     },
   },
   {
@@ -2056,7 +2056,7 @@ export const reactDoctorRules = [
       ...rnNoLegacyExpoPackages,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoLegacyExpoPackages.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoLegacyExpoPackages.tags ?? [])])],
     },
   },
   {
@@ -2070,7 +2070,7 @@ export const reactDoctorRules = [
       ...rnNoLegacyShadowStyles,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoLegacyShadowStyles.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoLegacyShadowStyles.tags ?? [])])],
     },
   },
   {
@@ -2084,7 +2084,7 @@ export const reactDoctorRules = [
       ...rnNoNonNativeNavigator,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoNonNativeNavigator.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoNonNativeNavigator.tags ?? [])])],
     },
   },
   {
@@ -2098,7 +2098,7 @@ export const reactDoctorRules = [
       ...rnNoRawText,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoRawText.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoRawText.tags ?? [])])],
     },
   },
   {
@@ -2112,7 +2112,7 @@ export const reactDoctorRules = [
       ...rnNoScrollState,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoScrollState.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoScrollState.tags ?? [])])],
     },
   },
   {
@@ -2126,7 +2126,7 @@ export const reactDoctorRules = [
       ...rnNoScrollviewMappedList,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoScrollviewMappedList.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoScrollviewMappedList.tags ?? [])])],
     },
   },
   {
@@ -2140,7 +2140,7 @@ export const reactDoctorRules = [
       ...rnNoSingleElementStyleArray,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnNoSingleElementStyleArray.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnNoSingleElementStyleArray.tags ?? [])])],
     },
   },
   {
@@ -2154,7 +2154,7 @@ export const reactDoctorRules = [
       ...rnPreferContentInsetAdjustment,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnPreferContentInsetAdjustment.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnPreferContentInsetAdjustment.tags ?? [])])],
     },
   },
   {
@@ -2168,7 +2168,7 @@ export const reactDoctorRules = [
       ...rnPreferExpoImage,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnPreferExpoImage.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnPreferExpoImage.tags ?? [])])],
     },
   },
   {
@@ -2182,7 +2182,7 @@ export const reactDoctorRules = [
       ...rnPreferPressable,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnPreferPressable.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnPreferPressable.tags ?? [])])],
     },
   },
   {
@@ -2196,7 +2196,7 @@ export const reactDoctorRules = [
       ...rnPreferReanimated,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnPreferReanimated.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnPreferReanimated.tags ?? [])])],
     },
   },
   {
@@ -2210,7 +2210,7 @@ export const reactDoctorRules = [
       ...rnPressableSharedValueMutation,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnPressableSharedValueMutation.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnPressableSharedValueMutation.tags ?? [])])],
     },
   },
   {
@@ -2224,7 +2224,7 @@ export const reactDoctorRules = [
       ...rnScrollviewDynamicPadding,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnScrollviewDynamicPadding.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnScrollviewDynamicPadding.tags ?? [])])],
     },
   },
   {
@@ -2238,7 +2238,7 @@ export const reactDoctorRules = [
       ...rnStylePreferBoxShadow,
       framework: "react-native",
       category: "React Native",
-      tags: Array.from(new Set(["react-native", ...(rnStylePreferBoxShadow.tags ?? [])])),
+      tags: [...new Set(["react-native", ...(rnStylePreferBoxShadow.tags ?? [])])],
     },
   },
   {
@@ -2252,7 +2252,7 @@ export const reactDoctorRules = [
       ...serverAfterNonblocking,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverAfterNonblocking.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverAfterNonblocking.tags ?? [])])],
     },
   },
   {
@@ -2266,7 +2266,7 @@ export const reactDoctorRules = [
       ...serverAuthActions,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverAuthActions.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverAuthActions.tags ?? [])])],
     },
   },
   {
@@ -2280,7 +2280,7 @@ export const reactDoctorRules = [
       ...serverCacheWithObjectLiteral,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverCacheWithObjectLiteral.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverCacheWithObjectLiteral.tags ?? [])])],
     },
   },
   {
@@ -2294,7 +2294,7 @@ export const reactDoctorRules = [
       ...serverDedupProps,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverDedupProps.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverDedupProps.tags ?? [])])],
     },
   },
   {
@@ -2308,7 +2308,7 @@ export const reactDoctorRules = [
       ...serverFetchWithoutRevalidate,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverFetchWithoutRevalidate.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverFetchWithoutRevalidate.tags ?? [])])],
     },
   },
   {
@@ -2322,7 +2322,7 @@ export const reactDoctorRules = [
       ...serverHoistStaticIo,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverHoistStaticIo.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverHoistStaticIo.tags ?? [])])],
     },
   },
   {
@@ -2336,7 +2336,7 @@ export const reactDoctorRules = [
       ...serverNoMutableModuleState,
       framework: "global",
       category: "Server",
-      tags: Array.from(new Set(["server-action", ...(serverNoMutableModuleState.tags ?? [])])),
+      tags: [...new Set(["server-action", ...(serverNoMutableModuleState.tags ?? [])])],
     },
   },
   {
@@ -2350,9 +2350,7 @@ export const reactDoctorRules = [
       ...serverSequentialIndependentAwait,
       framework: "global",
       category: "Server",
-      tags: Array.from(
-        new Set(["server-action", ...(serverSequentialIndependentAwait.tags ?? [])]),
-      ),
+      tags: [...new Set(["server-action", ...(serverSequentialIndependentAwait.tags ?? [])])],
     },
   },
   {

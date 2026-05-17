@@ -6,36 +6,15 @@ interface RuleOverrideLookupInput {
   tags?: ReadonlyArray<string>;
 }
 
-const SEVERITY_PERMISSIVENESS: Record<RuleSeverityOverride, number> = {
-  off: 2,
-  warn: 1,
-  error: 0,
-};
+// Higher rank = more permissive. When multiple tag overrides match the
+// same rule, the most permissive wins so silencing via any matching
+// tag is always honored.
+const SEVERITY_RANK: Record<RuleSeverityOverride, number> = { error: 0, warn: 1, off: 2 };
 
-const pickMostPermissive = (
+const isMorePermissive = (
+  candidate: RuleSeverityOverride,
   current: RuleSeverityOverride | undefined,
-  candidate: RuleSeverityOverride | undefined,
-): RuleSeverityOverride | undefined => {
-  if (candidate === undefined) return current;
-  if (current === undefined) return candidate;
-  return SEVERITY_PERMISSIVENESS[candidate] > SEVERITY_PERMISSIVENESS[current]
-    ? candidate
-    : current;
-};
-
-const collectTagOverride = (
-  tags: ReadonlyArray<string> | undefined,
-  tagOverrides: Record<string, RuleSeverityOverride> | undefined,
-): RuleSeverityOverride | undefined => {
-  if (!tags || tags.length === 0 || !tagOverrides) return undefined;
-  let resolved: RuleSeverityOverride | undefined;
-  for (const tagName of tags) {
-    const candidate = tagOverrides[tagName];
-    if (candidate === undefined) continue;
-    resolved = pickMostPermissive(resolved, candidate);
-  }
-  return resolved;
-};
+): boolean => current === undefined || SEVERITY_RANK[candidate] > SEVERITY_RANK[current];
 
 /**
  * Resolves the user-configured severity override for a rule.
@@ -46,8 +25,7 @@ const collectTagOverride = (
  * 2. `categories["<Category>"]` — category match.
  * 3. `tags["<tag>"]` — every behavioral tag the rule carries; when
  *    multiple tag overrides apply, the most permissive wins
- *    (`"off"` > `"warn"` > `"error"`) so silencing via any tag
- *    is always honored.
+ *    (`"off"` > `"warn"` > `"error"`).
  *
  * Returns `undefined` when no override applies — callers should
  * fall back to the rule's built-in severity.
@@ -58,13 +36,21 @@ export const resolveRuleSeverityOverride = (
 ): RuleSeverityOverride | undefined => {
   if (!overrides) return undefined;
 
-  const ruleOverride = overrides.rules?.[input.ruleKey];
-  if (ruleOverride !== undefined) return ruleOverride;
+  const fromRule = overrides.rules?.[input.ruleKey];
+  if (fromRule !== undefined) return fromRule;
 
   if (input.category !== undefined) {
-    const categoryOverride = overrides.categories?.[input.category];
-    if (categoryOverride !== undefined) return categoryOverride;
+    const fromCategory = overrides.categories?.[input.category];
+    if (fromCategory !== undefined) return fromCategory;
   }
 
-  return collectTagOverride(input.tags, overrides.tags);
+  if (!input.tags || !overrides.tags) return undefined;
+  let mostPermissive: RuleSeverityOverride | undefined;
+  for (const tag of input.tags) {
+    const candidate = overrides.tags[tag];
+    if (candidate !== undefined && isMorePermissive(candidate, mostPermissive)) {
+      mostPermissive = candidate;
+    }
+  }
+  return mostPermissive;
 };
