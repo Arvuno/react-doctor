@@ -1,5 +1,14 @@
 # @react-doctor/project-info
 
+## 0.2.1
+
+### Patch Changes
+
+- Make filesystem walks tolerate EPERM/EACCES (macOS Library)
+
+- Updated dependencies []:
+  - @react-doctor/types@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
