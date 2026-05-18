@@ -37,17 +37,6 @@ describe("GitHub Action contract", () => {
     expect(scoreStep).toContain("|| true");
   });
 
-  it("issue #292: --pr-comment is feature-detected so old CLIs don't choke on the unknown flag", () => {
-    const scanStep = normalizeWhitespace(
-      extractStep(readActionYaml(), "INPUT_FAIL_ON: ${{ inputs.fail-on }}"),
-    );
-
-    expect(scanStep).toContain("npx react-doctor@latest --help");
-    expect(scanStep).toContain("grep -q -- '--pr-comment'");
-    expect(scanStep).toContain('FLAGS+=("--pr-comment")');
-    expect(scanStep).not.toContain('"${FLAGS[@]}" --pr-comment');
-  });
-
   it("issue #188 + #61: action exposes CI inputs used by the scan step", () => {
     const actionYaml = readActionYaml();
     const inputsBlock = extractBlock(actionYaml, "inputs:", "\noutputs:");
@@ -77,11 +66,11 @@ describe("GitHub Action contract", () => {
     );
 
     expect(scanStep).toContain('if [ -n "$INPUT_GITHUB_TOKEN" ]; then');
-    expect(scanStep).toContain('FLAGS+=("--pr-comment")');
-    expect(scanStep).toContain('"${FLAGS[@]}" | tee "$RAW_FILE"');
+    expect(scanStep).toContain('"${FLAGS[@]}" --pr-comment | tee "$RAW_FILE"');
     expect(scanStep).toContain('PIPELINE_EXIT_CODES=("${PIPESTATUS[@]}")');
     expect(scanStep).toContain('sed -E \'/^::(error|warning) /d\' "$RAW_FILE" > "$OUTPUT_FILE"');
     expect(scanStep).toContain('exit "${PIPELINE_EXIT_CODES[0]}"');
+    expect(scanStep).not.toContain('"${FLAGS[@]}" --pr-comment\n        else');
   });
 
   it("creates the sticky PR comment output before preserving scan failure", () => {
