@@ -54,14 +54,19 @@ export const spinner = (text: string) => ({
     // `start()` on the instance so it doesn't print a "- <text>"
     // placeholder line — only the final `succeed()` / `fail()` line is
     // emitted. This dodges the cursor-up + erase-line escape stream that
-    // `log-update`-style rendering produces when stdout is a TTY but
-    // `columns` is 0/undefined (issue #293: react-doctor pegging 99% CPU
-    // inside Git pre-push hooks and under `script(1)`).
-    const shouldAnimate = !forceStatic && isSpinnerInteractive();
+    // `log-update`-style rendering produces when the render stream is a
+    // TTY but `columns` is 0/undefined (issue #293: react-doctor pegging
+    // 99% CPU inside Git pre-push hooks and under `script(1)`).
+    //
+    // The stream is pinned explicitly so `isSpinnerInteractive` and ora
+    // can never disagree on which fd's `columns` value matters.
+    const renderStream = process.stderr;
+    const shouldAnimate = !forceStatic && isSpinnerInteractive(renderStream);
     const instance = ora({
       text,
       indent: SPINNER_INDENT_CHARS,
       isEnabled: shouldAnimate,
+      stream: renderStream,
     });
     if (shouldAnimate) instance.start();
     return createHandle(instance);
