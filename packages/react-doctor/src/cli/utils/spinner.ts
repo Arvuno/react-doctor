@@ -1,9 +1,8 @@
-import ora, { type Ora } from "ora";
+import ora from "ora";
 import { SPINNER_INDENT_CHARS } from "@react-doctor/core";
 import { isSpinnerInteractive } from "./is-spinner-interactive.js";
 
 let isSilent = false;
-let forceStatic = false;
 
 export const setSpinnerSilent = (silent: boolean): void => {
   isSilent = silent;
@@ -11,62 +10,40 @@ export const setSpinnerSilent = (silent: boolean): void => {
 
 export const isSpinnerSilent = (): boolean => isSilent;
 
-// Forces every spinner to use the static (no-animation) one-shot variant.
-// Wired in from the `--no-spinner` CLI flag.
-export const setSpinnerStatic = (staticOnly: boolean): void => {
-  forceStatic = staticOnly;
-};
-
-interface SpinnerHandle {
-  succeed(displayText: string): void;
-  fail(displayText: string): void;
-}
-
-const noopHandle: SpinnerHandle = Object.freeze({
+const noopHandle = Object.freeze({
   succeed: () => {},
   fail: () => {},
 });
 
-const createHandle = (instance: Ora): SpinnerHandle => {
-  let didFinalize = false;
-  return {
-    succeed(displayText) {
-      if (didFinalize) return;
-      didFinalize = true;
-      instance.succeed(displayText);
-    },
-    fail(displayText) {
-      if (didFinalize) return;
-      didFinalize = true;
-      instance.fail(displayText);
-    },
-  };
-};
-
 export const spinner = (text: string) => ({
-  start(): SpinnerHandle {
+  start() {
     if (isSilent) return noopHandle;
 
-    // HACK: when the run isn't interactive we hand ora `isEnabled: false`
-    // and skip the animation loop entirely. We also avoid calling
-    // `start()` on the instance so it doesn't print a "- <text>"
-    // placeholder line — only the final `succeed()` / `fail()` line is
-    // emitted. This dodges the cursor-up + erase-line escape stream that
-    // `log-update`-style rendering produces when the render stream is a
-    // TTY but `columns` is 0/undefined (issue #293: react-doctor pegging
-    // 99% CPU inside Git pre-push hooks and under `script(1)`).
-    //
-    // The stream is pinned explicitly so `isSpinnerInteractive` and ora
-    // can never disagree on which fd's `columns` value matters.
-    const renderStream = process.stderr;
-    const shouldAnimate = !forceStatic && isSpinnerInteractive(renderStream);
-    const instance = ora({
-      text,
-      indent: SPINNER_INDENT_CHARS,
-      isEnabled: shouldAnimate,
-      stream: renderStream,
-    });
-    if (shouldAnimate) instance.start();
-    return createHandle(instance);
+    // HACK: ora renders to `stderr` by default and computes lines-to-
+    // clear with `Math.ceil(width / stream.columns)`. In a Git pre-push
+    // hook or under `script(1)`, stderr inherits the TTY but `columns`
+    // is 0, producing `Infinity` clears and pegging a core (issue #293).
+    // `isSpinnerInteractive` demotes ora to one-shot succeed/fail lines
+    // in that case (and in CI, agent shells, `TERM=dumb`, and when
+    // `NO_SPINNER` is set). Stream and guard share one fd so they
+    // can't disagree about which `columns` value matters.
+    const stream = process.stderr;
+    const isEnabled = isSpinnerInteractive(stream);
+    const instance = ora({ text, indent: SPINNER_INDENT_CHARS, isEnabled, stream });
+    if (isEnabled) instance.start();
+
+    let didFinalize = false;
+    return {
+      succeed(displayText: string) {
+        if (didFinalize) return;
+        didFinalize = true;
+        instance.succeed(displayText);
+      },
+      fail(displayText: string) {
+        if (didFinalize) return;
+        didFinalize = true;
+        instance.fail(displayText);
+      },
+    };
   },
 });

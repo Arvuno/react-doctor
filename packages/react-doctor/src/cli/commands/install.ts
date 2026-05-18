@@ -1,7 +1,6 @@
 import { handleError } from "../utils/handle-error.js";
 import { runInstallSkill } from "../utils/install-skill.js";
 import { printBrandedHeader } from "../utils/print-branded-header.js";
-import { setSpinnerStatic } from "../utils/spinner.js";
 
 interface InstallCommandOptions {
   yes?: boolean;
@@ -15,7 +14,7 @@ interface InstallCommandOptions {
 
 export const installAction = async (options: InstallCommandOptions): Promise<void> => {
   if (options.spinner === false) {
-    setSpinnerStatic(true);
+    process.env.NO_SPINNER = "1";
   }
   printBrandedHeader();
   try {

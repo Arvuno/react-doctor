@@ -37,7 +37,6 @@ import { runExplain } from "../utils/run-explain.js";
 import { selectProjects } from "../utils/select-projects.js";
 import { shouldFailForDiagnostics } from "../utils/should-fail-for-diagnostics.js";
 import { shouldSkipPrompts } from "../utils/should-skip-prompts.js";
-import { setSpinnerStatic } from "../utils/spinner.js";
 import { validateModeFlags } from "../utils/validate-mode-flags.js";
 import { VERSION } from "../utils/version.js";
 
@@ -52,8 +51,12 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
     enableJsonMode({ compact: Boolean(flags.jsonCompact), directory: requestedDirectory });
   }
 
+  // `--no-spinner` flows through the same env var that
+  // `isSpinnerInteractive` already consults, so autodetection, the env
+  // var, and the CLI flag share one signal path and the choice
+  // propagates to spawned tools too.
   if (flags.spinner === false) {
-    setSpinnerStatic(true);
+    process.env.NO_SPINNER = "1";
   }
 
   try {

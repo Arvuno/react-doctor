@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { setSpinnerSilent, setSpinnerStatic, spinner } from "../src/cli/utils/spinner.js";
+import { setSpinnerSilent, spinner } from "../src/cli/utils/spinner.js";
 
 const ESC = String.fromCharCode(0x1b);
 const ANSI_ESCAPE_PATTERN = new RegExp(`${ESC}\\[[0-9;?]*[A-Za-z]`, "g");
@@ -11,12 +11,15 @@ const stripAnsi = (input: string): string => input.replace(ANSI_ESCAPE_PATTERN, 
 describe("spinner static (non-interactive) mode", () => {
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
   let writtenChunks: string[];
+  let previousNoSpinner: string | undefined;
 
   beforeEach(() => {
-    setSpinnerStatic(true);
+    // `NO_SPINNER` is the single source of truth for "demote ora to
+    // one-shot succeed/fail lines"; the `--no-spinner` CLI flag sets it.
+    previousNoSpinner = process.env.NO_SPINNER;
+    process.env.NO_SPINNER = "1";
     setSpinnerSilent(false);
     writtenChunks = [];
-    // ora writes to `process.stderr` by default.
     stderrWriteSpy = vi.spyOn(process.stderr, "write").mockImplementation(((
       chunk: string | Uint8Array,
     ) => {
@@ -27,7 +30,11 @@ describe("spinner static (non-interactive) mode", () => {
 
   afterEach(() => {
     stderrWriteSpy.mockRestore();
-    setSpinnerStatic(false);
+    if (previousNoSpinner === undefined) {
+      delete process.env.NO_SPINNER;
+    } else {
+      process.env.NO_SPINNER = previousNoSpinner;
+    }
   });
 
   // Regression guard for #293: in non-interactive contexts (Git pre-push
