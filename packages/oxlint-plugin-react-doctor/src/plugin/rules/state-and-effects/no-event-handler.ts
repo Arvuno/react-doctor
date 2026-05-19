@@ -13,25 +13,58 @@ import { getEffectFnRefs, hasCleanup, isProp, isState, isUseEffect } from "./uti
 // "event-handler-in-disguise" antipatterns — the body doesn't run any
 // side effect when the guard trips. Treat any `if` whose consequent is a
 // pure early return / break / continue (with no side effect downstream)
-// as not-an-event-handler.
+// as not-an-event-handler. Also accepts the reset-then-exit shape
+// (`setX(default); return;`) — the effect is bailing out and the
+// setter is just clearing derived state before bail, NOT
+// event-handler-like behaviour.
+const SETTER_NAME_PATTERN = /^set[A-Z]/;
+
+const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "ExpressionStatement")) return false;
+  let expression = node.expression as EsTreeNode | null;
+  // `setX?.(value)` ChainExpression — unwrap.
+  if (expression && isNodeOfType(expression, "ChainExpression")) {
+    expression = expression.expression as EsTreeNode;
+  }
+  if (!expression || !isNodeOfType(expression, "CallExpression")) return false;
+  const callee = expression.callee;
+  if (isNodeOfType(callee, "Identifier")) {
+    return SETTER_NAME_PATTERN.test(callee.name);
+  }
+  // `props.onChange(value)` — looks like a prop callback. Treat as
+  // setter-like (it's a write call, not an event-handler trigger).
+  if (
+    isNodeOfType(callee, "MemberExpression") &&
+    isNodeOfType(callee.property, "Identifier") &&
+    SETTER_NAME_PATTERN.test(callee.property.name)
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
   // `if (cond) return;` / `if (cond) return value;`
   if (isNodeOfType(consequent, "ReturnStatement")) return true;
   if (isNodeOfType(consequent, "ContinueStatement")) return true;
   if (isNodeOfType(consequent, "BreakStatement")) return true;
-  // `if (cond) { return; }` — block with a single early-exit
+  // `if (cond) { return; }` — block with early-exit at the end and
+  // (optionally) a contiguous run of setter calls before it.
   if (isNodeOfType(consequent, "BlockStatement")) {
     const body = consequent.body ?? [];
     if (body.length === 0) return true;
-    if (body.length === 1) {
-      const only = body[0] as EsTreeNode;
-      if (
-        isNodeOfType(only, "ReturnStatement") ||
-        isNodeOfType(only, "ContinueStatement") ||
-        isNodeOfType(only, "BreakStatement")
-      )
-        return true;
+    const last = body[body.length - 1] as EsTreeNode;
+    const lastIsExit =
+      isNodeOfType(last, "ReturnStatement") ||
+      isNodeOfType(last, "ContinueStatement") ||
+      isNodeOfType(last, "BreakStatement");
+    if (!lastIsExit) return false;
+    // Allow any number of setter-only preamble statements:
+    //   if (!enabled) { setLocal(initial); setLoading(false); return; }
+    for (let i = 0; i < body.length - 1; i++) {
+      if (!isSetterCallExpressionStatement(body[i] as EsTreeNode)) return false;
     }
+    return true;
   }
   return false;
 };
