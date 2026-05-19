@@ -58,35 +58,118 @@ const extractIndexName = (node: EsTreeNode): string | null => {
   return null;
 };
 
+const isNumericLiteralOrUndefined = (node: EsTreeNode | null | undefined): boolean => {
+  if (!node) return false;
+  if (isNodeOfType(node, "Literal") && typeof node.value === "number") return true;
+  if (isNodeOfType(node, "Identifier") && node.name === "undefined") return true;
+  return false;
+};
+
+const isArrayConstructorCallWithNumericLength = (node: EsTreeNode | null | undefined): boolean => {
+  if (!node) return false;
+  if (
+    isNodeOfType(node, "CallExpression") &&
+    isNodeOfType(node.callee, "Identifier") &&
+    node.callee.name === "Array" &&
+    isNumericLiteralOrUndefined(node.arguments?.[0])
+  )
+    return true;
+  if (
+    isNodeOfType(node, "NewExpression") &&
+    isNodeOfType(node.callee, "Identifier") &&
+    node.callee.name === "Array" &&
+    isNumericLiteralOrUndefined(node.arguments?.[0])
+  )
+    return true;
+  return false;
+};
+
+const isArrayFromCall = (node: EsTreeNode | null | undefined): boolean => {
+  if (!node) return false;
+  if (!isNodeOfType(node, "CallExpression")) return false;
+  const callee = node.callee;
+  return Boolean(
+    isNodeOfType(callee, "MemberExpression") &&
+      isNodeOfType(callee.object, "Identifier") &&
+      callee.object.name === "Array" &&
+      isNodeOfType(callee.property, "Identifier") &&
+      callee.property.name === "from",
+  );
+};
+
+/**
+ * True if the call expression looks like a placeholder constructor whose
+ * elements have no identity beyond their position — i.e. `Array.from(...)`,
+ * `Array(N)`, `new Array(N)`, `Array(N).fill(...)`, or `[...Array(N)]`.
+ *
+ * Used both for `<receiver>.map(...)` and for `Array.from(<length>, fn)` —
+ * the only legal index key in JSX is on this kind of receiver.
+ */
+const isStaticPlaceholderReceiver = (receiver: EsTreeNode): boolean => {
+  if (isArrayFromCall(receiver)) return true;
+  if (isArrayConstructorCallWithNumericLength(receiver)) return true;
+
+  if (isNodeOfType(receiver, "CallExpression")) {
+    const callee = receiver.callee;
+    if (
+      isNodeOfType(callee, "MemberExpression") &&
+      isNodeOfType(callee.property, "Identifier") &&
+      callee.property.name === "fill" &&
+      isArrayConstructorCallWithNumericLength(callee.object)
+    )
+      return true;
+  }
+
+  if (isNodeOfType(receiver, "ArrayExpression") && receiver.elements?.length === 1) {
+    const only = receiver.elements[0];
+    if (only && isNodeOfType(only, "SpreadElement")) {
+      const arg = only.argument;
+      if (isArrayConstructorCallWithNumericLength(arg)) return true;
+      if (isArrayFromCall(arg)) return true;
+    }
+  }
+
+  return false;
+};
+
+const isArrayFromLengthObjectCall = (node: EsTreeNode): boolean => {
+  if (!isArrayFromCall(node)) return false;
+  if (!isNodeOfType(node, "CallExpression")) return false;
+  const first = node.arguments?.[0];
+  if (!first || !isNodeOfType(first, "ObjectExpression")) return false;
+  for (const prop of first.properties ?? []) {
+    if (!isNodeOfType(prop, "Property")) continue;
+    const key = prop.key;
+    const isLengthKey =
+      (isNodeOfType(key, "Identifier") && key.name === "length") ||
+      (isNodeOfType(key, "Literal") && key.value === "length");
+    if (!isLengthKey) continue;
+    if (isNumericLiteralOrUndefined(prop.value)) return true;
+    // also accept simple identifier — `{length: count}` — assume it's a numeric
+    // constant; almost always is in placeholder constructions.
+    if (isNodeOfType(prop.value, "Identifier")) return true;
+  }
+  return false;
+};
+
 const isInsideStaticPlaceholderMap = (node: EsTreeNode): boolean => {
   let current = node;
   while (current.parent) {
     current = current.parent;
+    if (!isNodeOfType(current, "CallExpression")) continue;
+
+    // Case A: <static-placeholder>.map((_, i) => ...)
     if (
-      isNodeOfType(current, "CallExpression") &&
       isNodeOfType(current.callee, "MemberExpression") &&
       isNodeOfType(current.callee.property, "Identifier") &&
-      current.callee.property.name === "map"
-    ) {
-      const receiver = current.callee.object;
-      if (isNodeOfType(receiver, "CallExpression")) {
-        const callee = receiver.callee;
-        if (
-          isNodeOfType(callee, "MemberExpression") &&
-          isNodeOfType(callee.object, "Identifier") &&
-          callee.object.name === "Array" &&
-          isNodeOfType(callee.property, "Identifier") &&
-          callee.property.name === "from"
-        )
-          return true;
-      }
-      if (
-        isNodeOfType(receiver, "NewExpression") &&
-        isNodeOfType(receiver.callee, "Identifier") &&
-        receiver.callee.name === "Array"
-      )
-        return true;
-    }
+      current.callee.property.name === "map" &&
+      isStaticPlaceholderReceiver(current.callee.object)
+    )
+      return true;
+
+    // Case B: Array.from({ length: N }, (_, i) => ...) — the mapping is the
+    // second argument of Array.from, not a chained .map call.
+    if (isArrayFromLengthObjectCall(current)) return true;
   }
   return false;
 };
