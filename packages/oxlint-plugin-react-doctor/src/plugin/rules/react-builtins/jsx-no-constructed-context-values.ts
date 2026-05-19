@@ -3,6 +3,7 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { isInsideFunctionScope } from "../../utils/is-inside-function-scope.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import { stripParenExpression } from "../../utils/strip-paren-expression.js";
 import type { Rule } from "../../utils/rule.js";
 
@@ -49,22 +50,26 @@ export const jsxNoConstructedContextValues = defineRule<Rule>({
   severity: "warn",
   recommendation: "Memoize the context value (`useMemo`) or hoist it outside the render.",
   category: "Performance",
-  create: (context) => ({
-    JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
-      if (!isProviderName(node.name as EsTreeNode)) return;
-      if (!isInsideFunctionScope(node)) return;
-      for (const attribute of node.attributes) {
-        if (!isNodeOfType(attribute, "JSXAttribute")) continue;
-        if (!isNodeOfType(attribute.name, "JSXIdentifier")) continue;
-        if (attribute.name.name !== "value") continue;
-        const attributeValue = attribute.value;
-        if (!attributeValue) continue;
-        if (!isNodeOfType(attributeValue, "JSXExpressionContainer")) continue;
-        const innerExpression = attributeValue.expression;
-        if (!innerExpression || innerExpression.type === "JSXEmptyExpression") continue;
-        if (!isConstructedValue(innerExpression as EsTreeNode)) continue;
-        context.report({ node: attribute, message: MESSAGE });
-      }
-    },
-  }),
+  create: (context) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (isTestlikeFile) return;
+        if (!isProviderName(node.name as EsTreeNode)) return;
+        if (!isInsideFunctionScope(node)) return;
+        for (const attribute of node.attributes) {
+          if (!isNodeOfType(attribute, "JSXAttribute")) continue;
+          if (!isNodeOfType(attribute.name, "JSXIdentifier")) continue;
+          if (attribute.name.name !== "value") continue;
+          const attributeValue = attribute.value;
+          if (!attributeValue) continue;
+          if (!isNodeOfType(attributeValue, "JSXExpressionContainer")) continue;
+          const innerExpression = attributeValue.expression;
+          if (!innerExpression || innerExpression.type === "JSXEmptyExpression") continue;
+          if (!isConstructedValue(innerExpression as EsTreeNode)) continue;
+          context.report({ node: attribute, message: MESSAGE });
+        }
+      },
+    };
+  },
 });
