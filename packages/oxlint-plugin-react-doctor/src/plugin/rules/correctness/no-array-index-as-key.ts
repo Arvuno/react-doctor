@@ -98,16 +98,40 @@ const isArrayFromCall = (node: EsTreeNode | null | undefined): boolean => {
 };
 
 /**
+ * True if every element of an ArrayExpression is a primitive constant
+ * (number/string/boolean literal) — `[1, 2, 3]`, `['a', 'b']`. Such arrays
+ * have a fixed order at every render, so an index key is stable.
+ */
+const isAllLiteralArrayExpression = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "ArrayExpression")) return false;
+  const elements = node.elements ?? [];
+  if (elements.length < 1) return false;
+  for (const element of elements) {
+    if (!element) return false;
+    if (!isNodeOfType(element, "Literal")) return false;
+    const value = element.value;
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    )
+      return false;
+  }
+  return true;
+};
+
+/**
  * True if the call expression looks like a placeholder constructor whose
  * elements have no identity beyond their position — i.e. `Array.from(...)`,
- * `Array(N)`, `new Array(N)`, `Array(N).fill(...)`, or `[...Array(N)]`.
+ * `Array(N)`, `new Array(N)`, `Array(N).fill(...)`, `[...Array(N)]`, or
+ * a literal-only array `[1, 2, 3]` / `['a', 'b']`.
  *
- * Used both for `<receiver>.map(...)` and for `Array.from(<length>, fn)` —
- * the only legal index key in JSX is on this kind of receiver.
+ * Used both for `<receiver>.map(...)` and for `Array.from(<length>, fn)`.
  */
 const isStaticPlaceholderReceiver = (receiver: EsTreeNode): boolean => {
   if (isArrayFromCall(receiver)) return true;
   if (isArrayConstructorCallWithNumericLength(receiver)) return true;
+  if (isAllLiteralArrayExpression(receiver)) return true;
 
   if (isNodeOfType(receiver, "CallExpression")) {
     const callee = receiver.callee;
