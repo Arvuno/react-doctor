@@ -17,6 +17,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const rerenderStateOnlyInHandlers = defineRule<Rule>({
   id: "rerender-state-only-in-handlers",
   severity: "warn",
+  tags: ["test-noise"],
   category: "Performance",
   recommendation:
     "Replace useState with useRef when the value is only mutated and never read in render — `ref.current = ...` updates without re-rendering the component",

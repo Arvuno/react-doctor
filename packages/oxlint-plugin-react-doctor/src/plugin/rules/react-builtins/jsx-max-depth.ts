@@ -97,6 +97,7 @@ const computeChildrenDepth = (
 export const jsxMaxDepth = defineRule<Rule>({
   id: "jsx-max-depth",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Extract deeply nested JSX into smaller components to keep render trees readable.",
   category: "Architecture",

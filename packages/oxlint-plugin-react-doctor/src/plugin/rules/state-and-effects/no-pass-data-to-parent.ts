@@ -119,6 +119,7 @@ const isUseRefIdentifier = (identifier: EsTreeNode): boolean => {
 export const noPassDataToParent = defineRule<Rule>({
   id: "no-pass-data-to-parent",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Fetch the data in the parent and pass it to the child as a prop (or return it from the hook), instead of pushing it back up via a prop callback inside a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#passing-data-to-the-parent",
   create: (context: RuleContext) => ({

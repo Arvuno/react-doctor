@@ -53,6 +53,7 @@ const getStateNameForUseStateDecl = (useStateNode: EsTreeNode | null): string | 
 export const noDerivedState = defineRule<Rule>({
   id: "no-derived-state",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Compute derived state inline during render (or with useMemo if expensive) instead of mirroring it into useState via a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#updating-state-based-on-props-or-state",
   create: (context: RuleContext) => ({

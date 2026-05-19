@@ -67,6 +67,7 @@ const getCallMethodName = (callee: EsTreeNode): string | null => {
 export const noPassLiveStateToParent = defineRule<Rule>({
   id: "no-pass-live-state-to-parent",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Lift the state to the parent (or return it from the hook) instead of pushing it back up via a prop callback inside a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#notifying-parent-components-about-state-changes",
   create: (context: RuleContext) => ({

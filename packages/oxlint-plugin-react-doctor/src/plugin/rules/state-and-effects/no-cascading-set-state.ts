@@ -21,6 +21,7 @@ const countSetStateCalls = (node: EsTreeNode): number => {
 export const noCascadingSetState = defineRule<Rule>({
   id: "no-cascading-set-state",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Combine into useReducer: `const [state, dispatch] = useReducer(reducer, initialState)`",
   create: (context: RuleContext) => ({

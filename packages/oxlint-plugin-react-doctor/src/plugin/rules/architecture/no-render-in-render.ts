@@ -8,6 +8,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noRenderInRender = defineRule<Rule>({
   id: "no-render-in-render",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Extract to a named component: `const ListItem = ({ item }) => <div>{item.name}</div>`",
   create: (context: RuleContext) => ({
