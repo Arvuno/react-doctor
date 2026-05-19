@@ -174,6 +174,88 @@ const isInsideStaticPlaceholderMap = (node: EsTreeNode): boolean => {
   return false;
 };
 
+/**
+ * Walk up from a JSXAttribute node looking for the enclosing iterator
+ * callback (`.map(cb)`, `.flatMap(cb)`, `.forEach(cb)`, `Array.from(_, cb)`)
+ * and return the first parameter's name. The first param is the per-item
+ * value, e.g. `item` in `arr.map((item, index) => …)`.
+ */
+const findIteratorItemName = (node: EsTreeNode): string | null => {
+  let current = node;
+  while (current.parent) {
+    const parent = current.parent;
+
+    // Stop crossing function boundaries unless we're crossing INTO the
+    // iterator callback itself.
+    const isCrossingFunctionBoundary =
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "FunctionExpression") ||
+      isNodeOfType(current, "FunctionDeclaration");
+
+    if (
+      isCrossingFunctionBoundary &&
+      isNodeOfType(parent, "CallExpression") &&
+      parent.arguments.includes(current as never)
+    ) {
+      const callee = parent.callee;
+      const isIteratorMethodCall =
+        isNodeOfType(callee, "MemberExpression") &&
+        isNodeOfType(callee.property, "Identifier") &&
+        (callee.property.name === "map" ||
+          callee.property.name === "flatMap" ||
+          callee.property.name === "forEach");
+      const isArrayFromCallback =
+        isArrayFromCall(parent) && parent.arguments.length >= 2 && parent.arguments[1] === current;
+
+      if (isIteratorMethodCall || isArrayFromCallback) {
+        const cbParams =
+          (current as EsTreeNodeOfType<"ArrowFunctionExpression">).params ?? [];
+        const first = cbParams[0];
+        if (first && isNodeOfType(first, "Identifier")) return first.name;
+        return null;
+      }
+    }
+
+    current = parent;
+  }
+  return null;
+};
+
+const templateLiteralHasIteratorIdentity = (
+  template: EsTreeNodeOfType<"TemplateLiteral">,
+  itemName: string,
+): boolean => {
+  for (const expression of template.expressions ?? []) {
+    if (isNodeOfType(expression, "Identifier") && expression.name === itemName)
+      return true;
+    if (
+      isNodeOfType(expression, "MemberExpression") &&
+      isNodeOfType(expression.object, "Identifier") &&
+      expression.object.name === itemName
+    )
+      return true;
+  }
+  return false;
+};
+
+/**
+ * True when the JSX key value is a template literal mixing an index with at
+ * least one stable per-item identifier (e.g. `${item.id}-${index}`). Common
+ * defensive pattern in user code — the index is just a uniqueness fallback,
+ * the real identity is `item.id`.
+ */
+const isCompositeKeyWithIteratorIdentity = (
+  keyExpression: EsTreeNode,
+  attributeNode: EsTreeNode,
+): boolean => {
+  if (!isNodeOfType(keyExpression, "TemplateLiteral")) return false;
+  const expressions = keyExpression.expressions ?? [];
+  if (expressions.length < 2) return false;
+  const itemName = findIteratorItemName(attributeNode);
+  if (!itemName) return false;
+  return templateLiteralHasIteratorIdentity(keyExpression, itemName);
+};
+
 export const noArrayIndexAsKey = defineRule<Rule>({
   id: "no-array-index-as-key",
   severity: "warn",
@@ -187,6 +269,7 @@ export const noArrayIndexAsKey = defineRule<Rule>({
       const indexName = extractIndexName(node.value.expression);
       if (!indexName) return;
       if (isInsideStaticPlaceholderMap(node)) return;
+      if (isCompositeKeyWithIteratorIdentity(node.value.expression, node)) return;
 
       context.report({
         node,
