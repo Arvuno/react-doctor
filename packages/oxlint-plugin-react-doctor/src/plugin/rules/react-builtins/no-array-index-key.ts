@@ -260,6 +260,26 @@ const isReactCloneElement = (callExpression: EsTreeNodeOfType<"CallExpression">)
   return isNodeOfType(callee.object, "Identifier") && callee.object.name === "React";
 };
 
+// Recognises `<React.Fragment>` / `<Fragment>` / shorthand `<>` —
+// fragments carry no DOM identity and no internal state, so an index
+// key has no reordering hazard. (React would warn loudly if a key
+// mismatch corrupted hooks, but fragments themselves can't hold any.)
+const isFragmentJsxName = (jsxOpeningName: EsTreeNode): boolean => {
+  if (isNodeOfType(jsxOpeningName, "JSXIdentifier")) {
+    return jsxOpeningName.name === "Fragment";
+  }
+  if (
+    isNodeOfType(jsxOpeningName, "JSXMemberExpression") &&
+    isNodeOfType(jsxOpeningName.object, "JSXIdentifier") &&
+    isNodeOfType(jsxOpeningName.property, "JSXIdentifier") &&
+    jsxOpeningName.object.name === "React" &&
+    jsxOpeningName.property.name === "Fragment"
+  ) {
+    return true;
+  }
+  return false;
+};
+
 // Port of `oxc_linter::rules::react::no_array_index_key`.
 export const noArrayIndexKey = defineRule<Rule>({
   id: "no-array-index-key",
@@ -275,6 +295,11 @@ export const noArrayIndexKey = defineRule<Rule>({
       }
       const expression = keyAttribute.value.expression as EsTreeNode;
       if (expression.type === "JSXEmptyExpression") return;
+      // Fragments don't hold state or DOM identity — even if the key
+      // is the index, React's reconciler only uses it to match
+      // children at the same position, and a fragment misidentification
+      // has no observable consequence.
+      if (isFragmentJsxName(node.name as EsTreeNode)) return;
       const indexBinding = findIndexParameterBinding(node as EsTreeNode);
       if (!indexBinding) return;
       if (!expressionUsesIndex(expression, indexBinding.name)) return;

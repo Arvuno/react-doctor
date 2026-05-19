@@ -295,6 +295,26 @@ export const noArrayIndexAsKey = defineRule<Rule>({
       if (isInsideStaticPlaceholderMap(node)) return;
       if (isCompositeKeyWithIteratorIdentity(node.value.expression, node)) return;
 
+      // Fragment / React.Fragment has no DOM identity or state — even
+      // when the key is the index, a misidentification has no
+      // observable consequence (there's nothing to lose).
+      const openingElement = node.parent;
+      if (openingElement && isNodeOfType(openingElement, "JSXOpeningElement")) {
+        const elementName = openingElement.name as EsTreeNode;
+        if (isNodeOfType(elementName, "JSXIdentifier") && elementName.name === "Fragment") {
+          return;
+        }
+        if (
+          isNodeOfType(elementName, "JSXMemberExpression") &&
+          isNodeOfType(elementName.object, "JSXIdentifier") &&
+          isNodeOfType(elementName.property, "JSXIdentifier") &&
+          elementName.object.name === "React" &&
+          elementName.property.name === "Fragment"
+        ) {
+          return;
+        }
+      }
+
       context.report({
         node,
         message: `Array index "${indexName}" used as key — causes bugs when list is reordered or filtered`,
