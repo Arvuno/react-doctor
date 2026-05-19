@@ -37,6 +37,32 @@ const innerExpression = (expression: EsTreeNode): EsTreeNode => {
   return expression;
 };
 
+// `autoFocus={autoFocus}` — the component is just forwarding the
+// consumer's prop value. The consumer site is where the rule should
+// fire, not the trampoline. (Without this, every well-behaved input
+// wrapper that exposes `autoFocus` to its caller gets flagged.)
+const isSameNameIdentifierForward = (
+  attributeName: string,
+  value: EsTreeNode | null,
+): boolean => {
+  if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return false;
+  const expression = innerExpression(value.expression as EsTreeNode);
+  if (isNodeOfType(expression, "Identifier") && expression.name === attributeName) {
+    return true;
+  }
+  // `autoFocus={props.autoFocus}` — same shape, just destructured at
+  // the call site.
+  if (
+    isNodeOfType(expression, "MemberExpression") &&
+    !expression.computed &&
+    isNodeOfType(expression.property, "Identifier") &&
+    expression.property.name === attributeName
+  ) {
+    return true;
+  }
+  return false;
+};
+
 // Returns true when an attribute value is statically equivalent to
 // `false` (per OXC's `is_false_attribute_value`).
 const isFalseAttributeValue = (value: EsTreeNode): boolean => {
@@ -88,6 +114,7 @@ export const noAutofocus = defineRule<Rule>({
         const attributeValue = (autoFocusAttribute as EsTreeNodeOfType<"JSXAttribute">)
           .value as EsTreeNode | null;
         if (attributeValue && isFalseAttributeValue(attributeValue)) return;
+        if (isSameNameIdentifierForward("autoFocus", attributeValue)) return;
         if (settings.ignoreNonDOM) {
           const tag = getElementType(node, context.settings);
           if (!HTML_TAGS.has(tag)) return;
