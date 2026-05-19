@@ -5,6 +5,7 @@ import { getJsxPropStringValue } from "../../utils/get-jsx-prop-string-value.js"
 import { hasJsxPropIgnoreCase } from "../../utils/has-jsx-prop-ignore-case.js";
 import { isHiddenFromScreenReader } from "../../utils/is-hidden-from-screen-reader.js";
 import { isInteractiveElement } from "../../utils/is-interactive-element.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 import { HTML_TAGS } from "../../constants/html-tags.js";
 
@@ -24,34 +25,38 @@ export const clickEventsHaveKeyEvents = defineRule<Rule>({
   severity: "warn",
   recommendation: "Pair `onClick` with `onKeyUp` / `onKeyDown` / `onKeyPress` for keyboard users.",
   category: "Accessibility",
-  create: (context) => ({
-    JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
-      const tag = getElementType(node, context.settings);
-      // Skip non-DOM elements (custom components might handle keyboard
-      // internally).
-      if (!HTML_TAGS.has(tag)) return;
-      // Skip interactive elements (button, a[href], etc.) — they
-      // already handle keyboard activation.
-      if (isInteractiveElement(tag, node)) return;
-      // Skip elements with no children visible to users.
-      if (!hasJsxPropIgnoreCase(node.attributes, "onClick")) return;
+  create: (context) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (isTestlikeFile) return;
+        const tag = getElementType(node, context.settings);
+        // Skip non-DOM elements (custom components might handle keyboard
+        // internally).
+        if (!HTML_TAGS.has(tag)) return;
+        // Skip interactive elements (button, a[href], etc.) — they
+        // already handle keyboard activation.
+        if (isInteractiveElement(tag, node)) return;
+        // Skip elements with no children visible to users.
+        if (!hasJsxPropIgnoreCase(node.attributes, "onClick")) return;
 
-      if (isHiddenFromScreenReader(node, context.settings)) return;
+        if (isHiddenFromScreenReader(node, context.settings)) return;
 
-      // Presentational role (presentation / none) → not perceivable
-      // by AT, so skip.
-      const roleAttribute = hasJsxPropIgnoreCase(node.attributes, "role");
-      if (roleAttribute) {
-        const roleValue = getJsxPropStringValue(roleAttribute);
-        if (roleValue && PRESENTATION_ROLES.has(roleValue)) return;
-      }
-      // Has a key handler? OK.
-      const hasKeyHandler = KEY_HANDLERS.some((handler) =>
-        hasJsxPropIgnoreCase(node.attributes, handler),
-      );
-      if (hasKeyHandler) return;
+        // Presentational role (presentation / none) → not perceivable
+        // by AT, so skip.
+        const roleAttribute = hasJsxPropIgnoreCase(node.attributes, "role");
+        if (roleAttribute) {
+          const roleValue = getJsxPropStringValue(roleAttribute);
+          if (roleValue && PRESENTATION_ROLES.has(roleValue)) return;
+        }
+        // Has a key handler? OK.
+        const hasKeyHandler = KEY_HANDLERS.some((handler) =>
+          hasJsxPropIgnoreCase(node.attributes, handler),
+        );
+        if (hasKeyHandler) return;
 
-      context.report({ node: node.name, message: MESSAGE });
-    },
-  }),
+        context.report({ node: node.name, message: MESSAGE });
+      },
+    };
+  },
 });

@@ -3,6 +3,7 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { getElementType } from "../../utils/get-element-type.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 import { HTML_TAGS } from "../../constants/html-tags.js";
 
@@ -71,8 +72,10 @@ export const noAutofocus = defineRule<Rule>({
   category: "Accessibility",
   create: (context) => {
     const settings = resolveSettings(context.settings);
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
     return {
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (isTestlikeFile) return;
         const autoFocusAttribute = node.attributes.find((attribute) => {
           if (!isNodeOfType(attribute as EsTreeNode, "JSXAttribute")) return false;
           const attributeName = (attribute as EsTreeNodeOfType<"JSXAttribute">).name;

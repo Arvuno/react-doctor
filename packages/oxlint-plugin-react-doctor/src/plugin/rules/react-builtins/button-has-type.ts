@@ -4,6 +4,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { hasJsxPropIgnoreCase } from "../../utils/has-jsx-prop-ignore-case.js";
 import { isCreateElementCall } from "../../utils/is-create-element-call.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 
 const MISSING_MESSAGE = "`<button>` elements must have an explicit `type` attribute.";
@@ -96,9 +97,14 @@ export const buttonHasType = defineRule<Rule>({
   recommendation: 'Set `type="button"` (or `"submit"` / `"reset"`) explicitly on every `<button>`.',
   create: (context) => {
     const settings = resolveSettings(context.settings);
+    // Storybook stories and tests routinely render bare `<button>` without
+    // a `type` attribute — the buttons aren't inside a real form so the
+    // implicit `submit` behaviour is irrelevant. Skip these.
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
 
     return {
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (isTestlikeFile) return;
         if (!isNodeOfType(node.name, "JSXIdentifier") || node.name.name !== "button") return;
         const typeAttr = hasJsxPropIgnoreCase(node.attributes, "type");
         if (!typeAttr) {
@@ -125,6 +131,7 @@ export const buttonHasType = defineRule<Rule>({
         }
       },
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        if (isTestlikeFile) return;
         if (!isCreateElementCall(node)) return;
         const firstArgument = node.arguments[0];
         if (

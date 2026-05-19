@@ -1,4 +1,5 @@
 import { defineRule } from "../../utils/define-rule.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { getElementType } from "../../utils/get-element-type.js";
@@ -196,8 +197,10 @@ export const labelHasAssociatedControl = defineRule<Rule>({
   category: "Accessibility",
   create: (context) => {
     const settings = resolveSettings(context.settings);
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
     return {
       JSXElement(node: EsTreeNodeOfType<"JSXElement">) {
+        if (isTestlikeFile) return;
         const opening = node.openingElement;
         const tagName = getElementType(opening, context.settings);
         if (!settings.labelComponents.includes(tagName)) return;

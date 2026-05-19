@@ -12,6 +12,7 @@ import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isNonInteractiveElement } from "../../utils/is-non-interactive-element.js";
 import { isNonInteractiveRole } from "../../utils/is-non-interactive-role.js";
 import { isPresentationRole } from "../../utils/is-presentation-role.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 
 const MESSAGE =
@@ -66,8 +67,10 @@ export const noStaticElementInteractions = defineRule<Rule>({
   category: "Accessibility",
   create: (context) => {
     const settings = resolveSettings(context.settings);
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
     return {
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (isTestlikeFile) return;
         // Find any active handler.
         const hasHandler = settings.handlers.some((handler) => {
           const attribute = hasJsxPropIgnoreCase(node.attributes, handler);
