@@ -63,6 +63,23 @@ const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
   "selectButton",
   "badge",
   "message",
+  // Info / help slots — receive JSX explanation/help/preview content
+  "info",
+  "infoMessage",
+  "help",
+  "helpText",
+  "helpTooltip",
+  "avatar",
+  "preview",
+  "adornment",
+  "callToAction",
+  "extraControls",
+  "contextualText",
+  "topHeading",
+  "topContent",
+  "bottomContent",
+  "leftContent",
+  "rightContent",
   // Directional / positional slots (`left`, `right`, `top`, `bottom`,
   // `aside`, `details`, `extra`) — flexbox-aware design systems use
   // these to control layout of slot children.
@@ -112,11 +129,17 @@ const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
 // convention a single JSX node, not a perf-critical handler.
 const SLOT_PROP_SUFFIXES: ReadonlyArray<string> = [
   "Button",
+  "Buttons",
   "Icon",
+  "Icons",
   "Component",
+  "Components",
   "Element",
+  "Elements",
   "Slot",
+  "Slots",
   "Content",
+  "Contents",
   "Renderer",
   "Trigger",
   "Header",
@@ -130,6 +153,19 @@ const SLOT_PROP_SUFFIXES: ReadonlyArray<string> = [
   "Panel",
   "Overlay",
   "Shape",
+  // Slot-replacement / customization suffixes
+  "Override",
+  "Overrides",
+  "Items",
+  "Item",
+  "Action",
+  "Actions",
+  "Controls",
+  "Message",
+  "Heading",
+  "Details",
+  "Preview",
+  "Info",
 ];
 
 const isSlotPropName = (propName: string): boolean => {
