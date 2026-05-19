@@ -1,5 +1,6 @@
 import { createLoopAwareVisitors } from "../../utils/create-loop-aware-visitors.js";
 import { defineRule } from "../../utils/define-rule.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
@@ -171,9 +172,11 @@ export const jsSetMapLookups = defineRule<Rule>({
   severity: "warn",
   recommendation:
     "Use a `Set` or `Map` for repeated membership tests / keyed lookups — `Array.includes`/`find` is O(n) per call",
-  create: (context: RuleContext) =>
-    createLoopAwareVisitors({
+  create: (context: RuleContext) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return createLoopAwareVisitors({
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        if (isTestlikeFile) return;
         if (
           !isNodeOfType(node.callee, "MemberExpression") ||
           !isNodeOfType(node.callee.property, "Identifier")
@@ -187,5 +190,6 @@ export const jsSetMapLookups = defineRule<Rule>({
           message: `array.${methodName}() in a loop is O(n) per call — convert to a Set for O(1) lookups`,
         });
       },
-    }),
+    });
+  },
 });
