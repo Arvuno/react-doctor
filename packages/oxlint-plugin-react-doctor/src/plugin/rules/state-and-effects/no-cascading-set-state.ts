@@ -12,19 +12,12 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 // Count setState calls along a SINGLE execution path. For if/else
 // branches and switch/case alternatives, take the MAX of the branches
-// (only one fires per render) instead of SUM. Skip nested function /
-// arrow bodies — those are deferred execution (timers, promise
-// handlers) and execute in a separate render cycle.
+// (only one fires per render) instead of SUM. Nested function bodies
+// (timers, async handlers, .then callbacks) are still walked — their
+// setStates DO compound when the callback fires, just on a separate
+// render cycle that the user still wants to fold into a reducer.
 const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   if (!node || typeof node !== "object") return 0;
-  // Skip nested function/arrow bodies — deferred execution.
-  if (
-    isNodeOfType(node, "FunctionDeclaration") ||
-    isNodeOfType(node, "FunctionExpression") ||
-    isNodeOfType(node, "ArrowFunctionExpression")
-  ) {
-    return 0;
-  }
   // If/else: max of branches (only one fires).
   if (isNodeOfType(node, "IfStatement")) {
     const thenCount = countMaxPathSetStateCalls(node.consequent as EsTreeNode);
@@ -33,14 +26,14 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
       : 0;
     return Math.max(thenCount, elseCount);
   }
-  // Conditional expression / logical short-circuit — same logic.
+  // Conditional expression — same logic.
   if (isNodeOfType(node, "ConditionalExpression")) {
     return Math.max(
       countMaxPathSetStateCalls(node.consequent as EsTreeNode),
       countMaxPathSetStateCalls(node.alternate as EsTreeNode),
     );
   }
-  // Switch: max across cases (only one matches).
+  // Switch: max across cases (only one matches per dispatch).
   if (isNodeOfType(node, "SwitchStatement")) {
     let maxCase = 0;
     for (const switchCase of node.cases ?? []) {
@@ -52,7 +45,8 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
     }
     return maxCase;
   }
-  // Try/catch/finally: try + max(catch, 0) + finally — being defensive.
+  // Try/catch/finally: max(try, catch) (only one path runs on
+  // success vs throw) + finally (always runs).
   if (isNodeOfType(node, "TryStatement")) {
     const tryCount = countMaxPathSetStateCalls(node.block as EsTreeNode);
     const catchCount = node.handler
