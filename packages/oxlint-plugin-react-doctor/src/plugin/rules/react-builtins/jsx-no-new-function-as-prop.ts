@@ -329,6 +329,71 @@ const followsRenderLocalFunctionBinding = (
   return isFunctionProducingExpression(binding.initializer);
 };
 
+// `() => fn(arg1, arg2, …)` — a zero-arg arrow whose ENTIRE body is a
+// single call to a stable callee with stable arguments (literals,
+// identifier refs, or member accesses; no nested closures / arrays /
+// objects). The wrapper exists purely to bind arguments — and the user
+// CAN'T `useCallback` it (the closure must close over the outer
+// `arg1`/`arg2` references that vary across renders). Flagging it is
+// unactionable: the only "fix" is restructuring the data flow (`<X arg=
+// {…} />` instead of `onClick={() => fn(arg)}`), which is a major
+// refactor for a tiny perf gain that doesn't materialize on
+// non-memoized consumers.
+const isStableArgumentValue = (node: EsTreeNode): boolean => {
+  if (isNodeOfType(node, "Literal")) return true;
+  if (isNodeOfType(node, "TemplateLiteral")) {
+    return (node.expressions ?? []).every((expression) =>
+      isStableArgumentValue(expression as EsTreeNode),
+    );
+  }
+  if (isNodeOfType(node, "Identifier")) return true;
+  if (isNodeOfType(node, "MemberExpression")) return true;
+  if (isNodeOfType(node, "UnaryExpression")) {
+    return isStableArgumentValue(node.argument as EsTreeNode);
+  }
+  if (isNodeOfType(node, "ChainExpression")) {
+    return isStableArgumentValue(node.expression as EsTreeNode);
+  }
+  return false;
+};
+
+const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
+  const stripped = stripParenExpression(expression);
+  if (!isNodeOfType(stripped, "ArrowFunctionExpression")) return false;
+  // Wrapper takes no arguments — it's bridging the caller's no-arg
+  // signature to the inner call's argument list.
+  if ((stripped.params?.length ?? 0) !== 0) return false;
+  // Body is either `fn(...)` directly (expression body) or
+  // `{ return fn(...); }` / `{ fn(...); }` (single-statement block).
+  let body = stripped.body as EsTreeNode;
+  if (isNodeOfType(body, "BlockStatement")) {
+    const statements = body.body ?? [];
+    if (statements.length !== 1) return false;
+    const only = statements[0] as EsTreeNode;
+    if (isNodeOfType(only, "ReturnStatement")) {
+      if (!only.argument) return false;
+      body = only.argument as EsTreeNode;
+    } else if (isNodeOfType(only, "ExpressionStatement")) {
+      body = only.expression as EsTreeNode;
+    } else {
+      return false;
+    }
+  }
+  if (!isNodeOfType(body, "CallExpression")) return false;
+  // Callee must be a plain Identifier (likely a stable hook setter or
+  // top-level function) or a MemberExpression (method call).
+  const callee = body.callee;
+  if (!isNodeOfType(callee, "Identifier") && !isNodeOfType(callee, "MemberExpression")) {
+    return false;
+  }
+  // Every argument must be stable — literals / identifiers / member
+  // accesses, NOT inline objects/arrays/arrows.
+  for (const argument of body.arguments ?? []) {
+    if (!isStableArgumentValue(argument as EsTreeNode)) return false;
+  }
+  return true;
+};
+
 // Port of `oxc_linter::rules::react_perf::jsx_no_new_function_as_prop`.
 // Inline-expression coverage only — see jsx-no-new-array-as-prop's
 // LIMITATION note for the scope-analysis cases (`const x = () => {};
@@ -368,6 +433,9 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
         const expression = value.expression;
         if (!expression || expression.type === "JSXEmptyExpression") return;
         const expressionNode = expression as EsTreeNode;
+        // Parameter-binding wrappers (`() => fn(arg1, arg2)`) can't be
+        // useCallback-ed — the closure must capture `arg1`/`arg2`.
+        if (isParameterBindingWrapper(expressionNode)) return;
         if (
           !isFunctionProducingExpression(expressionNode) &&
           !followsRenderLocalFunctionBinding(expressionNode, node)
