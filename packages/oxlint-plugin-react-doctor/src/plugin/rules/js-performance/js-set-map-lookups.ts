@@ -167,6 +167,54 @@ const isLikelyStringReceiver = (receiver: EsTreeNode | null | undefined): boolea
   return false;
 };
 
+// `lines[i]` / `tokens[cursor]` — indexing into an array by a numeric
+// index. The result is the array's element type, which is overwhelmingly
+// `string` in the cases that survive after `isLikelyStringReceiver`
+// (other element types' membership tests don't even compile without
+// the right operand being the same shape). We require the indexer to
+// be an index-named Identifier OR a numeric literal so we don't
+// accidentally pass through `record[someKey]`.
+const INDEX_LIKE_IDENTIFIER_NAMES: ReadonlySet<string> = new Set([
+  "i",
+  "j",
+  "k",
+  "idx",
+  "index",
+  "cursor",
+  "position",
+  "pos",
+  "lineNumber",
+  "lineIndex",
+  "ln",
+  "row",
+  "col",
+  "column",
+]);
+
+const isIndexedArrayElementWithStringArgument = (
+  receiver: EsTreeNode | null | undefined,
+  callArgument: EsTreeNode | null | undefined,
+): boolean => {
+  if (!receiver || !isNodeOfType(receiver, "MemberExpression") || !receiver.computed) {
+    return false;
+  }
+  const property = receiver.property as EsTreeNode;
+  const isIndexLike =
+    (isNodeOfType(property, "Identifier") &&
+      INDEX_LIKE_IDENTIFIER_NAMES.has(property.name)) ||
+    (isNodeOfType(property, "Literal") && typeof (property as { value?: unknown }).value === "number");
+  if (!isIndexLike) return false;
+  // Pair with `.includes("literal-string")` — only skip when the
+  // argument is itself a string literal so we don't paper over genuine
+  // `arr[i].includes(otherObj)` cases.
+  if (!callArgument) return false;
+  if (isNodeOfType(callArgument, "Literal") && typeof callArgument.value === "string") {
+    return true;
+  }
+  if (isNodeOfType(callArgument, "TemplateLiteral")) return true;
+  return false;
+};
+
 export const jsSetMapLookups = defineRule<Rule>({
   id: "js-set-map-lookups",
   severity: "warn",
@@ -185,6 +233,14 @@ export const jsSetMapLookups = defineRule<Rule>({
         const methodName = node.callee.property.name;
         if (methodName !== "includes" && methodName !== "indexOf") return;
         if (isLikelyStringReceiver(node.callee.object)) return;
+        if (
+          isIndexedArrayElementWithStringArgument(
+            node.callee.object,
+            node.arguments?.[0] as EsTreeNode | undefined,
+          )
+        ) {
+          return;
+        }
         context.report({
           node,
           message: `array.${methodName}() in a loop is O(n) per call — convert to a Set for O(1) lookups`,
