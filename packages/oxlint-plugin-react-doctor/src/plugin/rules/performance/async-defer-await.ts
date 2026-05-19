@@ -130,6 +130,7 @@ const collectAwaitWindow = (statements: EsTreeNode[], startIndex: number): Await
 export const asyncDeferAwait = defineRule<Rule>({
   id: "async-defer-await",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Move the `await` after the synchronous early-return guard so the skip path stays fast",
   create: (context: RuleContext) => {
