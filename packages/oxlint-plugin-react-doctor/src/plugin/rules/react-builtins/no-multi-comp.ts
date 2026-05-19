@@ -549,7 +549,7 @@ export const noMultiComp = defineRule<Rule>({
         // Barrel files (icon barrels, shadcn dropdown-menu barrels, menu-items
         // grouping files, etc.) deliberately co-locate many small related
         // components. Splitting each into its own file would be churn for no
-        // gain. Heuristic: if 5+ components are detected AND 75%+ are
+        // gain. Heuristic: if 4+ components are detected AND 75%+ are
         // exported top-level declarations, treat the file as a barrel and
         // don't flag. The 75% threshold permits a handful of private helpers
         // (e.g. `function DistributeMenuGroup()` used only by an exported
@@ -558,7 +558,7 @@ export const noMultiComp = defineRule<Rule>({
           isExportedDeclaration(component.reportNode),
         ).length;
         const isBarrelLikeFile =
-          flagged.length >= 5 && exportedCount >= Math.ceil(flagged.length * 0.75);
+          flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75);
         if (isBarrelLikeFile) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
