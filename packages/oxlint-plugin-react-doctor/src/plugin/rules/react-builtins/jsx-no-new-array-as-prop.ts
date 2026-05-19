@@ -94,6 +94,33 @@ const DATA_ARRAY_PROP_NAMES: ReadonlySet<string> = new Set([
   // Layout / breadcrumb
   "breadcrumbs",
   "fallbackPlacements",
+  // Generic value-as-collection (multi-select, multi-tag controls)
+  "value",
+  "currentValue",
+  // Common domain collections (corpus-derived)
+  "listParts",
+  "objectNameSingulars",
+  "tagsAvailable",
+  "properties",
+  "middleware",
+  "middlewares",
+  "variants",
+  "surveys",
+  "choices",
+  "layers",
+  "models",
+  "roles",
+  "metrics",
+  "teams",
+  "additionalActions",
+  "additionalRefs",
+  "addonFeatures",
+  "operatorAllowlist",
+  "goalLines",
+  "selectedProperties",
+  "panelActions",
+  "operandsForFilterType",
+  "dataWarehousePopoverFields",
 ]);
 
 // Suffix patterns: `*Items`, `*Options`, `*Tabs`, `*Columns`, `*Rows`,

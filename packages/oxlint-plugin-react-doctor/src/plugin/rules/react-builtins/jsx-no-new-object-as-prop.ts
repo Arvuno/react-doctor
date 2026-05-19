@@ -119,6 +119,23 @@ const CONFIG_OBJECT_PROP_NAMES: ReadonlySet<string> = new Set([
   "dropdownOffset",
   "collisionPadding",
   "forceBackTo",
+  // Domain singular records and config objects (corpus-derived)
+  "resource",
+  "field",
+  "menu",
+  "survey",
+  "legend",
+  "defaultFilters",
+  "introOverride",
+  "searchParams",
+  "commandMenuContextApi",
+  "nodeTypes",
+  "forceParams",
+  "callToActionButton",
+  // Single-letter placeholders ("a", "b") appear in lib-call patterns
+  // (`<Comparator a={...} b={...} />`) and configuration tuples.
+  "a",
+  "b",
 ]);
 
 // Suffixes that mark a prop as a "config object" by convention —

@@ -80,6 +80,21 @@ const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
   "bottomContent",
   "leftContent",
   "rightContent",
+  // Generic JSX-receiving slots (corpus-derived)
+  "value",
+  "currentValue",
+  "form",
+  "text",
+  "count",
+  "modal",
+  "rightOptions",
+  "leftOptions",
+  "titleHelper",
+  "inputDisplay",
+  "outputDisplay",
+  "animatedSvg",
+  "Status",
+  "additionalEmptyState",
   // Directional / positional slots (`left`, `right`, `top`, `bottom`,
   // `aside`, `details`, `extra`) — flexbox-aware design systems use
   // these to control layout of slot children.
