@@ -4,7 +4,6 @@ import {
 } from "../../constants/js.js";
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
-import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
@@ -233,14 +232,12 @@ export const jsCombineIterations = defineRule<Rule>({
     "Combine `.map().filter()` (or similar chains) into a single pass with `.reduce()` or a `for...of` loop to avoid iterating the array twice",
   create: (context: RuleContext) => {
     let generatorNamesInFile: ReadonlySet<string> = new Set();
-    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
 
     return {
       Program(programNode: EsTreeNodeOfType<"Program">) {
         generatorNamesInFile = collectGeneratorNames(programNode);
       },
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-        if (isTestlikeFile) return;
         if (
           !isNodeOfType(node.callee, "MemberExpression") ||
           !isNodeOfType(node.callee.property, "Identifier")

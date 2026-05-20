@@ -5,7 +5,6 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isReactComponentOrHookName } from "../../utils/is-react-component-or-hook-name.js";
 import { isReactHookName } from "../../utils/is-react-hook-name.js";
-import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 
 // Port of `oxc_linter::rules::react::rules_of_hooks`. Enforces React's
@@ -631,6 +630,12 @@ const isUseEffectEventInitializer = (node: EsTreeNodeOfType<"CallExpression">): 
   );
 };
 
+// `test-noise` because stories / tests / playground / examples don't
+// ship to production and are full of hook-named test helpers
+// (`useStorybookMocks`, `useSetupMocks`, `useInsightMocks`) that aren't
+// actually React hooks — flagging them as Rules-of-Hooks violations is
+// unactionable noise. Real misuse will surface at runtime inside the
+// test/story.
 export const rulesOfHooks = defineRule<Rule>({
   id: "rules-of-hooks",
   severity: "error",
@@ -642,16 +647,8 @@ export const rulesOfHooks = defineRule<Rule>({
     const additionalEffectHooksRegex = buildAdditionalEffectHooksRegex(
       settings.additionalEffectHooks,
     );
-    // Stories / tests / playground / examples don't ship to production
-    // and are full of hook-named test helpers (`useStorybookMocks`,
-    // `useSetupMocks`, `useInsightMocks`) that aren't actually React
-    // hooks — flagging them as Rules-of-Hooks violations is unactionable
-    // noise. Real misuse will surface at runtime inside the test/story.
-    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
-
     return {
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-        if (isTestlikeFile) return;
         const hookContext = isHookCall(node, context.scopes, settings);
         if (!hookContext) return;
         const { hookName } = hookContext;

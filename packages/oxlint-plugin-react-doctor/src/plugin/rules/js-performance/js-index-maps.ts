@@ -1,11 +1,10 @@
 import { createLoopAwareVisitors } from "../../utils/create-loop-aware-visitors.js";
 import { defineRule } from "../../utils/define-rule.js";
-import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
-import type { Rule } from "../../utils/rule.js";
-import type { RuleContext } from "../../utils/rule-context.js";
-import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import type { Rule } from "../../utils/rule.js";
+import type { RuleContext } from "../../utils/rule-context.js";
 
 // `Array.prototype.find` / `.findIndex` take a callback as the first arg.
 // Database / ORM `.find(...)` / `.findOne(...)` calls take a query object
@@ -32,11 +31,9 @@ export const jsIndexMaps = defineRule<Rule>({
   severity: "warn",
   recommendation:
     "Build an index `Map` once outside the loop instead of `array.find(...)` inside it",
-  create: (context: RuleContext) => {
-    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
-    return createLoopAwareVisitors({
+  create: (context: RuleContext) =>
+    createLoopAwareVisitors({
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-        if (isTestlikeFile) return;
         if (
           !isNodeOfType(node.callee, "MemberExpression") ||
           !isNodeOfType(node.callee.property, "Identifier")
@@ -50,6 +47,5 @@ export const jsIndexMaps = defineRule<Rule>({
           message: `array.${methodName}() in a loop is O(n*m) — build a Map for O(1) lookups`,
         });
       },
-    });
-  },
+    }),
 });
