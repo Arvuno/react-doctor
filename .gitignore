@@ -1,6 +1,7 @@
 node_modules
 dist
 .turbo
+.repos
 *.log
 .DS_Store
 .cursor
