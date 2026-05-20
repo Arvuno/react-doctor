@@ -98,7 +98,13 @@ export const defineRule: DefineRule = <RuleDefinition>(rule: RuleDefinition): Ru
   const create = (rule as { create?: unknown }).create;
   if (typeof create !== "function") return rule;
   let wrappedCreate = create as (...args: unknown[]) => unknown;
-  if (tags?.includes("test-noise")) {
+  // `migration-hint` wins over `test-noise` — deprecated API usage in
+  // test code is the very surface that needs migration (`react-dom/test-utils`
+  // imports, legacy lifecycle methods in test class fixtures, etc.).
+  // Skip the test-noise wrapper when the rule has both tags.
+  const honorsTestNoise =
+    tags?.includes("test-noise") && !tags?.includes("migration-hint");
+  if (honorsTestNoise) {
     wrappedCreate = wrapCreateForTestNoise(wrappedCreate as never) as never;
   }
   if (tags?.includes("react-jsx-only")) {

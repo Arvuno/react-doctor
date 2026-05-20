@@ -114,22 +114,43 @@ const containsRefGuard = (testNode: EsTreeNode): boolean => {
   return false;
 };
 
+// A "side-effect-free exit": `return;`, `return null;`, `return X;`
+// where X is a simple identifier or primitive literal. `return fn()`
+// is NOT side-effect-free — the call IS the work the effect is
+// doing, just disguised as an "early exit". Same for
+// `return X.method()`.
+const isSideEffectFreeExit = (statement: EsTreeNode): boolean => {
+  if (isNodeOfType(statement, "ContinueStatement")) return true;
+  if (isNodeOfType(statement, "BreakStatement")) return true;
+  if (!isNodeOfType(statement, "ReturnStatement")) return false;
+  const argument = statement.argument;
+  if (!argument) return true;
+  if (isNodeOfType(argument, "Literal")) return true;
+  if (isNodeOfType(argument, "Identifier")) return true;
+  // `return undefined` (Identifier "undefined") covered above.
+  // `return void 0`
+  if (isNodeOfType(argument, "UnaryExpression") && argument.operator === "void") return true;
+  return false;
+};
+
 const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
-  // `if (cond) return;` / `if (cond) return value;`
-  if (isNodeOfType(consequent, "ReturnStatement")) return true;
-  if (isNodeOfType(consequent, "ContinueStatement")) return true;
-  if (isNodeOfType(consequent, "BreakStatement")) return true;
-  // `if (cond) { return; }` — block with early-exit at the end and
-  // (optionally) a contiguous run of setter calls before it.
+  // `if (cond) return;` / `if (cond) return null;` / `if (cond) return x;`
+  // — but NOT `if (cond) return fn()` (the call IS the side-effect).
+  if (
+    isNodeOfType(consequent, "ReturnStatement") ||
+    isNodeOfType(consequent, "ContinueStatement") ||
+    isNodeOfType(consequent, "BreakStatement")
+  ) {
+    return isSideEffectFreeExit(consequent);
+  }
+  // `if (cond) { return; }` — block with side-effect-free early-exit
+  // at the end and (optionally) a contiguous run of setter calls
+  // before it.
   if (isNodeOfType(consequent, "BlockStatement")) {
     const body = consequent.body ?? [];
     if (body.length === 0) return true;
     const last = body[body.length - 1] as EsTreeNode;
-    const lastIsExit =
-      isNodeOfType(last, "ReturnStatement") ||
-      isNodeOfType(last, "ContinueStatement") ||
-      isNodeOfType(last, "BreakStatement");
-    if (!lastIsExit) return false;
+    if (!isSideEffectFreeExit(last)) return false;
     // Allow any number of setter-only preamble statements:
     //   if (!enabled) { setLocal(initial); setLoading(false); return; }
     for (let i = 0; i < body.length - 1; i++) {

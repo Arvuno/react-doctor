@@ -56,7 +56,6 @@ const isTextHandlingComponent = (elementName: string): boolean => {
 
 export const rnNoRawText = defineRule<Rule>({
   id: "rn-no-raw-text",
-  tags: ["test-noise"],
   requires: ["react-native"],
   severity: "error",
   recommendation:

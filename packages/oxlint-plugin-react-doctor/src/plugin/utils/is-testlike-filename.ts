@@ -161,16 +161,62 @@ const NON_PRODUCTION_BASENAMES: ReadonlySet<string> = new Set([
   "lint-staged.config.mjs",
 ]);
 
+// "Source root" path segments that mark the boundary BELOW WHICH a
+// file is considered production code, regardless of what wraps the
+// source root above. This lets test-fixture projects (laid out as
+// `tests/fixtures/<project>/src/<file>`) treat `src/<file>` as
+// production — even though the OUTER path contains `/tests/` and
+// `/fixtures/`. Without this, the path-segment check below would
+// erroneously skip every file inside the fixture project.
+//
+// We use the LAST occurrence of any source-root marker as the cut
+// point — captures `monorepo/tests/fixtures/proj/src/app/page.tsx`
+// (cut at `/src/`, only check `app/page.tsx`).
+const SOURCE_ROOT_SEGMENTS: ReadonlyArray<string> = [
+  "/src/",
+  "/app/",
+  "/lib/",
+  "/components/",
+  "/pages/",
+  "/features/",
+  "/modules/",
+  "/packages/",
+  "/apps/",
+  "/frontend/",
+  "/client/",
+];
+
+const sliceBelowSourceRoot = (filename: string): string => {
+  let cutAt = -1;
+  for (const segment of SOURCE_ROOT_SEGMENTS) {
+    const lastIdx = filename.lastIndexOf(segment);
+    if (lastIdx > cutAt) cutAt = lastIdx;
+  }
+  if (cutAt < 0) return filename;
+  return filename.slice(cutAt);
+};
+
 export const isTestlikeFilename = (filename: string | undefined): boolean => {
   if (!filename) return false;
   const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
   const basename = lastSlash === -1 ? filename : filename.slice(lastSlash + 1);
   if (NON_PRODUCTION_BASENAMES.has(basename.toLowerCase())) return true;
+  // The filename suffix check (`.test.`, `.spec.`, `.stories.` etc.)
+  // is on the BASENAME only — these are unambiguous regardless of
+  // path context.
   for (const suffix of NON_PRODUCTION_FILENAME_SUFFIXES) {
-    if (filename.includes(suffix)) return true;
+    if (basename.includes(suffix)) return true;
   }
+  // The PATH-segment check scopes itself to "below the source root":
+  // for `tests/fixtures/proj/src/app/state-issues.tsx`, it only sees
+  // `/src/app/state-issues.tsx` — so the OUTER `/tests/` + `/fixtures/`
+  // wrappers don't accidentally testlike-skip the production code
+  // INSIDE the fixture project. Critical for any test runner that
+  // builds a fake project under a test directory to assert rule
+  // behaviour.
+  const scopedFilename = sliceBelowSourceRoot(filename);
   for (const segment of NON_PRODUCTION_PATH_SEGMENTS) {
-    if (filename.includes(segment)) return true;
+    if (scopedFilename.includes(segment)) return true;
   }
   return false;
 };

@@ -221,9 +221,12 @@ const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefi
       }
       return true;
     }
-    // `Object.entries(obj).map(...).filter(...)` — chain rooted in
-    // a key-bounded Object.X call. Same trivial-cost reasoning.
-    if (isKeyBoundedReceiver(cursor)) return true;
+    // `Object.entries(obj).map(...).filter(...)` IS array-eager —
+    // Object.values / Object.entries materialize a new array each
+    // call, so iterating twice DOES allocate temporary arrays. Even
+    // though config-key counts are usually small, downstream readers
+    // legitimately want the .reduce()/for...of rewrite for clarity.
+    // Don't skip here.
     if (!isNodeOfType(cursor, "CallExpression")) return false;
     if (!isChainPassThroughCall(cursor)) return false;
     const nextCallee = cursor.callee;
