@@ -278,13 +278,45 @@ interface DetectedComponent {
 // True if the node is in a top-level `export …` declaration. Walks
 // parents looking for an ExportNamedDeclaration / ExportDefaultDeclaration
 // before crossing any non-trivial scope boundary.
-const isExportedDeclaration = (node: EsTreeNode): boolean => {
+// Collects names re-exported at the bottom of a file via the
+// specifier-form `export { Foo, Bar, Baz }`. shadcn-style primitive
+// files use this almost exclusively: declarations live at module
+// scope, then ONE export block at the end. Without this, every such
+// barrel had `exportedCount === 0` and slipped past both the barrel
+// and the feature-module exemption.
+const collectReExportedNames = (program: EsTreeNode): Set<string> => {
+  const names = new Set<string>();
+  if (!isNodeOfType(program, "Program")) return names;
+  for (const statement of program.body) {
+    if (!isNodeOfType(statement as EsTreeNodeOfType<"ExportNamedDeclaration">, "ExportNamedDeclaration")) {
+      continue;
+    }
+    const exportNode = statement as EsTreeNodeOfType<"ExportNamedDeclaration">;
+    // Skip the inline form (`export const Foo = …`); only collect the
+    // specifier form (`export { Foo }`).
+    if (exportNode.declaration) continue;
+    for (const specifier of exportNode.specifiers ?? []) {
+      if (!isNodeOfType(specifier, "ExportSpecifier")) continue;
+      const local = specifier.local as EsTreeNode;
+      if (isNodeOfType(local, "Identifier")) names.add(local.name);
+    }
+  }
+  return names;
+};
+
+const isExportedDeclaration = (
+  node: EsTreeNode,
+  reExportedNames: Set<string>,
+): boolean => {
   // The component's reportNode is the binding identifier (e.g.
   // `Foo` inside `export function Foo()`). To detect export-ness we
   // walk up through AT MOST one function/class layer (the binding
   // node itself) so `export function Foo()` and `export const Foo =`
   // both resolve correctly, while a function nested INSIDE another
   // function still bails before climbing out of its host.
+  if (isNodeOfType(node, "Identifier") && reExportedNames.has(node.name)) {
+    return true;
+  }
   let current: EsTreeNode | null | undefined = node.parent;
   let didCrossOneBindingLayer = false;
   while (current) {
@@ -563,8 +595,9 @@ export const noMultiComp = defineRule<Rule>({
         //      couple internal subcomponents — and forcing the user to
         //      split each helper into its own file would only fragment
         //      tightly-coupled UI.
+        const reExportedNames = collectReExportedNames(node as EsTreeNode);
         const exportedCount = flagged.filter((component) =>
-          isExportedDeclaration(component.reportNode),
+          isExportedDeclaration(component.reportNode, reExportedNames),
         ).length;
         const isBarrelLikeFile =
           flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75);
