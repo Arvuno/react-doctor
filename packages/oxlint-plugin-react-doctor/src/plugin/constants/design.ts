@@ -49,12 +49,45 @@ export const VAGUE_BUTTON_LABELS = new Set([
 ]);
 
 export const TYPOGRAPHY_PUNCTUATION_EXCLUDED_TAG_NAMES = new Set([
+  // Raw code / monospace HTML primitives — em-dashes / ellipses are
+  // syntactic content there, not prose.
   "code",
   "pre",
   "kbd",
   "samp",
   "var",
   "tt",
+  // Markdown / prose-rendering components — they round-trip user
+  // content (or vendor docstrings / CHANGELOG snippets / sample LLM
+  // output) which legitimately contains em-dashes and ellipses. These
+  // are conventional component names used across the ecosystem
+  // (`<Markdown>`, `<Md>`, `<MDX>`, `<MDXContent>`, `<Prose>`,
+  // `<Article>`, `<RichText>`, `<Body>` for body copy, `<Description>`
+  // for documentation snippets, `<MarkdownContent>`, `<MarkdownText>`,
+  // `<MarkdownRenderer>`, `<MarkdownBlock>`, etc.). Lowercase form is
+  // matched because `tagName.toLowerCase()` is the comparison key.
+  "markdown",
+  "markdownblock",
+  "markdowncontent",
+  "markdownrenderer",
+  "markdowntext",
+  "markdownview",
+  "mdx",
+  "mdxcontent",
+  "mdxremote",
+  "md",
+  "prose",
+  "richtext",
+  "article",
+  "blockquote",
+  "quote",
+  "trans",
+  // Internationalised / translated strings — em-dashes / ellipses in
+  // upstream translations are out of the engineer's control.
+  "translation",
+  "translated",
+  "fbt",
+  "fbs",
 ]);
 
 // HACK: trailing boundary uses a LOOKAHEAD `(?=...)` so the whitespace
