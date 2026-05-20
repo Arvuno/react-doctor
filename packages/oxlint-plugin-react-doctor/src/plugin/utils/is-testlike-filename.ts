@@ -79,8 +79,87 @@ const NON_PRODUCTION_FILENAME_SUFFIXES: ReadonlyArray<string> = [
   ".fixture.",
 ];
 
+// Filenames that are conventionally test bootstrap files — set up
+// global polyfills, mock factories, vitest/jest configuration, etc.
+// These run only in the test runner, never in the production bundle.
+const NON_PRODUCTION_BASENAMES: ReadonlySet<string> = new Set([
+  "setuptests.js",
+  "setuptests.ts",
+  "setuptests.jsx",
+  "setuptests.tsx",
+  "vitest.setup.js",
+  "vitest.setup.ts",
+  "vitest.setup.mjs",
+  "vitest.config.ts",
+  "vitest.config.js",
+  "vitest.config.mts",
+  "vitest.config.mjs",
+  "jest.setup.js",
+  "jest.setup.ts",
+  "jest.setup.jsx",
+  "jest.setup.tsx",
+  "jest.config.js",
+  "jest.config.ts",
+  "jest.config.mjs",
+  "playwright.config.ts",
+  "playwright.config.js",
+  "cypress.config.ts",
+  "cypress.config.js",
+  "karma.conf.js",
+  "karma.conf.ts",
+  // Build / framework config files
+  "vite.config.ts",
+  "vite.config.js",
+  "vite.config.mts",
+  "vite.config.mjs",
+  "webpack.config.ts",
+  "webpack.config.js",
+  "webpack.config.mjs",
+  "rollup.config.ts",
+  "rollup.config.js",
+  "rollup.config.mjs",
+  "esbuild.config.ts",
+  "esbuild.config.js",
+  "esbuild.config.mjs",
+  "tsup.config.ts",
+  "tsup.config.js",
+  "tsup.config.mjs",
+  "rsbuild.config.ts",
+  "rsbuild.config.js",
+  "rspack.config.ts",
+  "rspack.config.js",
+  "next.config.ts",
+  "next.config.js",
+  "next.config.mjs",
+  "remix.config.js",
+  "remix.config.ts",
+  "astro.config.ts",
+  "astro.config.js",
+  "astro.config.mjs",
+  "tailwind.config.ts",
+  "tailwind.config.js",
+  "tailwind.config.mjs",
+  "postcss.config.ts",
+  "postcss.config.js",
+  "postcss.config.mjs",
+  "biome.config.ts",
+  "biome.config.js",
+  "drizzle.config.ts",
+  "drizzle.config.js",
+  "prisma.config.ts",
+  "prisma.config.js",
+  "knip.config.ts",
+  "knip.config.js",
+  "knip.config.mjs",
+  "lint-staged.config.js",
+  "lint-staged.config.mjs",
+]);
+
 export const isTestlikeFilename = (filename: string | undefined): boolean => {
   if (!filename) return false;
+  const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+  const basename = lastSlash === -1 ? filename : filename.slice(lastSlash + 1);
+  if (NON_PRODUCTION_BASENAMES.has(basename.toLowerCase())) return true;
   for (const suffix of NON_PRODUCTION_FILENAME_SUFFIXES) {
     if (filename.includes(suffix)) return true;
   }
