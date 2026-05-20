@@ -26,11 +26,12 @@ export class LintPartialFailures extends Context.Service<
 }
 
 /**
- * Inputs to a single `Linter.lint` invocation. Mirrors the subset of
- * `runOxlint`'s options that any backend (oxlint, biome, eslint
- * worker pool, …) would need. Fields specific to a single
- * implementation belong in that implementation's layer factory, not
- * here — this is the cross-backend contract.
+ * Inputs to a single `Linter.lint` invocation. Mirrors the subset
+ * of `runOxlint`'s options any future backend (an in-process
+ * ESLint worker pool, a sandboxed runner, …) would also need.
+ * Fields specific to a single implementation belong in that
+ * implementation's layer factory, not here — this is the
+ * cross-backend contract.
  */
 export interface LintInput {
   rootDirectory: string;
@@ -60,10 +61,11 @@ const ensureReactDoctorError = (cause: unknown): ReactDoctorError =>
 /**
  * `Linter` is the cross-backend Service for "produce diagnostics for
  * an input." Today the only live layer is `layerOxlint` — wrapping
- * the existing subprocess runner — but adding `layerBiome`,
- * `layerEslintWorkerPool`, or `layerVercelSandbox` becomes a Layer
- * that satisfies this interface, exactly as react-doctor-evals
- * separates `layerLocalWorker` / `layerVercelSandbox`.
+ * the existing subprocess runner. Adding a second backend (an
+ * in-process ESLint worker pool, a runner that targets a
+ * sandboxed microVM, etc.) is one new Layer that satisfies this
+ * interface, exactly as react-doctor-evals separates
+ * `layerLocalWorker` / `layerVercelSandbox`.
  *
  * `lint` returns a `Stream<Diagnostic, ReactDoctorError>` instead of
  * a `Promise<Diagnostic[]>` for two reasons: (1) callers can compose
@@ -158,11 +160,15 @@ export class Linter extends Context.Service<
    * `runOxlint`'s output path) is the obvious add-on if backends
    * are expected to overlap on rules.
    *
-   * This is what unlocks "oxlint + a Biome subset for X rules" or
-   * "the ESLint worker pool for the rules oxlint doesn't yet
-   * implement" without changing the Linter contract or the
-   * orchestrator. Each entry is a fully-formed `Linter`
-   * implementation (call `Linter.of({ lint })` to construct one).
+   * This is the layer slot a second-backend integration would
+   * plug into — for example, an ESLint worker pool covering rules
+   * the oxlint runner can't (yet) express, or a sandboxed runner
+   * for untrusted user config — without changing the `Linter`
+   * contract or the orchestrator. Each entry is a fully-formed
+   * `Linter` implementation (call `Linter.of({ lint })` to
+   * construct one). React Doctor itself ships only `layerOxlint`
+   * today; this slot exists so that adding more backends never
+   * means rewriting the pipeline.
    */
   static readonly layerComposite = (
     backends: ReadonlyArray<Linter["Service"]>,

@@ -89,29 +89,37 @@ describe("Linter.layerComposite", () => {
   });
 
   it("composes with LintPartialFailures so each backend can push soft failures into the shared Ref", async () => {
-    const oxlintLike = Linter.of({
+    // Backend names are illustrative for the test only — React
+    // Doctor ships exactly one production linter
+    // (`Linter.layerOxlint`). The point of this test is that
+    // `Linter.layerComposite` correctly composes any second
+    // backend that satisfies the `Linter` interface, including
+    // sharing the per-scan `LintPartialFailures` Ref.
+    const primaryBackend = Linter.of({
       lint: () =>
         Stream.unwrap(
           Effect.gen(function* () {
             const partialFailures = yield* LintPartialFailures;
             yield* Ref.update(partialFailures, (existing) => [
               ...existing,
-              "oxlint: 2 files dropped",
+              "primary: 2 files dropped",
             ]);
-            return Stream.fromIterable([makeDiagnostic({ rule: "ox-rule" })]);
+            return Stream.fromIterable([makeDiagnostic({ rule: "primary-rule" })]);
           }),
         ),
     });
-    const biomeLike = Linter.of({
+    const secondaryBackend = Linter.of({
       lint: () =>
         Stream.unwrap(
           Effect.gen(function* () {
             const partialFailures = yield* LintPartialFailures;
             yield* Ref.update(partialFailures, (existing) => [
               ...existing,
-              "biome: 1 file dropped",
+              "secondary: 1 file dropped",
             ]);
-            return Stream.fromIterable([makeDiagnostic({ plugin: "biome", rule: "biome-rule" })]);
+            return Stream.fromIterable([
+              makeDiagnostic({ plugin: "secondary-plugin", rule: "secondary-rule" }),
+            ]);
           }),
         ),
     });
@@ -127,14 +135,14 @@ describe("Linter.layerComposite", () => {
       program.pipe(
         Effect.provide(
           Layer.mergeAll(
-            Linter.layerComposite([oxlintLike, biomeLike]),
+            Linter.layerComposite([primaryBackend, secondaryBackend]),
             LintPartialFailures.layerLive,
           ),
         ),
       ),
     );
 
-    expect(diagnostics.map((entry) => entry.rule)).toEqual(["ox-rule", "biome-rule"]);
-    expect(partialFailures).toEqual(["oxlint: 2 files dropped", "biome: 1 file dropped"]);
+    expect(diagnostics.map((entry) => entry.rule)).toEqual(["primary-rule", "secondary-rule"]);
+    expect(partialFailures).toEqual(["primary: 2 files dropped", "secondary: 1 file dropped"]);
   });
 });

@@ -55,7 +55,7 @@ input." `lint(input)` returns a `Stream<Diagnostic, ReactDoctorError>`.
   regardless of input. The test surface; equivalent in spirit to
   react-doctor-evals' `Runner.layerTest`.
 
-Adding a new backend (Biome, ESLint worker pool, Vercel Sandbox) is one
+Adding a new backend (an in-process ESLint worker pool, a sandboxed runner) is one
 new layer that satisfies the `Linter` interface — no other code path
 changes.
 
