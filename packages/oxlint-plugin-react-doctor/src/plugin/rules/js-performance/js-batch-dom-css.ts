@@ -14,6 +14,30 @@ const ITERATOR_METHOD_NAMES: ReadonlySet<string> = new Set([
   "reduceRight",
 ]);
 
+// True when `fn` is the per-item callback of a known array iteration:
+// receiver-method form (`arr.map(fn)` / `.forEach(fn)` / `.reduce(fn)`
+// / etc.) where the callback is the first argument, OR
+// `Array.from(iterable, fn)` where it's the second.
+const isIteratorCallback = (fn: EsTreeNode): boolean => {
+  const functionParent = fn.parent;
+  if (!functionParent || !isNodeOfType(functionParent, "CallExpression")) return false;
+  const callee = functionParent.callee;
+  if (!isNodeOfType(callee, "MemberExpression")) return false;
+  if (!isNodeOfType(callee.property, "Identifier")) return false;
+  if (functionParent.arguments[0] === fn && ITERATOR_METHOD_NAMES.has(callee.property.name)) {
+    return true;
+  }
+  if (
+    functionParent.arguments[1] === fn &&
+    callee.property.name === "from" &&
+    isNodeOfType(callee.object, "Identifier") &&
+    callee.object.name === "Array"
+  ) {
+    return true;
+  }
+  return false;
+};
+
 // Style writes alone don't trigger reflow — the browser batches them.
 // Layout thrashing happens when reads (`offsetHeight`,
 // `getBoundingClientRect`, etc.) are interleaved with writes inside a
@@ -42,19 +66,7 @@ const isInsideLoopContext = (node: EsTreeNode): boolean => {
       isNodeOfType(current, "FunctionExpression") ||
       isNodeOfType(current, "FunctionDeclaration")
     ) {
-      // This function IS the loop body only when it's an iterator
-      // callback (`arr.forEach(fn)` / `.map(fn)` / etc.).
-      const functionParent = current.parent;
-      if (
-        functionParent &&
-        isNodeOfType(functionParent, "CallExpression") &&
-        functionParent.arguments[0] === current &&
-        isNodeOfType(functionParent.callee, "MemberExpression") &&
-        isNodeOfType(functionParent.callee.property, "Identifier") &&
-        ITERATOR_METHOD_NAMES.has(functionParent.callee.property.name)
-      ) {
-        return true;
-      }
+      if (isIteratorCallback(current)) return true;
       return false;
     }
     current = current.parent ?? null;
