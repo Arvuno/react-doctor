@@ -330,11 +330,9 @@ const followsRenderLocalFunctionBinding = (
     walker = walker.parent ?? null;
   }
   if (!isFunctionProducingExpression(binding.initializer)) return false;
-  // APPROACH 1: weaken local-binding detection — if the binding's
-  // initializer is itself a stable wrapper (matches everything
-  // `isParameterBindingWrapper` would accept), then naming it and
-  // passing it as `onClick={handleX}` is no different from
-  // passing the inline arrow `onClick={() => fn()}`. `useCallback`
+  // If the binding's initializer is itself a stable wrapper, then
+  // naming it and passing it as `onClick={handleX}` is no different
+  // from passing the inline arrow `onClick={() => fn()}`. `useCallback`
   // can't help in either shape, so don't flag.
   if (isParameterBindingWrapper(binding.initializer as EsTreeNode)) return false;
   // Also skip when the binding is a hooked-up handler from a hook
@@ -635,12 +633,11 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
   return false;
 };
 
-// APPROACH 3 — deeper inside-block AST traversal. The cap was 3
-// originally; bumped to 8 because at this point the heuristic is
-// "every statement is itself a stable wrapper-like expression",
-// not "the block is short". A 5-statement block where every
-// statement is `setX(literal)` / `if (cond) setY(literal)` is
-// still tiny adaptation work that `useCallback` can't optimise.
+// At this depth the gate is "every statement is itself a stable
+// wrapper-like expression", not "the block is short". A 5-statement
+// block where every statement is `setX(literal)` / `if (cond)
+// setY(literal)` is still tiny adaptation work that `useCallback`
+// can't optimise.
 const MAX_STABLE_STATEMENTS_IN_BLOCK = 8;
 
 const isStableStatement = (statement: EsTreeNode): boolean => {
@@ -786,12 +783,12 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
         // fires on custom-component props where downstream `React.memo`
         // bails on the new reference.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
-        // APPROACH 2 — if the consumer component is defined in this
-        // same file as a plain function/arrow (NOT wrapped in
-        // memo/forwardRef/observer), the React.memo argument doesn't
-        // apply: the parent re-renders unconditionally on EVERY prop
-        // change, new function references included. The wrapper
-        // pattern is unactionable noise here.
+        // If the consumer component is defined in this same file as a
+        // plain function/arrow (NOT wrapped in memo/forwardRef/
+        // observer), the React.memo argument doesn't apply: the parent
+        // re-renders unconditionally on EVERY prop change, new function
+        // references included. The wrapper pattern is unactionable
+        // noise here.
         const parentJsxOpening = node.parent;
         const openingName =
           parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")

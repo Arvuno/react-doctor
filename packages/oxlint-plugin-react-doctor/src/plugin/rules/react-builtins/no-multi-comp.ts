@@ -302,10 +302,9 @@ const collectReExportedNames = (program: EsTreeNode): Set<string> => {
       continue;
     }
     if (!isNodeOfType(statement, "ExportNamedDeclaration")) continue;
-    const exportNode = statement;
     // Specifier form: `export { Foo, Bar }`
-    if (!exportNode.declaration) {
-      for (const specifier of exportNode.specifiers ?? []) {
+    if (!statement.declaration) {
+      for (const specifier of statement.specifiers ?? []) {
         if (!isNodeOfType(specifier, "ExportSpecifier")) continue;
         const local = specifier.local as EsTreeNode;
         if (isNodeOfType(local, "Identifier")) names.add(local.name);
@@ -315,8 +314,8 @@ const collectReExportedNames = (program: EsTreeNode): Set<string> => {
     // Inline form: `export const X = ObjectExpression` — namespace
     // pattern where the user re-groups private functions under a
     // single exported value (`DefinitionPopover.Wrapper` etc.).
-    if (!isNodeOfType(exportNode.declaration, "VariableDeclaration")) continue;
-    for (const declarator of exportNode.declaration.declarations ?? []) {
+    if (!isNodeOfType(statement.declaration, "VariableDeclaration")) continue;
+    for (const declarator of statement.declaration.declarations ?? []) {
       if (!isNodeOfType(declarator, "VariableDeclarator")) continue;
       if (!isNodeOfType(declarator.init, "ObjectExpression")) continue;
       for (const property of declarator.init.properties ?? []) {
