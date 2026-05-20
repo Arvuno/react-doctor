@@ -62,14 +62,19 @@ export const noUsememoSimpleExpression = defineRule<Rule>({
         const namespaceIdentifier = node.callee.object;
         if (isNodeOfType(namespaceIdentifier, "Identifier")) {
           const namespaceName = namespaceIdentifier.name;
-          // Accept `React.useMemo` / `react.useMemo` / transpiled `_react.useMemo`
-          // by name (the canonical shapes), and any identifier that the
-          // file's imports resolve back to the `react` package — e.g.
-          // `import * as R from 'react'` → `R.useMemo`. Anything else
-          // (Dispatcher.useMemo, MyTestRenderer.useMemo, …) is a non-React
-          // lookalike.
+          // Accept `React.useMemo` / `react.useMemo` / transpiled
+          // `_react.useMemo` / `_React.useMemo` by name (the canonical
+          // shapes — esbuild / SWC / tsc all use a `_react`-prefixed
+          // alias), and any identifier that the file's imports resolve
+          // back to the `react` package — e.g. `import * as R from 'react'`
+          // → `R.useMemo`. Anything else (Dispatcher.useMemo,
+          // MyTestRenderer.useMemo, _myCustomLib.useMemo, …) is a
+          // non-React lookalike.
           const isCanonicalReactNamespace =
-            namespaceName === "React" || namespaceName === "react" || namespaceName.startsWith("_");
+            namespaceName === "React" ||
+            namespaceName === "react" ||
+            namespaceName.startsWith("_react") ||
+            namespaceName.startsWith("_React");
           if (
             !isCanonicalReactNamespace &&
             !isImportedFromModule(namespaceIdentifier, namespaceName, "react")
