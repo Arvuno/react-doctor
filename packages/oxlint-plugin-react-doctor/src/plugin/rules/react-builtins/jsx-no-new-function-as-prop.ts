@@ -542,15 +542,20 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
     return isLightweightBodyExpression(body.expression as EsTreeNode);
   }
   // Short-circuit guard: `(e) => e.key === 'Enter' && saveProperty()`
-  // — accepted only when at least one side is a real call (the
-  // wrapper exists to invoke something, not return a static value).
+  // / `(v) => v && onChange(v)` — left is any stable value (the
+  // guard), right is a lightweight expression. At least one side
+  // must be a call so we don't accidentally accept `(x) => x && x`.
   if (
     isNodeOfType(body, "LogicalExpression") &&
     (body.operator === "&&" || body.operator === "||" || body.operator === "??")
   ) {
-    const leftLightweight = isLightweightBodyExpression(body.left as EsTreeNode);
-    const rightLightweight = isLightweightBodyExpression(body.right as EsTreeNode);
-    if (!leftLightweight || !rightLightweight) return false;
+    const leftStable =
+      isStableArgumentValue(body.left as EsTreeNode) ||
+      isLightweightBodyExpression(body.left as EsTreeNode);
+    const rightStable =
+      isStableArgumentValue(body.right as EsTreeNode) ||
+      isLightweightBodyExpression(body.right as EsTreeNode);
+    if (!leftStable || !rightStable) return false;
     const leftIsCall =
       isNodeOfType(body.left as EsTreeNode, "CallExpression") ||
       (isNodeOfType(body.left as EsTreeNode, "ChainExpression") &&
@@ -603,6 +608,16 @@ const isStableStatement = (statement: EsTreeNode): boolean => {
   if (isNodeOfType(statement, "ReturnStatement")) {
     if (!statement.argument) return true;
     return isLightweightBodyExpression(statement.argument as EsTreeNode);
+  }
+  // `const x = stableValue; …` — local binding for a stable
+  // computation. The init expression must itself be stable.
+  if (isNodeOfType(statement, "VariableDeclaration")) {
+    for (const declarator of statement.declarations ?? []) {
+      if (!isNodeOfType(declarator, "VariableDeclarator")) return false;
+      if (!declarator.init) continue;
+      if (!isStableArgumentValue(declarator.init as EsTreeNode)) return false;
+    }
+    return true;
   }
   // `if (guard) stableStatement` — common pattern in event-handler
   // wrappers (`() => { if (!disabled) onChange(value) }`). The guard
