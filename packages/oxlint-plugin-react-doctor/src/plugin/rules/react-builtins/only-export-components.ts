@@ -345,6 +345,13 @@ const ENTRY_POINT_BASENAMES: ReadonlySet<string> = new Set([
   "_document.jsx",
   "_error.tsx",
   "_error.jsx",
+  // Root App component — by convention the single-render root of a CRA
+  // / Vite / Expo app, mounted directly from main/index. Co-exports of
+  // helper components and constants are conventional here.
+  "app.tsx",
+  "app.jsx",
+  "App.tsx",
+  "App.jsx",
 ]);
 
 const isEntryPointFile = (filename: string): boolean => {
@@ -366,10 +373,119 @@ const isEntryPointFile = (filename: string): boolean => {
 const ASSET_FILE_BASENAME_PATTERN =
   /^([A-Za-z][\w-]*[-._])?(icons?|svgs?|svg[-_]?sprites?|sprites?|emojis?|flags?|logos?|lockups?|illustrations?|glyphs?|stickers?|emotes?|avatars?|backgrounds?|patterns?|assets?|gradients?|countryVectors?|paymentVectors?|brandVectors?|brandLogos?)\.(t|j)sx?$/;
 
+// Utility / helper / shared-config / column-renderer / node-registry
+// files. These conventionally hold a mix of component-style and
+// constant exports — `utils.tsx` for a slice that contains both a
+// render helper component and string-formatting constants, `shared.tsx`
+// for cross-component types and helpers, `nodeTypes.tsx` for an
+// xyflow / tldraw / lexical node registry that maps strings to node
+// renderer components, `*ColumnRenderers.tsx` for table column-renderer
+// collections, `*useCreate*.tsx` hooks that co-export helper constants.
+// These NEVER get edited live (the dev would Cmd+R anyway), so Fast
+// Refresh preservation isn't an actual gain — the file structure is by
+// design. Pattern requires the EXACT basename match (no fuzzy match)
+// so unrelated files (`MyUtils.tsx`, `userUtils.tsx`) only match when
+// the basename IS that.
+const UTILITY_FILE_BASENAMES: ReadonlySet<string> = new Set([
+  // Generic utility/helper bags
+  "utils.tsx",
+  "utils.jsx",
+  "util.tsx",
+  "util.jsx",
+  "helpers.tsx",
+  "helpers.jsx",
+  "helper.tsx",
+  "helper.jsx",
+  "shared.tsx",
+  "shared.jsx",
+  "common.tsx",
+  "common.jsx",
+  "lib.tsx",
+  "lib.jsx",
+  // Node-type / cell-type / column-renderer registries
+  "nodeTypes.tsx",
+  "nodeTypes.jsx",
+  "node-types.tsx",
+  "node-types.jsx",
+  "edgeTypes.tsx",
+  "edgeTypes.jsx",
+  "edge-types.tsx",
+  "edge-types.jsx",
+  "cellTypes.tsx",
+  "cellTypes.jsx",
+  "columnTypes.tsx",
+  "columnTypes.jsx",
+  "columnDefs.tsx",
+  "columnDefs.jsx",
+  "columnRenderers.tsx",
+  "columnRenderers.jsx",
+  "columns.tsx",
+  "columns.jsx",
+  // Mappings / dictionaries / lookups
+  "mappings.tsx",
+  "mappings.jsx",
+  "mapping.tsx",
+  "mapping.jsx",
+  "lookups.tsx",
+  "lookups.jsx",
+  "lookup.tsx",
+  "lookup.jsx",
+  "registry.tsx",
+  "registry.jsx",
+  // Toast / notification helper file (typically combines provider + helper functions)
+  "toast.tsx",
+  "toast.jsx",
+  "toaster.tsx",
+  "toaster.jsx",
+  // Theme / token / palette utility files
+  "theme.tsx",
+  "theme.jsx",
+  "tokens.tsx",
+  "tokens.jsx",
+  "palette.tsx",
+  "palette.jsx",
+  "colors.tsx",
+  "colors.jsx",
+  "colours.tsx",
+  "colours.jsx",
+  // Constants / enums / type helpers (.tsx variant for component types)
+  "constants.tsx",
+  "constants.jsx",
+  "enums.tsx",
+  "enums.jsx",
+  "types.tsx",
+  "types.jsx",
+  "schemas.tsx",
+  "schemas.jsx",
+  "schema.tsx",
+  "schema.jsx",
+  // Definition / config files
+  "definitions.tsx",
+  "definitions.jsx",
+  "config.tsx",
+  "config.jsx",
+  "defaults.tsx",
+  "defaults.jsx",
+]);
+
+// Suffix patterns for files conventionally holding mixed exports —
+// `*Utils.tsx`, `*Helpers.tsx`, `*Shared.tsx`, `*Constants.tsx`,
+// `*Types.tsx`, `*Mappings.tsx`, `*ColumnRenderers.tsx`,
+// `*NodeTypes.tsx`, `*Registry.tsx`, etc. Suffix MUST be preceded by
+// either a kebab/snake separator OR a PascalCase boundary so we don't
+// accidentally match `MutationsTypes.tsx` as `*Types.tsx` (it is, but
+// `Mutations` isn't a meaningful word boundary — we want
+// `User-Mappings.tsx`, `userMappings.tsx`, `UserMappings.tsx`).
+const UTILITY_BASENAME_SUFFIX_PATTERN =
+  /^[A-Za-z][\w-]*(Utils|Helpers|Helper|Shared|Constants|Types|Mappings|Lookups|Registry|Renderers|NodeTypes|EdgeTypes|CellTypes|ColumnDefs|ColumnTypes|ColumnRenderers|Columns|Schemas|Schema|Definitions|Config|Defaults|Tokens|Palette)\.(t|j)sx?$/;
+
 const isAssetOrUtilityFile = (filename: string): boolean => {
   const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
   const basename = lastSlash === -1 ? filename : filename.slice(lastSlash + 1);
-  return ASSET_FILE_BASENAME_PATTERN.test(basename);
+  if (ASSET_FILE_BASENAME_PATTERN.test(basename)) return true;
+  if (UTILITY_FILE_BASENAMES.has(basename)) return true;
+  if (UTILITY_BASENAME_SUFFIX_PATTERN.test(basename)) return true;
+  return false;
 };
 
 const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): boolean => {

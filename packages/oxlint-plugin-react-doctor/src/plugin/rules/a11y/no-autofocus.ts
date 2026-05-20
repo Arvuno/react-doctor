@@ -22,7 +22,14 @@ const resolveSettings = (
     typeof reactDoctor === "object" && reactDoctor !== null
       ? ((reactDoctor as { noAutofocus?: NoAutofocusSettings }).noAutofocus ?? {})
       : {};
-  return { ignoreNonDOM: ruleSettings.ignoreNonDOM ?? false };
+  // Default to `true`: `autoFocus` on a CUSTOM component is the
+  // consumer delegating focus to a wrapper that itself manages how /
+  // when / whether to focus. The component is the right place to
+  // enforce the a11y rule (its internal `<input autoFocus />` would
+  // be flagged) — flagging the consumer creates noise for every
+  // design-system input that forwards the prop. Match jsx-a11y's
+  // multi-year default.
+  return { ignoreNonDOM: ruleSettings.ignoreNonDOM ?? true };
 };
 
 // Strip parens around an expression — OXC's ESTree parser doesn't

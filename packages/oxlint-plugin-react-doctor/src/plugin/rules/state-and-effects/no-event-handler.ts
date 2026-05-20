@@ -26,19 +26,90 @@ const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
   if (expression && isNodeOfType(expression, "ChainExpression")) {
     expression = expression.expression as EsTreeNode;
   }
-  if (!expression || !isNodeOfType(expression, "CallExpression")) return false;
-  const callee = expression.callee;
-  if (isNodeOfType(callee, "Identifier")) {
-    return SETTER_NAME_PATTERN.test(callee.name);
+  if (!expression) return false;
+  if (isNodeOfType(expression, "CallExpression")) {
+    const callee = expression.callee;
+    if (isNodeOfType(callee, "Identifier")) {
+      return SETTER_NAME_PATTERN.test(callee.name);
+    }
+    // `props.onChange(value)` — looks like a prop callback. Treat as
+    // setter-like (it's a write call, not an event-handler trigger).
+    if (
+      isNodeOfType(callee, "MemberExpression") &&
+      isNodeOfType(callee.property, "Identifier") &&
+      SETTER_NAME_PATTERN.test(callee.property.name)
+    ) {
+      return true;
+    }
+    return false;
   }
-  // `props.onChange(value)` — looks like a prop callback. Treat as
-  // setter-like (it's a write call, not an event-handler trigger).
-  if (
-    isNodeOfType(callee, "MemberExpression") &&
-    isNodeOfType(callee.property, "Identifier") &&
-    SETTER_NAME_PATTERN.test(callee.property.name)
-  ) {
-    return true;
+  // `xxxRef.current = value` — ref mutation. Refs aren't React state,
+  // so assigning to them inside an effect is bookkeeping (one-shot
+  // marker, abort signal, scroll position cache), NOT event-handler-
+  // like behaviour. Common idiom:
+  //   if (!isEditing) { promptOpen.current = false; return }
+  if (isNodeOfType(expression, "AssignmentExpression")) {
+    const left = expression.left;
+    if (
+      isNodeOfType(left, "MemberExpression") &&
+      !left.computed &&
+      isNodeOfType(left.property, "Identifier") &&
+      left.property.name === "current" &&
+      isNodeOfType(left.object, "Identifier")
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// `xxxRef.current` — ref read. When an IF test contains a ref guard
+// (`if (wrapperRef.current !== null && X && !hydratedRef.current)`),
+// the effect is a one-shot hydration / lazy-mount / scroll-restore
+// pattern, not an event-handler-in-disguise. The ref check is the
+// "have we run this once yet" guard.
+const containsRefGuard = (testNode: EsTreeNode): boolean => {
+  // Walk the AST under testNode for any `X.current` MemberExpression.
+  const stack: EsTreeNode[] = [testNode];
+  let depth = 0;
+  while (stack.length > 0 && depth < 50) {
+    depth += 1;
+    const node = stack.pop()!;
+    if (
+      isNodeOfType(node, "MemberExpression") &&
+      !node.computed &&
+      isNodeOfType(node.property, "Identifier") &&
+      node.property.name === "current" &&
+      isNodeOfType(node.object, "Identifier")
+    ) {
+      const name = node.object.name;
+      // Heuristic: identifier ends with "Ref" or is literally "ref" /
+      // "ref<N>" — common React/Vue ref naming.
+      if (name === "ref" || name.endsWith("Ref") || name.endsWith("ref")) {
+        return true;
+      }
+    }
+    // Recurse — limit to common compound expression types so we don't
+    // wander into nested arrow functions, etc.
+    if (isNodeOfType(node, "LogicalExpression")) {
+      stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
+    } else if (isNodeOfType(node, "BinaryExpression")) {
+      stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
+    } else if (isNodeOfType(node, "UnaryExpression")) {
+      stack.push(node.argument as EsTreeNode);
+    } else if (isNodeOfType(node, "ConditionalExpression")) {
+      stack.push(
+        node.test as EsTreeNode,
+        node.consequent as EsTreeNode,
+        node.alternate as EsTreeNode,
+      );
+    } else if (isNodeOfType(node, "MemberExpression")) {
+      stack.push(node.object as EsTreeNode);
+    } else if (isNodeOfType(node, "ChainExpression")) {
+      stack.push(node.expression as EsTreeNode);
+    } else if (isNodeOfType(node, "ParenthesizedExpression")) {
+      stack.push((node as { expression: EsTreeNode }).expression);
+    }
   }
   return false;
 };
@@ -92,7 +163,11 @@ export const noEventHandler = defineRule<Rule>({
         (ifNode) =>
           isNodeOfType(ifNode, "IfStatement") &&
           !ifNode.alternate &&
-          !isPureEarlyExitConsequent(ifNode.consequent as EsTreeNode),
+          !isPureEarlyExitConsequent(ifNode.consequent as EsTreeNode) &&
+          // Ref-guard IF tests (`if (wrapperRef.current !== null && X
+          // && !hydratedRef.current)`) are one-shot hydration / lazy-
+          // mount / scroll-restore patterns, not event-handler logic.
+          !containsRefGuard(ifNode.test as EsTreeNode),
       );
       const ifTestRefs = ifStatementsNoElse.flatMap((ifNode) => {
         if (!isNodeOfType(ifNode, "IfStatement")) return [];
