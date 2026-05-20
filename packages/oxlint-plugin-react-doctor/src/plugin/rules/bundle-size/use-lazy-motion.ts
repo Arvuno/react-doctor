@@ -8,6 +8,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const useLazyMotion = defineRule<Rule>({
   id: "use-lazy-motion",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     'Use `import { LazyMotion, m } from "framer-motion"` with `domAnimation` features — saves ~30kb',

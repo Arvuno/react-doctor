@@ -5,6 +5,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const noFullLodashImport = defineRule<Rule>({
   id: "no-full-lodash-import",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Import the specific function: `import debounce from 'lodash/debounce'` — saves ~70kb",

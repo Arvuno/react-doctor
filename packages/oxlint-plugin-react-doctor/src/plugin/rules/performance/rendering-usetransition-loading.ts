@@ -86,6 +86,7 @@ const referencesAsyncDataApi = (body: EsTreeNode | null): boolean => {
 
 export const renderingUsetransitionLoading = defineRule<Rule>({
   id: "rendering-usetransition-loading",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Replace with `const [isPending, startTransition] = useTransition()` — avoids a re-render for the loading state",

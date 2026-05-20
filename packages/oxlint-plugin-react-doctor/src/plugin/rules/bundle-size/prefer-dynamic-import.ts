@@ -6,6 +6,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const preferDynamicImport = defineRule<Rule>({
   id: "prefer-dynamic-import",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Use `const Component = dynamic(() => import('library'), { ssr: false })` from next/dynamic or React.lazy()",

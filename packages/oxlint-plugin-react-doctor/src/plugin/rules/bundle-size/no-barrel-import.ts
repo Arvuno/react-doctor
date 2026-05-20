@@ -61,6 +61,7 @@ const buildReportMessage = (
 
 export const noBarrelImport = defineRule<Rule>({
   id: "no-barrel-import",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Import from the direct path: `import { Button } from './components/Button'` instead of `./components`",

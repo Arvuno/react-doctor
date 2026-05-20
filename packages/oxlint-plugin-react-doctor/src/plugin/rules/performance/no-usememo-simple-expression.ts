@@ -43,6 +43,7 @@ const isTriviallyCheapExpression = (node: EsTreeNode | null): boolean => {
 
 export const noUsememoSimpleExpression = defineRule<Rule>({
   id: "no-usememo-simple-expression",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Remove useMemo — property access, math, and ternaries are already cheap without memoization",
