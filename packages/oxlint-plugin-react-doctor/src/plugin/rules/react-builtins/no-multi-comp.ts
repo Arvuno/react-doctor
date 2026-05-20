@@ -599,8 +599,15 @@ export const noMultiComp = defineRule<Rule>({
         const exportedCount = flagged.filter((component) =>
           isExportedDeclaration(component.reportNode, reExportedNames),
         ).length;
+        // BARREL: many components, most exported. Two band-tightnesses
+        // (tuned against the corpus):
+        //   - 4+ components, 75 %+ exported  → tight shadcn-style barrel
+        //   - 8+ components, 60 %+ exported  → bigger feature module
+        //     where a handful of private helpers (`PreferencesToggle*`
+        //     style) sit alongside the public exports.
         const isBarrelLikeFile =
-          flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75);
+          (flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75)) ||
+          (flagged.length >= 8 && exportedCount >= Math.ceil(flagged.length * 0.6));
         if (isBarrelLikeFile) return;
         // Feature module: 1-2 exported components + N private helpers.
         // The "1 or 2 exported" allowance covers the common shape where a
