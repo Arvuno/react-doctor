@@ -162,10 +162,11 @@ const isArrayFromSourcePositionallyStable = (source: EsTreeNode): boolean => {
 // is the accumulator). Composite keys like `` `${item.id}-${index}` ``
 // stay stable across reorders, so we don't want to flag them.
 //
-// Walk through inner non-iterator function boundaries — the keyed JSX
-// may be inside a nested `cond ? renderA() : renderB()` helper arrow
-// that closes over the outer iterator's `item`. Stop only when we
-// reach an iterator-callback function whose params we can read.
+// Walk through inner ZERO-parameter helper callbacks — the keyed JSX
+// may be inside a nested `() => <X/>` lazy/render-prop arrow that
+// closes over the outer iterator's `item`. A 1-or-more-param inner
+// callback is its own (possibly-unknown) iteration boundary, so we
+// stop there.
 const findIteratorItemName = (node: EsTreeNode): string | null => {
   let current: EsTreeNode | null | undefined = node;
   while (current) {
@@ -174,37 +175,51 @@ const findIteratorItemName = (node: EsTreeNode): string | null => {
       isNodeOfType(current, "FunctionExpression")
     ) {
       const parent = current.parent;
-      if (parent && isNodeOfType(parent, "CallExpression")) {
-        const callee = parent.callee;
-        const isFirstArg = parent.arguments[0] === current;
-        if (
-          isFirstArg &&
-          isNodeOfType(callee, "MemberExpression") &&
-          isNodeOfType(callee.property, "Identifier")
-        ) {
-          const methodName = callee.property.name;
-          if (SECOND_INDEX_METHODS.has(methodName)) {
-            const item = current.params[0];
-            if (item && isNodeOfType(item, "Identifier")) return item.name;
-          }
-          if (THIRD_INDEX_METHODS.has(methodName)) {
-            // params[0] is the accumulator, params[1] is the per-item value.
-            const item = current.params[1];
-            if (item && isNodeOfType(item, "Identifier")) return item.name;
-          }
-        }
-        if (isArrayFromMapperCallback(parent, current)) {
-          const item = current.params[0];
-          if (item && isNodeOfType(item, "Identifier")) return item.name;
-        }
-      }
-      // Not an iterator callback — keep walking up; the keyed JSX may
-      // be inside a nested helper arrow that closes over an outer
-      // iterator's binding.
+      const callbackItemName = readIteratorItemFromCallback(current, parent);
+      if (callbackItemName !== undefined) return callbackItemName;
+      // Only treat zero-param arrows as pass-through helpers; any
+      // function with parameters could bind a per-item name we'd
+      // shadow by walking past.
+      if (current.params.length > 0) return null;
     }
     current = current.parent ?? null;
   }
   return null;
+};
+
+// Returns the per-item name when `callback` is a recognised iterator
+// callback (.map/.filter/.forEach/etc. → params[0]; .reduce/.reduceRight
+// → params[1]; Array.from(_, cb) → params[0]). Returns undefined when
+// `callback` isn't an iterator callback, and null when it IS one but
+// the param shape (rest/destructure/missing) isn't a plain Identifier.
+const readIteratorItemFromCallback = (
+  callback: EsTreeNodeOfType<"ArrowFunctionExpression"> | EsTreeNodeOfType<"FunctionExpression">,
+  parent: EsTreeNode | null | undefined,
+): string | null | undefined => {
+  if (!parent || !isNodeOfType(parent, "CallExpression")) return undefined;
+  const callee = parent.callee;
+  const isFirstArg = parent.arguments[0] === callback;
+  if (
+    isFirstArg &&
+    isNodeOfType(callee, "MemberExpression") &&
+    isNodeOfType(callee.property, "Identifier")
+  ) {
+    const methodName = callee.property.name;
+    if (SECOND_INDEX_METHODS.has(methodName)) {
+      const item = callback.params[0];
+      return item && isNodeOfType(item, "Identifier") ? item.name : null;
+    }
+    if (THIRD_INDEX_METHODS.has(methodName)) {
+      // params[0] is the accumulator, params[1] is the per-item value.
+      const item = callback.params[1];
+      return item && isNodeOfType(item, "Identifier") ? item.name : null;
+    }
+  }
+  if (isArrayFromMapperCallback(parent, callback)) {
+    const item = callback.params[0];
+    return item && isNodeOfType(item, "Identifier") ? item.name : null;
+  }
+  return undefined;
 };
 
 // Find the iteration callback's index parameter binding (Identifier
@@ -215,53 +230,60 @@ const findIteratorItemName = (node: EsTreeNode): string | null => {
 // `isPositionallyStableIterationReceiver` above) — `index` keys ARE
 // correct in those cases.
 const findIndexParameterBinding = (node: EsTreeNode): EsTreeNodeOfType<"Identifier"> | null => {
-  let walker: EsTreeNode | null | undefined = node.parent;
-  while (walker) {
+  let current: EsTreeNode | null | undefined = node.parent;
+  while (current) {
     if (
-      isNodeOfType(walker, "ArrowFunctionExpression") ||
-      isNodeOfType(walker, "FunctionExpression")
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "FunctionExpression")
     ) {
-      const callbackParent = walker.parent;
-      if (callbackParent && isNodeOfType(callbackParent, "CallExpression")) {
-        const callee = callbackParent.callee;
-        const isFirstArg = callbackParent.arguments[0] === walker;
-        if (
-          isFirstArg &&
-          isNodeOfType(callee, "MemberExpression") &&
-          isNodeOfType(callee.property, "Identifier")
-        ) {
-          const methodName = callee.property.name;
-          let position: number | null = null;
-          if (SECOND_INDEX_METHODS.has(methodName)) position = 1;
-          else if (THIRD_INDEX_METHODS.has(methodName)) position = 2;
-          if (position !== null) {
-            // Iteration source — `<receiver>.map((_, i) => ...)`.
-            // Skip the entire rule if the receiver is positionally
-            // stable.
-            const receiver = callee.object as EsTreeNode;
-            if (isPositionallyStableIterationReceiver(receiver)) return null;
-            const params = walker.params;
-            const param = params[position] as EsTreeNode | undefined;
-            if (param && isNodeOfType(param, "Identifier")) {
-              return param;
-            }
-          }
-        }
-        // `Array.from(source, (item, index) => …)` — the mapping
-        // callback is the second arg, with index as params[1].
-        if (isArrayFromMapperCallback(callbackParent, walker)) {
-          const source = callbackParent.arguments[0] as EsTreeNode | undefined;
-          if (source && isArrayFromSourcePositionallyStable(source)) return null;
-          const param = walker.params[1] as EsTreeNode | undefined;
-          if (param && isNodeOfType(param, "Identifier")) return param;
-        }
-      }
-      // Don't cross a function boundary.
-      return null;
+      const indexParam = readIteratorIndexFromCallback(current, current.parent);
+      if (indexParam !== undefined) return indexParam;
+      // Same zero-param pass-through rule as findIteratorItemName: a
+      // helper arrow can't bind an index, so walk past it; anything
+      // with params is its own iteration boundary.
+      if (current.params.length > 0) return null;
     }
-    walker = walker.parent ?? null;
+    current = current.parent ?? null;
   }
   return null;
+};
+
+// Returns the index Identifier when `callback` is an iterator callback
+// (and the source isn't positionally stable). Returns undefined when
+// `callback` isn't an iterator at all; returns null when we recognise
+// the iterator but the receiver/source is positionally stable, OR the
+// index param isn't a plain Identifier — both cases mean the rule
+// should NOT fire for this node, so the caller treats null as "stop".
+const readIteratorIndexFromCallback = (
+  callback: EsTreeNodeOfType<"ArrowFunctionExpression"> | EsTreeNodeOfType<"FunctionExpression">,
+  parent: EsTreeNode | null | undefined,
+): EsTreeNodeOfType<"Identifier"> | null | undefined => {
+  if (!parent || !isNodeOfType(parent, "CallExpression")) return undefined;
+  const callee = parent.callee;
+  const isFirstArg = parent.arguments[0] === callback;
+  if (
+    isFirstArg &&
+    isNodeOfType(callee, "MemberExpression") &&
+    isNodeOfType(callee.property, "Identifier")
+  ) {
+    const methodName = callee.property.name;
+    let indexParamPosition: number | null = null;
+    if (SECOND_INDEX_METHODS.has(methodName)) indexParamPosition = 1;
+    else if (THIRD_INDEX_METHODS.has(methodName)) indexParamPosition = 2;
+    if (indexParamPosition !== null) {
+      const receiver = callee.object as EsTreeNode;
+      if (isPositionallyStableIterationReceiver(receiver)) return null;
+      const indexParam = callback.params[indexParamPosition] as EsTreeNode | undefined;
+      return indexParam && isNodeOfType(indexParam, "Identifier") ? indexParam : null;
+    }
+  }
+  if (isArrayFromMapperCallback(parent, callback)) {
+    const source = parent.arguments[0] as EsTreeNode | undefined;
+    if (source && isArrayFromSourcePositionallyStable(source)) return null;
+    const indexParam = callback.params[1] as EsTreeNode | undefined;
+    return indexParam && isNodeOfType(indexParam, "Identifier") ? indexParam : null;
+  }
+  return undefined;
 };
 
 const isIndexReference = (expression: EsTreeNode, paramName: string): boolean =>

@@ -59,18 +59,21 @@ export const noUsememoSimpleExpression = defineRule<Rule>({
       // `Dispatcher.useMemo` is the internal scheduler API and isn't
       // governed by the same trivial-allocation reasoning.
       if (isNodeOfType(node.callee, "MemberExpression")) {
-        const object = node.callee.object;
-        if (isNodeOfType(object, "Identifier")) {
-          const objectName = object.name;
+        const namespaceIdentifier = node.callee.object;
+        if (isNodeOfType(namespaceIdentifier, "Identifier")) {
+          const namespaceName = namespaceIdentifier.name;
           // Accept `React.useMemo` / `react.useMemo` / transpiled `_react.useMemo`
-          // by name (the canonical shapes), and ANY identifier that the
+          // by name (the canonical shapes), and any identifier that the
           // file's imports resolve back to the `react` package — e.g.
           // `import * as R from 'react'` → `R.useMemo`. Anything else
           // (Dispatcher.useMemo, MyTestRenderer.useMemo, …) is a non-React
           // lookalike.
-          const isReactNamespaceByName =
-            objectName === "React" || objectName === "react" || objectName.startsWith("_");
-          if (!isReactNamespaceByName && !isImportedFromModule(object, objectName, "react")) {
+          const isCanonicalReactNamespace =
+            namespaceName === "React" || namespaceName === "react" || namespaceName.startsWith("_");
+          if (
+            !isCanonicalReactNamespace &&
+            !isImportedFromModule(namespaceIdentifier, namespaceName, "react")
+          ) {
             return;
           }
         }
