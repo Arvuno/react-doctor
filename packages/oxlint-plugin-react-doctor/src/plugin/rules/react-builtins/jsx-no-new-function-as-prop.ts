@@ -326,7 +326,33 @@ const followsRenderLocalFunctionBinding = (
     }
     walker = walker.parent ?? null;
   }
-  return isFunctionProducingExpression(binding.initializer);
+  if (!isFunctionProducingExpression(binding.initializer)) return false;
+  // APPROACH 1: weaken local-binding detection — if the binding's
+  // initializer is itself a stable wrapper (matches everything
+  // `isParameterBindingWrapper` would accept), then naming it and
+  // passing it as `onClick={handleX}` is no different from
+  // passing the inline arrow `onClick={() => fn()}`. `useCallback`
+  // can't help in either shape, so don't flag.
+  if (isParameterBindingWrapper(binding.initializer as EsTreeNode)) return false;
+  // Also skip when the binding is a hooked-up handler from a hook
+  // call — `const handleSubmit = useSubmit(...)` style. The hook
+  // is responsible for its own memoisation (most React hooks
+  // return stable refs for callbacks).
+  const init = binding.initializer as EsTreeNode;
+  if (isNodeOfType(init, "CallExpression")) {
+    const callee = init.callee;
+    if (isNodeOfType(callee, "Identifier") && callee.name.startsWith("use")) {
+      return false;
+    }
+    if (
+      isNodeOfType(callee, "MemberExpression") &&
+      isNodeOfType(callee.property, "Identifier") &&
+      callee.property.name.startsWith("use")
+    ) {
+      return false;
+    }
+  }
+  return true;
 };
 
 // `(…params) => fn(arg1, arg2, …)` — an arrow whose ENTIRE body is a
@@ -603,9 +629,13 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
   return false;
 };
 
-// Tighter cap for multi-statement bodies — beyond 3 stable
-// statements, the wrapper is starting to do real work.
-const MAX_STABLE_STATEMENTS_IN_BLOCK = 3;
+// APPROACH 3 — deeper inside-block AST traversal. The cap was 3
+// originally; bumped to 8 because at this point the heuristic is
+// "every statement is itself a stable wrapper-like expression",
+// not "the block is short". A 5-statement block where every
+// statement is `setX(literal)` / `if (cond) setY(literal)` is
+// still tiny adaptation work that `useCallback` can't optimise.
+const MAX_STABLE_STATEMENTS_IN_BLOCK = 8;
 
 const isStableStatement = (statement: EsTreeNode): boolean => {
   if (isNodeOfType(statement, "ExpressionStatement")) {
@@ -718,6 +748,85 @@ const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
   return isStableStatementBlock(body.body ?? []);
 };
 
+// APPROACH 2: detect components that are KNOWN to NOT be memoised in
+// the current file. The rule's whole reason to fire is: "downstream
+// `React.memo` consumer breaks on the new reference". If we can prove
+// the consumer ISN'T `React.memo` / `forwardRef`-wrapped (because we
+// see its definition in the same file), the rule has nothing useful
+// to say.
+//
+// We don't do cross-file analysis — too expensive, too brittle —
+// but for SAME-FILE component definitions we can read the AST. The
+// registry maps component-name → "definitely memoised" / "definitely
+// NOT memoised" / "unknown (assume memoised, fire the rule)".
+type MemoStatus = "memoised" | "not-memoised" | "unknown";
+
+const HOC_NAMES_FOR_MEMOISATION: ReadonlySet<string> = new Set([
+  "memo",
+  "React.memo",
+  "forwardRef",
+  "React.forwardRef",
+  "observer", // MobX
+  "observable", // legend-state
+]);
+
+const flattenCalleeNameSimple = (callee: EsTreeNode): string | null => {
+  if (isNodeOfType(callee, "Identifier")) return callee.name;
+  if (
+    isNodeOfType(callee, "MemberExpression") &&
+    isNodeOfType(callee.object, "Identifier") &&
+    isNodeOfType(callee.property, "Identifier") &&
+    !callee.computed
+  ) {
+    return `${callee.object.name}.${callee.property.name}`;
+  }
+  return null;
+};
+
+const isMemoisingCall = (call: EsTreeNode): boolean => {
+  if (!isNodeOfType(call, "CallExpression")) return false;
+  const name = flattenCalleeNameSimple(call.callee as EsTreeNode);
+  return name !== null && HOC_NAMES_FOR_MEMOISATION.has(name);
+};
+
+const buildSameFileMemoRegistry = (program: EsTreeNode): Map<string, MemoStatus> => {
+  const registry = new Map<string, MemoStatus>();
+  if (!isNodeOfType(program, "Program")) return registry;
+  for (const statement of program.body) {
+    const root = isNodeOfType(statement as EsTreeNodeOfType<"ExportNamedDeclaration">, "ExportNamedDeclaration")
+      ? ((statement as EsTreeNodeOfType<"ExportNamedDeclaration">).declaration as EsTreeNode | null)
+      : isNodeOfType(statement as EsTreeNodeOfType<"ExportDefaultDeclaration">, "ExportDefaultDeclaration")
+        ? ((statement as EsTreeNodeOfType<"ExportDefaultDeclaration">).declaration as EsTreeNode | null)
+        : (statement as EsTreeNode);
+    if (!root) continue;
+    // `const X = memo(...)` / `const X = forwardRef(...)`
+    if (isNodeOfType(root, "VariableDeclaration")) {
+      for (const declarator of root.declarations ?? []) {
+        if (!isNodeOfType(declarator, "VariableDeclarator")) continue;
+        if (!isNodeOfType(declarator.id, "Identifier")) continue;
+        if (!declarator.init) continue;
+        const init = declarator.init as EsTreeNode;
+        if (isMemoisingCall(init)) {
+          registry.set(declarator.id.name, "memoised");
+        } else if (
+          isNodeOfType(init, "FunctionExpression") ||
+          isNodeOfType(init, "ArrowFunctionExpression")
+        ) {
+          // Plain function = definitely NOT memoised in this file.
+          registry.set(declarator.id.name, "not-memoised");
+        }
+      }
+      continue;
+    }
+    // `function X() { ... }` — plain function declaration, not memoised.
+    if (isNodeOfType(root, "FunctionDeclaration") && root.id) {
+      registry.set(root.id.name, "not-memoised");
+      continue;
+    }
+  }
+  return registry;
+};
+
 // Port of `oxc_linter::rules::react_perf::jsx_no_new_function_as_prop`.
 // Inline-expression coverage only — see jsx-no-new-array-as-prop's
 // LIMITATION note for the scope-analysis cases (`const x = () => {};
@@ -732,7 +841,15 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
   category: "Performance",
   create: (context) => {
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let memoRegistry: Map<string, MemoStatus> | null = null;
+    const lookupMemoStatus = (componentName: string): MemoStatus => {
+      if (!memoRegistry) return "unknown";
+      return memoRegistry.get(componentName) ?? "unknown";
+    };
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        memoRegistry = buildSameFileMemoRegistry(node as EsTreeNode);
+      },
       JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
         if (isTestlikeFile) return;
         // Intrinsic HTML elements (`<button onClick={...}>`) aren't
@@ -742,6 +859,21 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
         // fires on custom-component props where downstream `React.memo`
         // bails on the new reference.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        // APPROACH 2 — if the consumer component is defined in this
+        // same file as a plain function/arrow (NOT wrapped in
+        // memo/forwardRef/observer), the React.memo argument doesn't
+        // apply: the parent re-renders unconditionally on EVERY prop
+        // change, new function references included. The wrapper
+        // pattern is unactionable noise here.
+        const parentJsxOpening = node.parent;
+        if (
+          parentJsxOpening &&
+          isNodeOfType(parentJsxOpening, "JSXOpeningElement") &&
+          isNodeOfType(parentJsxOpening.name as EsTreeNode, "JSXIdentifier")
+        ) {
+          const componentName = (parentJsxOpening.name as EsTreeNodeOfType<"JSXIdentifier">).name;
+          if (lookupMemoStatus(componentName) === "not-memoised") return;
+        }
         // One-shot lifecycle handlers (onMount / onError / onClose /
         // etc.) and render-prop slots (`fallback`, `render*`, `*Render`,
         // `*Renderer`, etc.) accept inline functions by design — they
