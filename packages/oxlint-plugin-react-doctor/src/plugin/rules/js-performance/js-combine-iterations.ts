@@ -67,6 +67,40 @@ const isReceiverChainIteratorRooted = (
   return false;
 };
 
+// Walks `receiver.X(...).Y(...).Z(...)` chains looking for the
+// ROOT-most receiver. Returns it if the root is a small literal
+// array — iterating a 5-element literal twice is fully negligible
+// cost and the rewrite to a single-pass reduce just hurts readability.
+const SMALL_LITERAL_ARRAY_MAX_ELEMENTS = 8;
+
+const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefined): boolean => {
+  let cursor: EsTreeNode | null | undefined = receiverNode;
+  while (cursor) {
+    if (isNodeOfType(cursor, "ChainExpression")) {
+      cursor = cursor.expression;
+      continue;
+    }
+    if (isNodeOfType(cursor, "ArrayExpression")) {
+      const elements = cursor.elements ?? [];
+      if (elements.length === 0 || elements.length > SMALL_LITERAL_ARRAY_MAX_ELEMENTS) {
+        return false;
+      }
+      // No spread elements — those could expand to arbitrary length.
+      for (const element of elements) {
+        if (!element) continue;
+        if (isNodeOfType(element, "SpreadElement")) return false;
+      }
+      return true;
+    }
+    if (!isNodeOfType(cursor, "CallExpression")) return false;
+    if (!isChainPassThroughCall(cursor)) return false;
+    const nextCallee = cursor.callee;
+    if (!isNodeOfType(nextCallee, "MemberExpression")) return false;
+    cursor = nextCallee.object;
+  }
+  return false;
+};
+
 const collectGeneratorNames = (programNode: EsTreeNode): Set<string> => {
   const generatorNames = new Set<string>();
   walkAst(programNode, (child: EsTreeNode) => {
@@ -138,6 +172,7 @@ export const jsCombineIterations = defineRule<Rule>({
         }
 
         if (isReceiverChainIteratorRooted(innerCall.callee.object, generatorNamesInFile)) return;
+        if (isSmallLiteralArrayRootedChain(innerCall.callee.object)) return;
 
         context.report({
           node,
