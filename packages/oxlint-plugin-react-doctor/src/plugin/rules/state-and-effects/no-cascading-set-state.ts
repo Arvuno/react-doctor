@@ -80,6 +80,20 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   return total;
 };
 
+// `useEffect(() => { setX(...); setY(...); setZ(...); }, [])` is the
+// canonical mount-time initialisation pattern — N independent state
+// atoms set ONCE on first render. The rule's "use useReducer"
+// recommendation is overkill here: a reducer doesn't reduce the call
+// count, it just hides the same N writes behind a switch. Reactivity
+// concerns about cascading re-renders don't apply because there's no
+// dep-driven re-execution.
+const isInitOnlyEffect = (node: EsTreeNodeOfType<"CallExpression">): boolean => {
+  const depsArg = node.arguments?.[1] as EsTreeNode | undefined;
+  if (!depsArg) return false;
+  if (!isNodeOfType(depsArg, "ArrayExpression")) return false;
+  return (depsArg.elements ?? []).length === 0;
+};
+
 export const noCascadingSetState = defineRule<Rule>({
   id: "no-cascading-set-state",
   severity: "warn",
@@ -89,6 +103,7 @@ export const noCascadingSetState = defineRule<Rule>({
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
       if (!isHookCall(node, EFFECT_HOOK_NAMES)) return;
+      if (isInitOnlyEffect(node)) return;
       const callback = getEffectCallback(node);
       if (!callback) return;
 
