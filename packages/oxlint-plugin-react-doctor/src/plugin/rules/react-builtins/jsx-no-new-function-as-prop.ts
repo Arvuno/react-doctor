@@ -414,6 +414,42 @@ const isStableArgumentValue = (node: EsTreeNode): boolean => {
   ) {
     return true;
   }
+  // `{ key: value }` / `{ value }` (shorthand) — shape-transformation
+  // wrapper like `(value) => setFilters({ search: value })`. The
+  // wrapper IS allocating an object per call, but useCallback can't
+  // fix that — the OBJECT identity is per-invocation, not per-render.
+  // The only "fix" would be to restructure the data flow (e.g.
+  // `setFilters(prev => ({ ...prev, search: value }))`), which is a
+  // major refactor. Skip unless one of the properties is itself a
+  // non-stable shape.
+  if (isNodeOfType(node, "ObjectExpression")) {
+    for (const property of node.properties ?? []) {
+      if (isNodeOfType(property, "SpreadElement")) {
+        // `{ ...x, key: value }` — the spread brings in an outer
+        // value, that's still stable (the spread is over an
+        // identifier/member access).
+        if (!isStableArgumentValue(property.argument as EsTreeNode)) return false;
+        continue;
+      }
+      if (!isNodeOfType(property, "Property")) return false;
+      if (property.shorthand) continue;
+      if (!isStableArgumentValue(property.value as EsTreeNode)) return false;
+    }
+    return true;
+  }
+  // `[a, b, c]` — array shape transformation, same reasoning as
+  // ObjectExpression.
+  if (isNodeOfType(node, "ArrayExpression")) {
+    for (const element of node.elements ?? []) {
+      if (!element) continue;
+      if (isNodeOfType(element, "SpreadElement")) {
+        if (!isStableArgumentValue(element.argument as EsTreeNode)) return false;
+        continue;
+      }
+      if (!isStableArgumentValue(element as EsTreeNode)) return false;
+    }
+    return true;
+  }
   return false;
 };
 
