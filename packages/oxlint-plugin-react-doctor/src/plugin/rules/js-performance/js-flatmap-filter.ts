@@ -47,6 +47,22 @@ export const jsFlatmapFilter = defineRule<Rule>({
       const innerMethod = innerCall.callee.property.name;
       if (innerMethod !== "map") return;
 
+      // `[a, b, c].map(...).filter(Boolean)` — iterating an 8-element-
+      // or-fewer literal twice is trivial cost; the flatMap rewrite
+      // here is pure ceremony.
+      const SMALL_LITERAL_ARRAY_MAX = 8;
+      let receiver: EsTreeNode | null | undefined = innerCall.callee.object;
+      if (receiver && isNodeOfType(receiver, "ArrayExpression")) {
+        const elements = receiver.elements ?? [];
+        if (
+          elements.length > 0 &&
+          elements.length <= SMALL_LITERAL_ARRAY_MAX &&
+          elements.every((el) => el == null || !isNodeOfType(el, "SpreadElement"))
+        ) {
+          return;
+        }
+      }
+
       context.report({
         node,
         message:
