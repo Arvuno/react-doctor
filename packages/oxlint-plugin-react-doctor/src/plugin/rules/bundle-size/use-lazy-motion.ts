@@ -15,10 +15,18 @@ export const useLazyMotion = defineRule<Rule>({
     ImportDeclaration(node: EsTreeNodeOfType<"ImportDeclaration">) {
       const source = node.source?.value;
       if (source !== "framer-motion" && source !== "motion/react") return;
+      // `import type { ... } from 'framer-motion'` ships nothing —
+      // no runtime cost, the LazyMotion swap has no benefit.
+      const declarationKind = (node as unknown as { importKind?: string }).importKind;
+      if (declarationKind === "type") return;
 
       const hasFullMotionImport = node.specifiers?.some(
-        (specifier: EsTreeNode) =>
-          isNodeOfType(specifier, "ImportSpecifier") && getImportedName(specifier) === "motion",
+        (specifier: EsTreeNode) => {
+          if (!isNodeOfType(specifier, "ImportSpecifier")) return false;
+          const specifierKind = (specifier as unknown as { importKind?: string }).importKind;
+          if (specifierKind === "type") return false;
+          return getImportedName(specifier) === "motion";
+        },
       );
 
       if (hasFullMotionImport) {
