@@ -1,5 +1,6 @@
 export * from "./apply-ignore-overrides.js";
 export * from "./apply-severity-controls.js";
+export * from "./build-diagnostic-pipeline.js";
 export * from "./build-rule-severity-controls.js";
 export * from "./batch-include-paths.js";
 export * from "./build-json-report-error.js";
@@ -45,6 +46,7 @@ export * from "./summarize-diagnostics.js";
 export * from "./validate-config-types.js";
 export * from "./utils/dedupe-diagnostics.js";
 export * from "./utils/group-by.js";
+export * from "./utils/list-source-files.js";
 export * from "./utils/match-glob-pattern.js";
 export * from "./utils/to-relative-path.js";
 export * from "./utils/warn-config-issue.js";

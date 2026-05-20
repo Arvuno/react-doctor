@@ -15,6 +15,7 @@ export {
   ReactDoctorError,
   ReactDoctorErrorReason,
 } from "./errors.js";
+export { Files, buildSyncReadFileLines } from "./files.js";
 export { LintPartialFailures, Linter } from "./linter.js";
 export type { LintInput } from "./linter.js";
 export { Reporter, ReporterCapture } from "./reporter.js";
@@ -24,5 +25,7 @@ export { Project } from "./project.js";
 export { Config } from "./config.js";
 export type { ResolvedConfig } from "./config.js";
 export { Score } from "./score.js";
+export { Spinner, SpinnerCapture } from "./spinner.js";
+export type { SpinnerEvent, SpinnerHandle } from "./spinner.js";
 export { layerInspectLive, runInspect } from "./run-inspect.js";
 export type { RunInspectHooks, RunInspectInput, RunInspectOutput } from "./run-inspect.js";

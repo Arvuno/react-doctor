@@ -4,6 +4,7 @@ import { Cause, Effect, Exit, Layer, Ref, Stream } from "effect";
 import { Config } from "../src/config.js";
 import type { Diagnostic } from "../src/diagnostic-schema.js";
 import { OxlintTimedOut, ReactDoctorError } from "../src/errors.js";
+import { Files } from "../src/files.js";
 import { LintPartialFailures, Linter } from "../src/linter.js";
 import { Project } from "../src/project.js";
 import { Reporter, ReporterCapture } from "../src/reporter.js";
@@ -70,6 +71,7 @@ describe("runInspect (full orchestration)", () => {
           Layer.mergeAll(
             Project.layerOf(stubProject),
             Config.layerOf({ config: null, resolvedDirectory: "/repo" }),
+            Files.layerInMemory(new Map()),
             Linter.layerOf([diagnostic]),
             LintPartialFailures.layerLive,
             Reporter.layerCapture,
@@ -102,6 +104,7 @@ describe("runInspect (full orchestration)", () => {
           Layer.mergeAll(
             Project.layerOf(stubProject),
             Config.layerOf({ config: null, resolvedDirectory: "/repo" }),
+            Files.layerInMemory(new Map()),
             Layer.succeed(Linter, failingLinter),
             LintPartialFailures.layerLive,
             Reporter.layerCapture,
@@ -126,6 +129,7 @@ describe("runInspect (full orchestration)", () => {
           Layer.mergeAll(
             Project.layerOf(noReactProject),
             Config.layerOf({ config: null, resolvedDirectory: "/repo" }),
+            Files.layerInMemory(new Map()),
             Linter.layerNoop,
             LintPartialFailures.layerLive,
             Reporter.layerCapture,
@@ -165,6 +169,7 @@ describe("runInspect (full orchestration)", () => {
           Layer.mergeAll(
             Project.layerOf(stubProject),
             Config.layerOf({ config: null, resolvedDirectory: "/repo" }),
+            Files.layerInMemory(new Map()),
             Linter.layerOf([]),
             LintPartialFailures.layerLive,
             Reporter.layerCapture,

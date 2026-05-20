@@ -1,8 +1,5 @@
-import reactDoctorPlugin from "oxlint-plugin-react-doctor";
 import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
-import { applySeverityControls } from "./apply-severity-controls.js";
-import { filterIgnoredDiagnostics, filterInlineSuppressions } from "./filter-diagnostics.js";
-import { isTestFilePath } from "./is-test-file.js";
+import { buildDiagnosticPipeline } from "./build-diagnostic-pipeline.js";
 
 interface MergeAndFilterOptions {
   respectInlineDisables?: boolean;
@@ -10,27 +7,24 @@ interface MergeAndFilterOptions {
 
 const testFileResultCache = new Map<string, boolean>();
 
+/**
+ * Backwards-compatible alias. The legacy test-file cache used to
+ * live in this module; the streaming pipeline now owns its own
+ * per-scan cache inside `buildDiagnosticPipeline`. This entry
+ * point stays so external callers / docs that import
+ * `clearAutoSuppressionCaches` keep working.
+ */
 export const clearAutoSuppressionCaches = (): void => {
   testFileResultCache.clear();
 };
 
-const shouldAutoSuppress = (diagnostic: Diagnostic): boolean => {
-  const filePath = diagnostic.filePath;
-
-  const rule =
-    diagnostic.plugin === "react-doctor" ? reactDoctorPlugin.rules[diagnostic.rule] : null;
-  if (rule?.tags?.includes("test-noise")) {
-    let isTest = testFileResultCache.get(filePath);
-    if (isTest === undefined) {
-      isTest = isTestFilePath(filePath);
-      testFileResultCache.set(filePath, isTest);
-    }
-    if (isTest) return true;
-  }
-
-  return false;
-};
-
+/**
+ * Array-shaped wrapper around `buildDiagnosticPipeline`. Both this
+ * function and the streaming `Stream.filterMap` callers in the
+ * runtime now share one transform — there is no second
+ * implementation of the auto-suppress / severity / ignore /
+ * inline-suppression chain to keep in sync.
+ */
 export const mergeAndFilterDiagnostics = (
   mergedDiagnostics: Diagnostic[],
   directory: string,
@@ -38,11 +32,17 @@ export const mergeAndFilterDiagnostics = (
   readFileLinesSync: (filePath: string) => string[] | null,
   options: MergeAndFilterOptions = {},
 ): Diagnostic[] => {
-  const autoFiltered = mergedDiagnostics.filter((diagnostic) => !shouldAutoSuppress(diagnostic));
-  const severityAdjusted = applySeverityControls(autoFiltered, userConfig);
-  const filtered = userConfig
-    ? filterIgnoredDiagnostics(severityAdjusted, userConfig, directory, readFileLinesSync)
-    : severityAdjusted;
-  if (options.respectInlineDisables === false) return filtered;
-  return filterInlineSuppressions(filtered, directory, readFileLinesSync);
+  const pipeline = buildDiagnosticPipeline({
+    rootDirectory: directory,
+    userConfig,
+    readFileLinesSync,
+    respectInlineDisables: options.respectInlineDisables,
+  });
+
+  const result: Diagnostic[] = [];
+  for (const diagnostic of mergedDiagnostics) {
+    const transformed = pipeline.apply(diagnostic);
+    if (transformed !== null) result.push(transformed);
+  }
+  return result;
 };

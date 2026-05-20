@@ -1,6 +1,13 @@
-import { Effect, Layer, Ref, Stream } from "effect";
+import { Effect, Filter, Layer, Option, Ref, Stream } from "effect";
+
+const filterMapNullable = <A, B>(transform: (value: A) => B | null): Filter.Filter<A, B> =>
+  Filter.fromPredicateOption((value) => {
+    const result = transform(value);
+    return result === null ? Option.none() : Option.some(result);
+  });
 import {
-  combineDiagnostics,
+  buildDiagnosticPipeline,
+  checkReducedMotion,
   computeJsxIncludePaths,
   filterDiagnosticsForSurface,
   resolveLintIncludePaths,
@@ -20,6 +27,7 @@ import {
   ReactDoctorError,
   type ReactDoctorErrorReason,
 } from "./errors.js";
+import { buildSyncReadFileLines, Files } from "./files.js";
 import { LintPartialFailures, Linter } from "./linter.js";
 import { Project } from "./project.js";
 import { Reporter } from "./reporter.js";
@@ -75,15 +83,15 @@ export interface RunInspectOutput {
  * LSP host would use them to publish `Diagnostic` events as they
  * stream past, instead of waiting for the collected array.
  */
-export interface RunInspectHooks {
+export interface RunInspectHooks<HooksR = never> {
   readonly beforeLint?: (
     project: ProjectInfo,
     lintIncludePaths: ReadonlyArray<string> | undefined,
-  ) => Effect.Effect<void>;
-  readonly afterLint?: (didFail: boolean) => Effect.Effect<void>;
+  ) => Effect.Effect<void, never, HooksR>;
+  readonly afterLint?: (didFail: boolean) => Effect.Effect<void, never, HooksR>;
 }
 
-const NO_HOOKS: Required<RunInspectHooks> = {
+const NO_HOOKS: Required<RunInspectHooks<never>> = {
   beforeLint: () => Effect.void,
   afterLint: () => Effect.void,
 };
@@ -112,17 +120,18 @@ const NO_HOOKS: Required<RunInspectHooks> = {
  * how the legacy entry point handled them. The renderer keeps
  * showing skipped checks; only the error type changes.
  */
-export const runInspect = (
+export const runInspect = <HooksR = never>(
   input: RunInspectInput,
-  hooks: RunInspectHooks = {},
+  hooks: RunInspectHooks<HooksR> = {},
 ): Effect.Effect<
   RunInspectOutput,
   ReactDoctorError,
-  Project | Config | Linter | LintPartialFailures | Reporter | Score
+  Project | Config | Files | Linter | LintPartialFailures | Reporter | Score | HooksR
 > =>
   Effect.gen(function* () {
     const projectService = yield* Project;
     const configService = yield* Config;
+    const filesService = yield* Files;
     const linterService = yield* Linter;
     const reporterService = yield* Reporter;
     const scoreService = yield* Score;
@@ -152,7 +161,33 @@ export const runInspect = (
       reasonTag: ReactDoctorErrorReason["_tag"] | null;
     }>({ didFail: false, reason: null, reasonTag: null });
 
-    const lintStream = linterService
+    const isDiffMode = input.includePaths.length > 0;
+
+    // Pre-compile the per-element pipeline once. Auto-suppress,
+    // severity overrides, ignore filters, inline-suppression
+    // evaluation — every stage is wrapped in a single closure
+    // invoked from `Stream.filterMap` below. The legacy array
+    // entry point in `mergeAndFilterDiagnostics` shares this exact
+    // transform, so there is no second copy of the chain to keep
+    // in sync.
+    const readFileLinesSync = buildSyncReadFileLines(filesService, scanDirectory);
+    const transform = buildDiagnosticPipeline({
+      rootDirectory: scanDirectory,
+      userConfig: resolvedConfig.config,
+      readFileLinesSync,
+      respectInlineDisables: input.respectInlineDisables,
+    });
+
+    // Environment-side diagnostics (e.g. the
+    // `prefers-reduced-motion` CSS audit) come from the filesystem
+    // directly, not from the linter. They prepend the lint stream
+    // so they flow through the same per-element transform and the
+    // same `Reporter.emit` calls a future LSP host would observe.
+    const environmentDiagnostics: ReadonlyArray<LegacyDiagnostic> = isDiffMode
+      ? []
+      : checkReducedMotion(scanDirectory);
+
+    const rawLintStream = linterService
       .lint({
         rootDirectory: scanDirectory,
         project,
@@ -165,7 +200,6 @@ export const runInspect = (
         userConfig: resolvedConfig.config ?? undefined,
       })
       .pipe(
-        Stream.tap((diagnostic) => reporterService.emit(diagnostic)),
         Stream.catchTag("ReactDoctorError", (error) =>
           Stream.unwrap(
             Effect.gen(function* () {
@@ -180,23 +214,28 @@ export const runInspect = (
         ),
       );
 
-    const lintDiagnostics = yield* Stream.runCollect(lintStream);
+    // Stream stages: prepend env-side diagnostics; apply the
+    // per-element pipeline (drop-on-null); push survivors to the
+    // reporter as they emerge so a streaming reporter (LSP
+    // `publishDiagnostics`, NDJSON cache, SARIF) sees diagnostics
+    // mid-scan instead of after `runCollect`.
+    const transformedStream: Stream.Stream<LegacyDiagnostic> = Stream.fromIterable(
+      environmentDiagnostics,
+    ).pipe(
+      Stream.concat(rawLintStream as Stream.Stream<LegacyDiagnostic>),
+      Stream.filterMap(filterMapNullable<LegacyDiagnostic, LegacyDiagnostic>(transform.apply)),
+      Stream.tap((diagnostic) => reporterService.emit(diagnostic as Diagnostic)),
+    );
+
+    const survivingDiagnostics = yield* Stream.runCollect(transformedStream);
     yield* reporterService.finalize;
     const lintFailureState = yield* Ref.get(lintFailure);
     yield* afterLint(lintFailureState.didFail);
 
-    const lintDiagnosticsAsLegacy: LegacyDiagnostic[] = [...lintDiagnostics] as LegacyDiagnostic[];
-
-    const combined = combineDiagnostics({
-      lintDiagnostics: lintDiagnosticsAsLegacy,
-      directory: scanDirectory,
-      isDiffMode: input.includePaths.length > 0,
-      userConfig: resolvedConfig.config,
-      respectInlineDisables: input.respectInlineDisables,
-    });
+    const finalDiagnostics: ReadonlyArray<LegacyDiagnostic> = [...survivingDiagnostics];
 
     const scoringDiagnostics = filterDiagnosticsForSurface(
-      combined,
+      [...finalDiagnostics],
       "score",
       resolvedConfig.config,
     );
@@ -208,7 +247,7 @@ export const runInspect = (
       project,
       userConfig: resolvedConfig.config,
       resolvedDirectory: scanDirectory,
-      diagnostics: combined,
+      diagnostics: finalDiagnostics,
       score,
       didLintFail: lintFailureState.didFail,
       lintFailureReason: lintFailureState.reason,
@@ -230,6 +269,7 @@ export const runInspect = (
 export const layerInspectLive = Layer.mergeAll(
   Project.layerNode,
   Config.layerNode,
+  Files.layerNode,
   Linter.layerOxlint,
   LintPartialFailures.layerLive,
   Reporter.layerCapture,
