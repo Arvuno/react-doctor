@@ -37,6 +37,7 @@ const isIntlNewExpression = (node: EsTreeNode): boolean => {
 
 export const jsHoistIntl = defineRule<Rule>({
   id: "js-hoist-intl",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Hoist `new Intl.NumberFormat(...)` to module scope or wrap in `useMemo` — Intl constructors allocate dozens of objects per locale lookup",

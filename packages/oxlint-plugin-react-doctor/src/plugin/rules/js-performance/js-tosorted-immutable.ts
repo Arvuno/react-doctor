@@ -8,6 +8,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const jsTosortedImmutable = defineRule<Rule>({
   id: "js-tosorted-immutable",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Use `array.toSorted()` (ES2023) instead of `[...array].sort()` for immutable sorting without the spread allocation",

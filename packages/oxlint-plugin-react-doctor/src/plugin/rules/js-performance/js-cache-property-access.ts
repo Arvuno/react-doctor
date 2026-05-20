@@ -23,6 +23,7 @@ const buildMemberAccessKey = (node: EsTreeNode): string | null => {
 // (two dots) and ≥ 3 occurrences in the same loop block to fire.
 export const jsCachePropertyAccess = defineRule<Rule>({
   id: "js-cache-property-access",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Hoist the deep member access into a const at the top of the loop body: `const { x, y } = obj.deeply.nested`",

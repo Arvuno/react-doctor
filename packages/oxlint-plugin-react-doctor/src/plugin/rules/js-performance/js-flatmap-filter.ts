@@ -6,6 +6,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const jsFlatmapFilter = defineRule<Rule>({
   id: "js-flatmap-filter",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Use `.flatMap(item => condition ? [value] : [])` — transforms and filters in a single pass instead of creating an intermediate array",

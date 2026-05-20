@@ -82,6 +82,7 @@ const isInsideDeferredCallback = (node: EsTreeNode): boolean => {
 export const rerenderFunctionalSetstate = defineRule<Rule>({
   id: "rerender-functional-setstate",
   severity: "warn",
+  tags: ["test-noise"],
   category: "Performance",
   recommendation:
     "Use the callback form: `setState(prev => prev + 1)` to always read the latest value",

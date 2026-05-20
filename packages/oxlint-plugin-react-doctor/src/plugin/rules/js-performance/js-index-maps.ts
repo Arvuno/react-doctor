@@ -28,6 +28,7 @@ const looksLikeArrayCallbackCall = (node: EsTreeNodeOfType<"CallExpression">): b
 
 export const jsIndexMaps = defineRule<Rule>({
   id: "js-index-maps",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Build an index `Map` once outside the loop instead of `array.find(...)` inside it",

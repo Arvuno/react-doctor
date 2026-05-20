@@ -155,6 +155,7 @@ const collectGeneratorNames = (programNode: EsTreeNode): Set<string> => {
 
 export const jsCombineIterations = defineRule<Rule>({
   id: "js-combine-iterations",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Combine `.map().filter()` (or similar chains) into a single pass with `.reduce()` or a `for...of` loop to avoid iterating the array twice",

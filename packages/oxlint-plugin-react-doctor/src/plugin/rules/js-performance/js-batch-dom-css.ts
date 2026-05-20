@@ -48,6 +48,7 @@ const isInsideLoopContext = (node: EsTreeNode): boolean => {
 
 export const jsBatchDomCss = defineRule<Rule>({
   id: "js-batch-dom-css",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Batch DOM/CSS reads and writes — interleaving them inside a loop causes layout thrashing. Read first, then write",
