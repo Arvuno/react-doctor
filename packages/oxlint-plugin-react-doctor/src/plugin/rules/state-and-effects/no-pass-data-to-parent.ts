@@ -148,6 +148,70 @@ const getCallMethodName = (callee: EsTreeNode): string | null => {
   return null;
 };
 
+// Intermediate property names in a member-expression chain that mark
+// the callee as a method on a namespaced API object rather than a
+// parent callback prop. `editor.commands.setSelection(...)` is calling
+// an imperative editor command, NOT handing data back to a parent.
+// Same for `props.store.dispatch(...)`, `props.api.refresh(...)`,
+// `props.client.invalidate(...)`, etc.
+const NAMESPACED_API_PROPERTY_NAMES: ReadonlySet<string> = new Set([
+  "commands",
+  "actions",
+  "api",
+  "store",
+  "service",
+  "client",
+  "controller",
+  "manager",
+  "registry",
+  "dispatch",
+  "queryClient",
+  "fetcher",
+  "loader",
+  "editor",
+  "model",
+  "context",
+  "transport",
+  "channel",
+  "session",
+  "connection",
+  "instance",
+  "ref",
+  "current",
+  "value",
+  "state",
+  "vm",
+  "viewModel",
+  "logic",
+  "selectors",
+  "queries",
+  "mutations",
+  "effects",
+  "utils",
+  "helpers",
+  "lib",
+]);
+
+// Walks `props.X.commands.setY(...)` style chains looking for an
+// intermediate property whose name is in NAMESPACED_API_PROPERTY_NAMES.
+// If found, this is a namespace-method call, not a parent-callback
+// data hand-back.
+const callIsThroughNamespacedApi = (callee: EsTreeNode): boolean => {
+  let cursor: EsTreeNode | null | undefined = callee;
+  let hops = 0;
+  while (cursor && hops < 16) {
+    hops += 1;
+    if (!isNodeOfType(cursor, "MemberExpression")) return false;
+    // Walk left, but check intermediate property names.
+    if (!cursor.computed && isNodeOfType(cursor.property, "Identifier")) {
+      const name = cursor.property.name;
+      if (NAMESPACED_API_PROPERTY_NAMES.has(name)) return true;
+    }
+    cursor = cursor.object;
+  }
+  return false;
+};
+
 // Local mirror of upstream's inline `isUseState`/`isUseRef` checks
 // that work on the *identifier* of an upstream ref (not on a ref).
 const isUseStateIdentifier = (identifier: EsTreeNode): boolean => {
@@ -218,6 +282,10 @@ export const noPassDataToParent = defineRule<Rule>({
         const calleeNode = (callExpr as unknown as { callee?: EsTreeNode }).callee;
         const methodName = calleeNode ? getCallMethodName(calleeNode) : null;
         if (methodName && ITERATOR_METHOD_NAMES.has(methodName)) continue;
+        // `editor.commands.setSelection(...)`, `props.store.dispatch(...)`,
+        // `props.queryClient.invalidate(...)` etc. — calling a method
+        // on a namespaced API object, not handing data back to a parent.
+        if (calleeNode && callIsThroughNamespacedApi(calleeNode)) continue;
 
         const argsUpstreamRefs = getArgsUpstreamRefs(analysis, ref).filter(
           (argRef) => getUpstreamRefs(analysis, argRef).length === 1,

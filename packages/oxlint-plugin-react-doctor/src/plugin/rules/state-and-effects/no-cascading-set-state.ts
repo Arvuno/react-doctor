@@ -12,12 +12,29 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 // Count setState calls along a SINGLE execution path. For if/else
 // branches and switch/case alternatives, take the MAX of the branches
-// (only one fires per render) instead of SUM. Nested function bodies
-// (timers, async handlers, .then callbacks) are still walked — their
-// setStates DO compound when the callback fires, just on a separate
-// render cycle that the user still wants to fold into a reducer.
+// (only one fires per render) instead of SUM. ASYNC function bodies
+// are NOT walked — their setStates fire across async boundaries on
+// separate render cycles (the canonical fetch pattern
+// `setStatus('loading'); await fetch(); setData(d); setStatus('idle')`
+// is 3 setStates separated by awaits, not 3 cascading synchronous
+// updates that need a reducer).
+const isAsyncFunctionLike = (node: EsTreeNode): boolean => {
+  if (
+    isNodeOfType(node, "ArrowFunctionExpression") ||
+    isNodeOfType(node, "FunctionExpression") ||
+    isNodeOfType(node, "FunctionDeclaration")
+  ) {
+    return Boolean((node as { async?: boolean }).async);
+  }
+  return false;
+};
+
 const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   if (!node || typeof node !== "object") return 0;
+  // Async function bodies — see comment above. Sync function bodies
+  // (callbacks for `.then(...)`, `setTimeout(...)`, etc.) are still
+  // walked because their setStates DO compound when fired together.
+  if (isAsyncFunctionLike(node)) return 0;
   // If/else: max of branches (only one fires).
   if (isNodeOfType(node, "IfStatement")) {
     const thenCount = countMaxPathSetStateCalls(node.consequent as EsTreeNode);
