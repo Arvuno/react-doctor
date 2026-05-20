@@ -450,6 +450,18 @@ const isStableArgumentValue = (node: EsTreeNode): boolean => {
     }
     return true;
   }
+  // Nested CallExpression — `setX(getValue(prop))` style. Accept
+  // when the nested call is itself stable (pure namespace OR all
+  // args are stable). Same reasoning as the wrapper itself:
+  // useCallback can't fix nested-call allocation.
+  if (isNodeOfType(node, "CallExpression")) {
+    return isStableCallExpression(node);
+  }
+  // `tag\`literal\`` — i18n template tags like `t\`Save\``. Treat as
+  // stable string-like result.
+  if ((node as { type: string }).type === "TaggedTemplateExpression") {
+    return true;
+  }
   return false;
 };
 
@@ -475,6 +487,21 @@ const SAFE_RECEIVER_NAMES: ReadonlySet<string> = new Set([
   "log",
   "posthog",
   "Sentry",
+  // Pure-function namespaces — outputs are determined by inputs,
+  // call args (even when themselves call expressions) compose
+  // cleanly with the wrapper.
+  "Math",
+  "Number",
+  "String",
+  "Boolean",
+  "Array",
+  "Object",
+  "JSON",
+  "Date",
+  "Promise",
+  "Map",
+  "Set",
+  "Symbol",
 ]);
 
 const calleeReceiverName = (callee: EsTreeNode): string | null => {
