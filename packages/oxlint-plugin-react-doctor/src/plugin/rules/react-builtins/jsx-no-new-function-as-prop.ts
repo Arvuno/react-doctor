@@ -647,8 +647,59 @@ const isStableStatementBlock = (statements: ReadonlyArray<EsTreeNode>): boolean 
   return true;
 };
 
+// Returns true when the value at this prop slot is either nothing
+// (null / undefined / not-passed) or a stable wrapper / identifier.
+// The ternary `cond ? () => fn() : undefined` shape is the canonical
+// "conditional handler" — one branch wraps, the other passes
+// nothing. There's no useCallback win here: the wrapper still has
+// to allocate when `cond` is truthy.
+const isNullishOrStableWrapper = (expression: EsTreeNode): boolean => {
+  const stripped = stripParenExpression(expression);
+  if (isNodeOfType(stripped, "Literal")) {
+    return (stripped as { value?: unknown }).value === null;
+  }
+  if (isNodeOfType(stripped, "Identifier")) {
+    if (stripped.name === "undefined") return true;
+    // Identifier reference to a hoisted handler — let the rule's
+    // existing `followsRenderLocalFunctionBinding` check decide.
+    return true;
+  }
+  if (isNodeOfType(stripped, "ArrowFunctionExpression")) {
+    return isParameterBindingWrapper(stripped);
+  }
+  if (isNodeOfType(stripped, "ConditionalExpression")) {
+    return (
+      isNullishOrStableWrapper(stripped.consequent as EsTreeNode) &&
+      isNullishOrStableWrapper(stripped.alternate as EsTreeNode)
+    );
+  }
+  if (
+    isNodeOfType(stripped, "LogicalExpression") &&
+    (stripped.operator === "??" || stripped.operator === "||" || stripped.operator === "&&")
+  ) {
+    return (
+      isNullishOrStableWrapper(stripped.left as EsTreeNode) &&
+      isNullishOrStableWrapper(stripped.right as EsTreeNode)
+    );
+  }
+  return false;
+};
+
 const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
+  // `cond ? () => fn(arg) : undefined` — ternary where each branch
+  // is itself a stable wrapper / nullish. Same `useCallback can't
+  // help` reasoning as the underlying wrapper.
+  if (isNodeOfType(stripped, "ConditionalExpression")) {
+    return (
+      isNullishOrStableWrapper(stripped.consequent as EsTreeNode) &&
+      isNullishOrStableWrapper(stripped.alternate as EsTreeNode) &&
+      // Require AT LEAST one branch to be a wrapper (else the rule
+      // never would have fired — it's not function-producing at all).
+      (isNodeOfType(stripped.consequent as EsTreeNode, "ArrowFunctionExpression") ||
+        isNodeOfType(stripped.alternate as EsTreeNode, "ArrowFunctionExpression"))
+    );
+  }
   if (!isNodeOfType(stripped, "ArrowFunctionExpression")) return false;
   // Expression-form body (no braces) — single expression at the top.
   const body = stripped.body as EsTreeNode;
@@ -657,10 +708,7 @@ const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
   }
   // Block body — accept up to MAX stable statements OR a single
   // if-guard around stable work. The wrapper is doing tiny
-  // adaptation work that useCallback can't meaningfully optimise
-  // (any closure capture defeats memoisation; the new function
-  // allocation per render is cheap compared to the cost of a
-  // useCallback dep array equality check on every render).
+  // adaptation work that useCallback can't meaningfully optimise.
   return isStableStatementBlock(body.body ?? []);
 };
 
