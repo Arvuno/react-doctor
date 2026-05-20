@@ -634,6 +634,7 @@ const isUseEffectEventInitializer = (node: EsTreeNodeOfType<"CallExpression">): 
 export const rulesOfHooks = defineRule<Rule>({
   id: "rules-of-hooks",
   severity: "error",
+  tags: ["test-noise"],
   recommendation: "Call hooks at the top level of a React function component or a custom Hook.",
   category: "Correctness",
   create: (context) => {
