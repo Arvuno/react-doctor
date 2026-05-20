@@ -284,21 +284,48 @@ interface DetectedComponent {
 // scope, then ONE export block at the end. Without this, every such
 // barrel had `exportedCount === 0` and slipped past both the barrel
 // and the feature-module exemption.
+//
+// Also collects names from namespace-style exports:
+//   export const DefinitionPopover = { Wrapper, Header, Description, … }
+// The user is exporting all the private functions under a single
+// namespace value — they're still part of the public API surface.
 const collectReExportedNames = (program: EsTreeNode): Set<string> => {
   const names = new Set<string>();
   if (!isNodeOfType(program, "Program")) return names;
   for (const statement of program.body) {
-    if (!isNodeOfType(statement as EsTreeNodeOfType<"ExportNamedDeclaration">, "ExportNamedDeclaration")) {
+    if (
+      !isNodeOfType(
+        statement as EsTreeNodeOfType<"ExportNamedDeclaration">,
+        "ExportNamedDeclaration",
+      )
+    ) {
       continue;
     }
     const exportNode = statement as EsTreeNodeOfType<"ExportNamedDeclaration">;
-    // Skip the inline form (`export const Foo = …`); only collect the
-    // specifier form (`export { Foo }`).
-    if (exportNode.declaration) continue;
-    for (const specifier of exportNode.specifiers ?? []) {
-      if (!isNodeOfType(specifier, "ExportSpecifier")) continue;
-      const local = specifier.local as EsTreeNode;
-      if (isNodeOfType(local, "Identifier")) names.add(local.name);
+    // Specifier form: `export { Foo, Bar }`
+    if (!exportNode.declaration) {
+      for (const specifier of exportNode.specifiers ?? []) {
+        if (!isNodeOfType(specifier, "ExportSpecifier")) continue;
+        const local = specifier.local as EsTreeNode;
+        if (isNodeOfType(local, "Identifier")) names.add(local.name);
+      }
+      continue;
+    }
+    // Inline form: `export const X = ObjectExpression` — namespace
+    // pattern where the user re-groups private functions under a
+    // single exported value (`DefinitionPopover.Wrapper` etc.).
+    if (!isNodeOfType(exportNode.declaration, "VariableDeclaration")) continue;
+    for (const declarator of exportNode.declaration.declarations ?? []) {
+      if (!isNodeOfType(declarator, "VariableDeclarator")) continue;
+      if (!isNodeOfType(declarator.init, "ObjectExpression")) continue;
+      for (const property of declarator.init.properties ?? []) {
+        if (!isNodeOfType(property, "Property")) continue;
+        if (property.computed) continue;
+        // `{ Wrapper, Header }` (shorthand) and `{ Wrapper: Wrapper, ... }`
+        // both end up with Identifier values that name the binding.
+        const value = property.value as EsTreeNode;
+        if (isNodeOfType(value, "Identifier")) names.add(value.name);
+      }
     }
   }
   return names;
