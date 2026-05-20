@@ -500,26 +500,61 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
   return false;
 };
 
+// Tighter cap for multi-statement bodies — beyond 3 stable
+// statements, the wrapper is starting to do real work.
+const MAX_STABLE_STATEMENTS_IN_BLOCK = 3;
+
+const isStableStatement = (statement: EsTreeNode): boolean => {
+  if (isNodeOfType(statement, "ExpressionStatement")) {
+    return isLightweightBodyExpression(statement.expression as EsTreeNode);
+  }
+  if (isNodeOfType(statement, "ReturnStatement")) {
+    if (!statement.argument) return true;
+    return isLightweightBodyExpression(statement.argument as EsTreeNode);
+  }
+  // `if (guard) stableStatement` — common pattern in event-handler
+  // wrappers (`() => { if (!disabled) onChange(value) }`). The guard
+  // is a stable test (literal / identifier / member / arithmetic /
+  // logical) and the consequent is itself a stable statement (or
+  // block of stable statements).
+  if (isNodeOfType(statement, "IfStatement")) {
+    if (!isStableArgumentValue(statement.test as EsTreeNode)) return false;
+    if (!isStableStatement(statement.consequent as EsTreeNode)) return false;
+    if (statement.alternate && !isStableStatement(statement.alternate as EsTreeNode)) {
+      return false;
+    }
+    return true;
+  }
+  if (isNodeOfType(statement, "BlockStatement")) {
+    return isStableStatementBlock(statement.body ?? []);
+  }
+  return false;
+};
+
+const isStableStatementBlock = (statements: ReadonlyArray<EsTreeNode>): boolean => {
+  if (statements.length === 0) return true;
+  if (statements.length > MAX_STABLE_STATEMENTS_IN_BLOCK) return false;
+  for (const statement of statements) {
+    if (!isStableStatement(statement)) return false;
+  }
+  return true;
+};
+
 const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
   if (!isNodeOfType(stripped, "ArrowFunctionExpression")) return false;
-  // Body is either expression-form, single `return expr;`, or single
-  // expression statement. Multi-statement blocks are real work; flag those.
-  let body = stripped.body as EsTreeNode;
-  if (isNodeOfType(body, "BlockStatement")) {
-    const statements = body.body ?? [];
-    if (statements.length !== 1) return false;
-    const only = statements[0] as EsTreeNode;
-    if (isNodeOfType(only, "ReturnStatement")) {
-      if (!only.argument) return false;
-      body = only.argument as EsTreeNode;
-    } else if (isNodeOfType(only, "ExpressionStatement")) {
-      body = only.expression as EsTreeNode;
-    } else {
-      return false;
-    }
+  // Expression-form body (no braces) — single expression at the top.
+  const body = stripped.body as EsTreeNode;
+  if (!isNodeOfType(body, "BlockStatement")) {
+    return isLightweightBodyExpression(body);
   }
-  return isLightweightBodyExpression(body);
+  // Block body — accept up to MAX stable statements OR a single
+  // if-guard around stable work. The wrapper is doing tiny
+  // adaptation work that useCallback can't meaningfully optimise
+  // (any closure capture defeats memoisation; the new function
+  // allocation per render is cheap compared to the cost of a
+  // useCallback dep array equality check on every render).
+  return isStableStatementBlock(body.body ?? []);
 };
 
 // Port of `oxc_linter::rules::react_perf::jsx_no_new_function_as_prop`.
