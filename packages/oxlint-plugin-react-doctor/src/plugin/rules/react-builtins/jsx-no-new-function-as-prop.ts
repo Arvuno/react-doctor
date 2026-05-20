@@ -583,6 +583,12 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
   ) {
     return isLightweightBodyExpression(body.argument as EsTreeNode);
   }
+  // `await fn(arg)` — async wrappers, treated the same as the
+  // underlying call. `async () => await save(item)` is just a
+  // promise-returning wrapper.
+  if ((body as { type: string }).type === "AwaitExpression") {
+    return isLightweightBodyExpression((body as { argument: EsTreeNode }).argument);
+  }
   // `(value as string)` style TS assertion at the body level — unwrap.
   if (
     (body as { type: string }).type === "TSAsExpression" ||
