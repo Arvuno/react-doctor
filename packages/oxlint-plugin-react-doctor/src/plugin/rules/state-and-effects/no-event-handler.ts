@@ -100,16 +100,22 @@ export const noEventHandler = defineRule<Rule>({
         );
       });
 
-      // Dedupe by identifier identity — `getUpstreamRefs` returns
-      // EVERY reference to the same binding (including unrelated
-      // call sites and the destructuring location). Without this
-      // gate, a single effect that uses `enabled` once would emit a
-      // diagnostic at the destructure (line 53) AND at every other
-      // place `enabled` appears in the file.
+      // Dedupe by RESOLVED BINDING (not by identifier identity) —
+      // `getUpstreamRefs` returns every reference to the same
+      // binding (including unrelated call sites and the destructure
+      // location), and each reference has a different identifier
+      // node. Without binding-level dedupe, a single useEffect use
+      // of a prop emits one diagnostic at every other reference to
+      // that prop in the file.
+      const seenBindings = new Set<unknown>();
       const seenIdentifiers = new Set<EsTreeNode>();
       const dedupedRefs = ifTestRefs.filter((ref) => {
         const identifier = ref.identifier as unknown as EsTreeNode;
-        if (!identifier || seenIdentifiers.has(identifier)) return false;
+        if (!identifier) return false;
+        const resolved = (ref as unknown as { resolved?: unknown }).resolved;
+        if (resolved && seenBindings.has(resolved)) return false;
+        if (resolved) seenBindings.add(resolved);
+        if (seenIdentifiers.has(identifier)) return false;
         seenIdentifiers.add(identifier);
         return true;
       });
