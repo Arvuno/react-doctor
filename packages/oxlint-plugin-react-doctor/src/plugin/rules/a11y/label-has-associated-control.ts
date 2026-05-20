@@ -61,7 +61,14 @@ const resolveSettings = (
     labelAttributes,
     controlComponents: ruleSettings.controlComponents ?? [],
     assert: ruleSettings.assert ?? "either",
-    depth: Math.min(ruleSettings.depth ?? 2, 25),
+    // Default depth: 5 (upstream's default is 2, which is too strict
+    // for real React UIs — a routine form-field with semantic
+    // structure (`<label><div><div><span>{t('Name')}</span></div></div><input/></label>`)
+    // has the input/label-text at depth 3-4 from the label, and
+    // design-system inputs frequently wrap the actual <input> in a
+    // styled <div>). 5 catches "label has nothing controllable
+    // anywhere inside" without false-flagging idiomatic forms.
+    depth: Math.min(ruleSettings.depth ?? 5, 25),
     forAttributes,
   };
 };
