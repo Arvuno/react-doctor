@@ -79,6 +79,7 @@ const isPureEventBlockerHandler = (
 // support keyboard activation).
 export const clickEventsHaveKeyEvents = defineRule<Rule>({
   id: "click-events-have-key-events",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation: "Pair `onClick` with `onKeyUp` / `onKeyDown` / `onKeyPress` for keyboard users.",
   category: "Accessibility",

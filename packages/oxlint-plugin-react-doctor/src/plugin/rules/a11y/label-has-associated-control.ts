@@ -192,6 +192,7 @@ const hasNestedControl = (
 // Port of `oxc_linter::rules::jsx_a11y::label_has_associated_control`.
 export const labelHasAssociatedControl = defineRule<Rule>({
   id: "label-has-associated-control",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation: "Associate every label with a control via `htmlFor` or by nesting the input.",
   category: "Accessibility",

@@ -93,6 +93,7 @@ const isFalseAttributeValue = (value: EsTreeNode): boolean => {
 // elements (lowercase tag in HTML_TAGS) are checked.
 export const noAutofocus = defineRule<Rule>({
   id: "no-autofocus",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation: "Don't use `autoFocus` — it disorients users.",
   category: "Accessibility",

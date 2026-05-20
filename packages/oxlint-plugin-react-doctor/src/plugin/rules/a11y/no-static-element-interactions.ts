@@ -120,6 +120,7 @@ const isPureEventBlockerHandler = (
 // Port of `oxc_linter::rules::jsx_a11y::no_static_element_interactions`.
 export const noStaticElementInteractions = defineRule<Rule>({
   id: "no-static-element-interactions",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation:
     "Static HTML elements with event handlers require a role, or use a semantic HTML element instead.",

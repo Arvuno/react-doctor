@@ -48,6 +48,7 @@ const resolveSettings = (
 // Port of `oxc_linter::rules::jsx_a11y::interactive_supports_focus`.
 export const interactiveSupportsFocus = defineRule<Rule>({
   id: "interactive-supports-focus",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation: "Add `tabIndex` to elements that have interactive roles and event handlers.",
   category: "Accessibility",

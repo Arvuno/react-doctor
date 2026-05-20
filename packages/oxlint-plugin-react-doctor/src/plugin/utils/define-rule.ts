@@ -1,5 +1,10 @@
 import { isTestlikeFilename } from "./is-testlike-filename.js";
+import {
+  fileImportsNonReactJsxDialect,
+  jsxAttributeIsNonReactDialectMarker,
+} from "./non-react-jsx-dialect.js";
 import type { Rule } from "./rule.js";
+import type { EsTreeNodeOfType } from "./es-tree-node-of-type.js";
 
 interface DefineRule {
   (rule: Rule): Rule;
@@ -21,15 +26,89 @@ const wrapCreateForTestNoise = <CreateFn extends (context: { getFilename?: () =>
     return {};
   }) as CreateFn;
 
+// Rules tagged `"react-jsx-only"` apply React-flavoured semantics
+// (a11y semantics tuned for React's synthetic-event listener naming,
+// React-cased prop names, etc.) and should pass through for files
+// authored in non-React JSX dialects: Solid.js, Qwik, Voby, Vidode.
+// Detection happens lazily — we snapshot the dialect status from the
+// program's import declarations on the Program visit, then short-
+// circuit every other visitor when the file is Solid/Qwik. A late
+// `classList=` / `class:` / `bind:` marker upgrades the dialect mid-
+// file (some files import Solid via re-export and don't have an
+// obvious `solid-js` import).
+const VISITOR_NODE_NAME_PATTERN = /^[A-Z]/;
+type GenericVisitors = Record<string, unknown>;
+
+const wrapCreateForReactJsxOnly = <
+  CreateFn extends (context: { getFilename?: () => string | undefined }) => GenericVisitors,
+>(
+  create: CreateFn,
+): CreateFn =>
+  ((context: Parameters<CreateFn>[0]) => {
+    const innerVisitors = create(context);
+    let fileIsNonReactJsx = false;
+    // We need a Program visitor to seed the dialect status BEFORE any
+    // JSX visitor fires. If the original rule already declared one,
+    // wrap it; otherwise inject a fresh one.
+    const wrappedVisitors: GenericVisitors = {};
+    for (const [key, visitor] of Object.entries(innerVisitors)) {
+      if (typeof visitor !== "function") {
+        wrappedVisitors[key] = visitor;
+        continue;
+      }
+      if (!VISITOR_NODE_NAME_PATTERN.test(key)) {
+        // Lifecycle hooks etc. — pass through unwrapped.
+        wrappedVisitors[key] = visitor;
+        continue;
+      }
+      if (key === "Program") {
+        wrappedVisitors.Program = (node: EsTreeNodeOfType<"Program">) => {
+          fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
+          (visitor as (n: EsTreeNodeOfType<"Program">) => void)(node);
+        };
+        continue;
+      }
+      if (key === "JSXOpeningElement") {
+        wrappedVisitors.JSXOpeningElement = (
+          node: EsTreeNodeOfType<"JSXOpeningElement">,
+        ) => {
+          if (!fileIsNonReactJsx && jsxAttributeIsNonReactDialectMarker(node)) {
+            fileIsNonReactJsx = true;
+          }
+          if (fileIsNonReactJsx) return;
+          (visitor as (n: EsTreeNodeOfType<"JSXOpeningElement">) => void)(node);
+        };
+        continue;
+      }
+      wrappedVisitors[key] = (...args: unknown[]) => {
+        if (fileIsNonReactJsx) return;
+        (visitor as (...a: unknown[]) => unknown)(...args);
+      };
+    }
+    if (!("Program" in wrappedVisitors)) {
+      wrappedVisitors.Program = (node: EsTreeNodeOfType<"Program">) => {
+        fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
+      };
+    }
+    return wrappedVisitors;
+  }) as CreateFn;
+
 export const defineRule: DefineRule = <RuleDefinition>(
   rule: RuleDefinition,
 ): RuleDefinition => {
   const tags = (rule as { tags?: ReadonlyArray<string> }).tags;
-  if (!tags || !tags.includes("test-noise")) return rule;
   const create = (rule as { create?: unknown }).create;
   if (typeof create !== "function") return rule;
+  let wrappedCreate = create as (...args: unknown[]) => unknown;
+  if (tags?.includes("test-noise")) {
+    wrappedCreate = wrapCreateForTestNoise(wrappedCreate as never) as never;
+  }
+  if (tags?.includes("react-jsx-only")) {
+    wrappedCreate = wrapCreateForReactJsxOnly(wrappedCreate as never) as never;
+  }
+  if (wrappedCreate === create) return rule;
   return {
     ...rule,
-    create: wrapCreateForTestNoise(create as never),
+    create: wrappedCreate,
   } as RuleDefinition;
 };
