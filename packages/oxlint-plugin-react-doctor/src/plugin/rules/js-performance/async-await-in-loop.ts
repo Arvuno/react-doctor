@@ -1,10 +1,11 @@
+import { INTENTIONAL_SEQUENCING_CALLEE_NAMES } from "../../constants/js.js";
 import { defineRule } from "../../utils/define-rule.js";
-import { walkAst } from "../../utils/walk-ast.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
+import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
-import { isNodeOfType } from "../../utils/is-node-of-type.js";
-import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { walkAst } from "../../utils/walk-ast.js";
 
 const findFirstAwaitOutsideNestedFunctions = (block: EsTreeNode): EsTreeNode | null => {
   let firstAwait: EsTreeNode | null = null;
@@ -29,92 +30,32 @@ const findFirstAwaitOutsideNestedFunctions = (block: EsTreeNode): EsTreeNode | n
   return firstAwait;
 };
 
-// HACK: heuristics to reduce false positives in the asyncAwaitInLoop
-// rule. Polling loops (`while (true) { await sleep(1000); ... }`) and
-// paginated fetches (`while (hasMore) { page = await fetch(cursor); cursor = page.next; }`)
-// are intentionally sequential and should not be flagged. Same applies
-// to database / file-system / process operations where serialization is
-// required for transactions, FK constraints, mutation ordering, etc.
-const SLEEP_LIKE_FUNCTION_NAMES = new Set([
-  "sleep",
-  "delay",
-  "wait",
-  "setTimeout",
-  "pause",
-  "throttle",
-  "debounce",
-  "tick",
-  "nextTick",
-  // Database / ORM operations
-  "query",
-  "execute",
-  "exec",
-  "raw",
-  "transaction",
-  "$transaction",
-  "$executeRaw",
-  "$queryRaw",
-  "$executeRawUnsafe",
-  "$queryRawUnsafe",
-  "begin",
-  "commit",
-  "rollback",
-  "savepoint",
-  "lock",
-  "unlock",
-  // File-system mutations
-  "mkdir",
-  "rmdir",
-  "rename",
-  "rm",
-  "unlink",
-  "writeFile",
-  "appendFile",
-  "copyFile",
-  // Process spawning and shell command wrappers (`$`/`sh` are the common
-  // zx / bun-shell / google-zx names used by build scripts).
-  "spawn",
-  "spawnSync",
-  "execSync",
-  "execFile",
-  "execFileSync",
-  "fork",
-  "$",
-  "sh",
-  // Browser automation (playwright / puppeteer)
-  "navigate",
-  "goto",
-  "waitForNavigation",
-  "waitForURL",
-  "waitForLoadState",
-  "waitForResponse",
-  "waitForRequest",
-  "waitForSelector",
-  "waitForFunction",
-  "waitForEvent",
-]);
-
+// HACK: heuristic to reduce false positives in the asyncAwaitInLoop
+// rule. Polling loops (`while (true) { await sleep(1000); … }`) and
+// paginated fetches (`while (hasMore) { page = await fetch(cursor);
+// cursor = page.next; }`) are intentionally sequential and should not
+// be flagged. Same applies to database / file-system / process
+// operations where serialization is required for transactions, FK
+// constraints, mutation ordering, etc. The callee list is shared with
+// `INTENTIONAL_SEQUENCING_CALLEE_NAMES` so the two rules can't diverge.
 const isAwaitingSleepLikeCall = (awaitNode: EsTreeNode): boolean => {
   if (!isNodeOfType(awaitNode, "AwaitExpression")) return false;
   const argument = awaitNode.argument;
   if (!argument) return false;
-
-  if (isNodeOfType(argument, "CallExpression")) {
-    if (
-      isNodeOfType(argument.callee, "Identifier") &&
-      SLEEP_LIKE_FUNCTION_NAMES.has(argument.callee.name)
-    ) {
-      return true;
-    }
-    if (
-      isNodeOfType(argument.callee, "MemberExpression") &&
-      isNodeOfType(argument.callee.property, "Identifier") &&
-      SLEEP_LIKE_FUNCTION_NAMES.has(argument.callee.property.name)
-    ) {
-      return true;
-    }
+  if (!isNodeOfType(argument, "CallExpression")) return false;
+  if (
+    isNodeOfType(argument.callee, "Identifier") &&
+    INTENTIONAL_SEQUENCING_CALLEE_NAMES.has(argument.callee.name)
+  ) {
+    return true;
   }
-
+  if (
+    isNodeOfType(argument.callee, "MemberExpression") &&
+    isNodeOfType(argument.callee.property, "Identifier") &&
+    INTENTIONAL_SEQUENCING_CALLEE_NAMES.has(argument.callee.property.name)
+  ) {
+    return true;
+  }
   return false;
 };
 

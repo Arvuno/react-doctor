@@ -11,10 +11,10 @@ import { walkAst } from "../../utils/walk-ast.js";
 // Walks up to find the function-like that owns this VariableDeclarator
 // (component body / hook body). `useTransition` is only an alternative
 // to `useState(false)` when the loading flag guards a SYNC state
-// transition. If the enclosing function body contains an `await`
-// (anywhere — including in nested helper arrow functions defined in
-// the same body), the flag is tracking async work and the rule's
-// recommendation doesn't apply.
+// transition. If the SETTER for this state is called from an async
+// context (an `async` function body, or one that itself contains an
+// `await`), the flag tracks async work and the rule's recommendation
+// doesn't apply.
 const enclosingFunctionBody = (node: EsTreeNode): EsTreeNode | null => {
   let cursor: EsTreeNode | null | undefined = node.parent;
   while (cursor) {
@@ -30,14 +30,62 @@ const enclosingFunctionBody = (node: EsTreeNode): EsTreeNode | null => {
   return null;
 };
 
-const containsAwait = (root: EsTreeNode | null): boolean => {
+const isFunctionLikeNode = (node: EsTreeNode): boolean =>
+  isNodeOfType(node, "FunctionDeclaration") ||
+  isNodeOfType(node, "FunctionExpression") ||
+  isNodeOfType(node, "ArrowFunctionExpression");
+
+const hasOwnAwait = (functionBody: EsTreeNode | null): boolean => {
+  if (!functionBody) return false;
+  let found = false;
+  walkAst(functionBody, (child: EsTreeNode) => {
+    if (found) return;
+    if (child !== functionBody && isFunctionLikeNode(child)) {
+      // Don't descend into nested functions — their awaits belong to
+      // THEIR async context, not this one.
+      return false;
+    }
+    if (isNodeOfType(child, "AwaitExpression")) found = true;
+  });
+  return found;
+};
+
+const callsIdentifier = (root: EsTreeNode | null, identifierName: string): boolean => {
   if (!root) return false;
   let found = false;
   walkAst(root, (child: EsTreeNode) => {
     if (found) return;
-    if (isNodeOfType(child, "AwaitExpression")) {
+    if (
+      isNodeOfType(child, "CallExpression") &&
+      isNodeOfType(child.callee, "Identifier") &&
+      child.callee.name === identifierName
+    ) {
       found = true;
     }
+  });
+  return found;
+};
+
+// True when ANY async-context function inside `componentBody` calls
+// `setterName`. An "async-context function" is `async` or has an own-
+// scope `await`. Setter calls inside non-async helpers (e.g. a sync
+// `handleTabChange` that toggles `setIsTabPending`) don't count, so a
+// sync state transition in a component that ALSO has an unrelated
+// `handleSubmit = async () => …` no longer gets suppressed.
+const setterIsCalledInAsyncContext = (
+  componentBody: EsTreeNode | null,
+  setterName: string,
+): boolean => {
+  if (!componentBody) return false;
+  let found = false;
+  walkAst(componentBody, (child: EsTreeNode) => {
+    if (found) return;
+    if (!isFunctionLikeNode(child)) return;
+    const functionBody = (child as { body: EsTreeNode | null }).body;
+    const isAsyncContext =
+      Boolean((child as { async?: boolean }).async) || hasOwnAwait(functionBody);
+    if (!isAsyncContext) return;
+    if (callsIdentifier(functionBody, setterName)) found = true;
   });
   return found;
 };
@@ -104,12 +152,20 @@ export const renderingUsetransitionLoading = defineRule<Rule>({
       const stateVariableName = isNodeOfType(firstBinding, "Identifier") ? firstBinding.name : null;
       if (!stateVariableName || !LOADING_STATE_PATTERN.test(stateVariableName)) return;
 
+      const secondBinding = node.id.elements[1];
+      const setterName = isNodeOfType(secondBinding, "Identifier") ? secondBinding.name : null;
+
       // Async-work loading states aren't transition candidates — there's
-      // a real I/O suspension that React can't elide. Detect either an
-      // `await` anywhere in the enclosing function body OR a call to a
-      // known async-data hook / global.
+      // a real I/O suspension that React can't elide. Detect either the
+      // SETTER being called inside an async-context function (so the
+      // flag is wrapping that async work) OR a call to a known
+      // async-data hook / global in the component body.
       const fnBody = enclosingFunctionBody(node as EsTreeNode);
-      if (fnBody && (containsAwait(fnBody) || referencesAsyncDataApi(fnBody))) {
+      if (
+        fnBody &&
+        ((setterName && setterIsCalledInAsyncContext(fnBody, setterName)) ||
+          referencesAsyncDataApi(fnBody))
+      ) {
         return;
       }
 
