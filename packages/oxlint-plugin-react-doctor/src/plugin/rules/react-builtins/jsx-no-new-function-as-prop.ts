@@ -371,6 +371,49 @@ const isStableArgumentValue = (node: EsTreeNode): boolean => {
   if (isNodeOfType(node, "ChainExpression")) {
     return isStableArgumentValue(node.expression as EsTreeNode);
   }
+  // `value as string` / `value as MyType` — TypeScript type
+  // assertions erase at runtime, the underlying expression is what
+  // matters. Without this, `(value) => onTimeRangeChange(value as string, 1)`
+  // (the canonical "narrow the typed arg" shape) doesn't match the
+  // parameter-binding wrapper.
+  if (
+    (node as { type: string }).type === "TSAsExpression" ||
+    (node as { type: string }).type === "TSTypeAssertion" ||
+    (node as { type: string }).type === "TSNonNullExpression" ||
+    (node as { type: string }).type === "TSSatisfiesExpression"
+  ) {
+    return isStableArgumentValue((node as { expression: EsTreeNode }).expression);
+  }
+  // `value ? 'on' : 'off'` — ternary with both branches stable.
+  if (isNodeOfType(node, "ConditionalExpression")) {
+    return (
+      isStableArgumentValue(node.test as EsTreeNode) &&
+      isStableArgumentValue(node.consequent as EsTreeNode) &&
+      isStableArgumentValue(node.alternate as EsTreeNode)
+    );
+  }
+  // `value ?? defaultValue` / `value || ''` — fallback with stable
+  // both sides. `(v) => setX(v ?? '')` is still adapting one arg
+  // into a setter call; useCallback won't help.
+  if (
+    isNodeOfType(node, "LogicalExpression") &&
+    (node.operator === "??" || node.operator === "||" || node.operator === "&&")
+  ) {
+    return (
+      isStableArgumentValue(node.left as EsTreeNode) &&
+      isStableArgumentValue(node.right as EsTreeNode)
+    );
+  }
+  // `value + 1` / `index - 1` / `'prefix' + value` — arithmetic /
+  // concatenation with stable operands. Page-step handlers like
+  // `() => setPage(page + 1)` get to this point.
+  if (
+    isNodeOfType(node, "BinaryExpression") &&
+    isStableArgumentValue(node.left as EsTreeNode) &&
+    isStableArgumentValue(node.right as EsTreeNode)
+  ) {
+    return true;
+  }
   return false;
 };
 
