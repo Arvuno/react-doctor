@@ -13,6 +13,17 @@ import { buildRuleSeverityControls } from "./build-rule-severity-controls.js";
 import { canOxlintExtendConfig } from "./can-oxlint-extend-config.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import { detectUserLintConfigPaths } from "./detect-user-lint-config.js";
+import {
+  isSplittableReactDoctorError,
+  OxlintKilled,
+  OxlintNativeBindingFailed,
+  OxlintOutOfMemory,
+  OxlintOutputTooLarge,
+  OxlintOutputUnparseable,
+  OxlintSpawnFailed,
+  OxlintTimedOut,
+  ReactDoctorError,
+} from "./errors.js";
 import { dedupeDiagnostics } from "./utils/dedupe-diagnostics.js";
 import { listSourceFiles } from "./utils/list-source-files.js";
 import { createOxlintConfig } from "./runners/oxlint/config.js";
@@ -167,12 +178,10 @@ const spawnOxlint = (
 
     const timeoutHandle = setTimeout(() => {
       child.kill("SIGKILL");
-      // HACK: message string is grepped by `isSplittableOxlintBatchError`
-      // — keep "did not return within" in the prefix.
       reject(
-        new Error(
-          `oxlint did not return within ${OXLINT_SPAWN_TIMEOUT_MS / 1000}s — please report`,
-        ),
+        new ReactDoctorError({
+          reason: new OxlintTimedOut({ timeoutMilliseconds: OXLINT_SPAWN_TIMEOUT_MS }),
+        }),
       );
     }, OXLINT_SPAWN_TIMEOUT_MS);
     timeoutHandle.unref?.();
@@ -210,46 +219,63 @@ const spawnOxlint = (
 
     child.on("error", (error) => {
       clearTimeout(timeoutHandle);
-      reject(new Error(`Failed to run oxlint: ${error.message}`));
+      reject(new ReactDoctorError({ reason: new OxlintSpawnFailed({ cause: error }) }));
     });
     child.on("close", (_code, signal) => {
       clearTimeout(timeoutHandle);
       if (didKillForSize) {
         reject(
-          new Error(
-            `oxlint output exceeded ${OXLINT_OUTPUT_MAX_BYTES} bytes — scan a smaller subset with --diff or --staged`,
-          ),
+          new ReactDoctorError({
+            reason: new OxlintOutputTooLarge({ maxBytes: OXLINT_OUTPUT_MAX_BYTES }),
+          }),
         );
         return;
       }
       if (signal) {
         const stderrOutput = Buffer.concat(stderrBuffers).toString("utf-8").trim();
-        const hint =
-          signal === "SIGABRT" ? " (out of memory — try scanning fewer files with --diff)" : "";
-        const detail = stderrOutput ? `: ${stderrOutput}` : "";
-        reject(new Error(`oxlint was killed by ${signal}${hint}${detail}`));
+        if (signal === "SIGABRT") {
+          reject(new ReactDoctorError({ reason: new OxlintOutOfMemory({ signal }) }));
+          return;
+        }
+        reject(
+          new ReactDoctorError({
+            reason: new OxlintKilled({ signal, stderr: stderrOutput }),
+          }),
+        );
         return;
       }
       const output = Buffer.concat(stdoutBuffers).toString("utf-8").trim();
       if (!output) {
         const stderrOutput = Buffer.concat(stderrBuffers).toString("utf-8").trim();
         if (stderrOutput) {
-          reject(new Error(`Failed to run oxlint: ${stderrOutput}`));
+          // HACK: oxlint surfaces native-binding load errors via stderr
+          // text that contains "native binding". Pattern-match here, at
+          // the one place stderr is parsed, instead of leaking the
+          // string match into every downstream catch site. Raising the
+          // typed `OxlintNativeBindingFailed` reason lets the renderer
+          // dispatch off `_tag` rather than `message.includes(...)`.
+          if (stderrOutput.includes("native binding")) {
+            reject(
+              new ReactDoctorError({
+                reason: new OxlintNativeBindingFailed({
+                  nodeVersion: process.version,
+                  stderr: stderrOutput,
+                }),
+              }),
+            );
+            return;
+          }
+          reject(
+            new ReactDoctorError({
+              reason: new OxlintSpawnFailed({ cause: new Error(stderrOutput) }),
+            }),
+          );
           return;
         }
       }
       resolve(output);
     });
   });
-
-const isSplittableOxlintBatchError = (error: unknown): boolean => {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.message.includes("did not return within") ||
-    error.message.includes("output exceeded") ||
-    error.message.includes("out of memory")
-  );
-};
 
 const isOxlintOutput = (value: unknown): value is OxlintOutput => {
   if (typeof value !== "object" || value === null) return false;
@@ -275,15 +301,19 @@ const parseOxlintOutput = (
   try {
     parsed = JSON.parse(sanitizedStdout);
   } catch {
-    throw new Error(
-      `Failed to parse oxlint output: ${stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS)}`,
-    );
+    throw new ReactDoctorError({
+      reason: new OxlintOutputUnparseable({
+        preview: stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS),
+      }),
+    });
   }
 
   if (!isOxlintOutput(parsed)) {
-    throw new Error(
-      `Unexpected oxlint output shape: ${stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS)}`,
-    );
+    throw new ReactDoctorError({
+      reason: new OxlintOutputUnparseable({
+        preview: stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS),
+      }),
+    });
   }
   const output = parsed;
 
@@ -545,9 +575,9 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
           const stdout = await spawnOxlint(batchArgs, rootDirectory, nodeBinaryPath);
           return parseOxlintOutput(stdout, project, rootDirectory);
         } catch (error) {
-          if (!isSplittableOxlintBatchError(error)) throw error;
+          if (!isSplittableReactDoctorError(error)) throw error;
           if (batch.length <= 1) {
-            // Single-file batch still fails with a splittable error —
+            // Single-file batch still fails with a splittable reason —
             // drop the file, record it, and let the scan continue.
             droppedFiles.push(...batch);
             return [];

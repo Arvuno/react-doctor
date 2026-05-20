@@ -1,14 +1,7 @@
 import { Context, Effect, Layer, Ref, Stream } from "effect";
 import { runOxlint } from "@react-doctor/core";
 import type { ProjectInfo, ReactDoctorConfig } from "@react-doctor/types";
-import {
-  OxlintBinaryNotFound,
-  OxlintOutputTooLarge,
-  OxlintOutputUnparseable,
-  OxlintSpawnFailed,
-  OxlintTimedOut,
-  ReactDoctorError,
-} from "./errors.js";
+import { OxlintSpawnFailed, ReactDoctorError } from "./errors.js";
 import { Diagnostic } from "./diagnostic-schema.js";
 
 /**
@@ -51,47 +44,18 @@ export interface LintInput {
   nodeBinaryPath?: string;
 }
 
-const OXLINT_TIMEOUT_MILLISECONDS = 60_000;
-const OXLINT_OUTPUT_MAX_BYTES = 64 * 1024 * 1024;
-
 /**
- * Maps an `unknown` from the wrapped `runOxlint` callback into a
- * tagged `ReactDoctorError`. The string sniffing here is intentional:
- * `runOxlint` predates the runtime layer and still throws plain
- * `Error`s with shape-coded messages. Once the legacy entry point is
- * retired, every leaf raise becomes a `yield* new ReactDoctorError(...)`
- * and this mapper goes away. Until then this is the one boundary
- * where the two error vocabularies meet.
+ * `runOxlint` raises `ReactDoctorError` instances directly (every
+ * exit code is a typed reason). This narrows whatever `tryPromise`
+ * caught: tagged errors pass through unchanged, anything else
+ * (an unexpected JS-level throw — e.g. fs permission on the temp
+ * config dir) gets wrapped in `OxlintSpawnFailed` so the failure
+ * channel stays uniform.
  */
-const mapLegacyOxlintError = (cause: unknown): ReactDoctorError => {
-  const message = cause instanceof Error ? cause.message : String(cause);
-  if (message.includes("native binding")) {
-    return new ReactDoctorError({
-      reason: new OxlintBinaryNotFound({
-        nodeVersion: process.version,
-        requirement: "see oxlint-supported-node-versions",
-      }),
-    });
-  }
-  if (message.includes("did not return within")) {
-    return new ReactDoctorError({
-      reason: new OxlintTimedOut({ timeoutMilliseconds: OXLINT_TIMEOUT_MILLISECONDS }),
-    });
-  }
-  if (message.includes("output exceeded")) {
-    return new ReactDoctorError({
-      reason: new OxlintOutputTooLarge({ maxBytes: OXLINT_OUTPUT_MAX_BYTES }),
-    });
-  }
-  if (message.includes("Failed to parse oxlint output")) {
-    return new ReactDoctorError({
-      reason: new OxlintOutputUnparseable({ preview: message }),
-    });
-  }
-  return new ReactDoctorError({
-    reason: new OxlintSpawnFailed({ cause }),
-  });
-};
+const ensureReactDoctorError = (cause: unknown): ReactDoctorError =>
+  cause instanceof ReactDoctorError
+    ? cause
+    : new ReactDoctorError({ reason: new OxlintSpawnFailed({ cause }) });
 
 /**
  * `Linter` is the cross-backend Service for "produce diagnostics for
@@ -151,7 +115,7 @@ export class Linter extends Context.Service<
                     );
                   },
                 }),
-              catch: mapLegacyOxlintError,
+              catch: ensureReactDoctorError,
             });
             return Stream.fromIterable(diagnostics as ReadonlyArray<Diagnostic>);
           }),

@@ -13,6 +13,7 @@ export * from "./combine-diagnostics.js";
 export * from "./constants.js";
 export * from "./detect-user-lint-config.js";
 export * from "./diagnostic-surface.js";
+export * from "./errors.js";
 export * from "./evaluate-suppression.js";
 export * from "./filter-diagnostics.js";
 export * from "./filter-for-surface.js";

@@ -20,6 +20,7 @@
     "@react-doctor/project-info": "workspace:*",
     "@react-doctor/types": "workspace:*",
     "deslop-js": "^0.0.9",
+    "effect": "4.0.0-beta.69",
     "oxlint": "^1.63.0",
     "oxlint-plugin-react-doctor": "workspace:*",
     "picomatch": "^4.0.4",

@@ -3,7 +3,7 @@ import { Cause, Effect, Exit, Layer, Ref, Stream } from "effect";
 
 import { Config } from "../src/config.js";
 import type { Diagnostic } from "../src/diagnostic-schema.js";
-import { NoReactDependency, OxlintTimedOut, ReactDoctorError } from "../src/errors.js";
+import { OxlintTimedOut, ReactDoctorError } from "../src/errors.js";
 import { LintPartialFailures, Linter } from "../src/linter.js";
 import { Project } from "../src/project.js";
 import { Reporter, ReporterCapture } from "../src/reporter.js";

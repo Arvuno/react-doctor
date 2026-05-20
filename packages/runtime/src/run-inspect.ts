@@ -14,7 +14,12 @@ import type {
 } from "@react-doctor/types";
 import { Config, type ResolvedConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic-schema.js";
-import { formatReactDoctorError, NoReactDependency, ReactDoctorError } from "./errors.js";
+import {
+  formatReactDoctorError,
+  NoReactDependency,
+  ReactDoctorError,
+  type ReactDoctorErrorReason,
+} from "./errors.js";
 import { LintPartialFailures, Linter } from "./linter.js";
 import { Project } from "./project.js";
 import { Reporter } from "./reporter.js";
@@ -51,6 +56,14 @@ export interface RunInspectOutput {
   readonly score: ScoreResult | null;
   readonly didLintFail: boolean;
   readonly lintFailureReason: string | null;
+  /**
+   * The `_tag` of the lint failure's `reason` when the lint stream
+   * raised a `ReactDoctorError`, or `null` otherwise. Lets renderers
+   * dispatch on the typed reason (e.g. show the "upgrade Node"
+   * hint only on `OxlintNativeBindingFailed`) without falling back
+   * to `lintFailureReason.includes("native binding")`-style sniffs.
+   */
+  readonly lintFailureReasonTag: ReactDoctorErrorReason["_tag"] | null;
   readonly lintPartialFailures: ReadonlyArray<string>;
 }
 
@@ -136,7 +149,8 @@ export const runInspect = (
     const lintFailure = yield* Ref.make<{
       didFail: boolean;
       reason: string | null;
-    }>({ didFail: false, reason: null });
+      reasonTag: ReactDoctorErrorReason["_tag"] | null;
+    }>({ didFail: false, reason: null, reasonTag: null });
 
     const lintStream = linterService
       .lint({
@@ -158,6 +172,7 @@ export const runInspect = (
               yield* Ref.set(lintFailure, {
                 didFail: true,
                 reason: formatReactDoctorError(error),
+                reasonTag: error.reason._tag,
               });
               return Stream.empty as Stream.Stream<Diagnostic, never>;
             }),
@@ -197,6 +212,7 @@ export const runInspect = (
       score,
       didLintFail: lintFailureState.didFail,
       lintFailureReason: lintFailureState.reason,
+      lintFailureReasonTag: lintFailureState.reasonTag,
       lintPartialFailures,
     };
   });
