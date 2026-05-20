@@ -356,6 +356,22 @@ const isEntryPointFile = (filename: string): boolean => {
   return ENTRY_POINT_BASENAMES.has(basename);
 };
 
+// Files that conventionally hold icon / asset / glyph exports —
+// `icons.tsx`, `Icons.tsx`, `*Icon.tsx`, `*Logo.tsx`, `sprite.tsx`,
+// `svgs.tsx`, `flags.tsx`, etc. These tend to mix component-style
+// exports (`const HomeIcon = () => <svg.../>`) with constants by
+// design; Fast Refresh isn't useful for icons (no component state
+// worth preserving). Pattern is anchored to the basename so a file
+// named `MyCardicons.tsx` doesn't accidentally match `icon`.
+const ASSET_FILE_BASENAME_PATTERN =
+  /^([A-Za-z][\w-]*[-._])?(icons?|svgs?|svg[-_]?sprites?|sprites?|emojis?|flags?|logos?|lockups?|illustrations?|glyphs?|stickers?|emotes?|avatars?|backgrounds?|patterns?|assets?|gradients?|countryVectors?|paymentVectors?|brandVectors?|brandLogos?)\.(t|j)sx?$/;
+
+const isAssetOrUtilityFile = (filename: string): boolean => {
+  const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+  const basename = lastSlash === -1 ? filename : filename.slice(lastSlash + 1);
+  return ASSET_FILE_BASENAME_PATTERN.test(basename);
+};
+
 const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): boolean => {
   // No filename means we're in a unit-test runner — keep the rule active
   // so the test suite still exercises the analyzer.
@@ -380,6 +396,13 @@ const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): bool
   // in HMR — they get full reloaded when changed. Local-component and
   // mixed-export warnings are unactionable here.
   if (isEntryPointFile(filename)) return false;
+  // Icon / asset / utility collection files (`icons.tsx`, `*Icon.tsx`,
+  // `*Logo.tsx`, `sprite.tsx`, `assets.tsx`, `utils.tsx`, `tokens.tsx`,
+  // `theme.tsx`, `constants.tsx`, etc.) hold non-state-bearing exports
+  // by design. Fast Refresh isn't useful for preserving icon / token
+  // instances across edits — the file gets full reloaded and no
+  // component state is lost (the file doesn't define one).
+  if (isAssetOrUtilityFile(filename)) return false;
   // Only `.tsx` / `.jsx` (and `.js` when `checkJS` is on) modules run
   // through Fast Refresh. Pure `.ts` files — barrels, utility modules,
   // server code — can't break it no matter what they export, so the

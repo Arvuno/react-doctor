@@ -73,6 +73,32 @@ const isReceiverChainIteratorRooted = (
 // cost and the rewrite to a single-pass reduce just hurts readability.
 const SMALL_LITERAL_ARRAY_MAX_ELEMENTS = 8;
 
+// Receivers whose result size is bounded by the source's KEY COUNT
+// (objects rarely exceed a few dozen keys in app code). The chain
+// `Object.entries(config).map(...).filter(...)` iterates the same
+// fixed-size key set twice; converting to `for...of` is purely
+// stylistic.
+const KEY_BOUNDED_RECEIVER_METHODS: ReadonlySet<string> = new Set([
+  "entries",
+  "keys",
+  "values",
+  "fromEntries",
+  "getOwnPropertyNames",
+  "getOwnPropertyDescriptors",
+  "getOwnPropertySymbols",
+]);
+
+const isKeyBoundedReceiver = (receiverNode: EsTreeNode | null | undefined): boolean => {
+  if (!receiverNode) return false;
+  if (!isNodeOfType(receiverNode, "CallExpression")) return false;
+  const callee = receiverNode.callee;
+  if (!isNodeOfType(callee, "MemberExpression")) return false;
+  if (!isNodeOfType(callee.object, "Identifier")) return false;
+  if (callee.object.name !== "Object") return false;
+  if (!isNodeOfType(callee.property, "Identifier")) return false;
+  return KEY_BOUNDED_RECEIVER_METHODS.has(callee.property.name);
+};
+
 const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefined): boolean => {
   let cursor: EsTreeNode | null | undefined = receiverNode;
   while (cursor) {
@@ -92,6 +118,9 @@ const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefi
       }
       return true;
     }
+    // `Object.entries(obj).map(...).filter(...)` — chain rooted in
+    // a key-bounded Object.X call. Same trivial-cost reasoning.
+    if (isKeyBoundedReceiver(cursor)) return true;
     if (!isNodeOfType(cursor, "CallExpression")) return false;
     if (!isChainPassThroughCall(cursor)) return false;
     const nextCallee = cursor.callee;
