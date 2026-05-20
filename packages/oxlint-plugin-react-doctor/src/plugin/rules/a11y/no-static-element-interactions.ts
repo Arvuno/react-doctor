@@ -13,6 +13,10 @@ import { isNonInteractiveElement } from "../../utils/is-non-interactive-element.
 import { isNonInteractiveRole } from "../../utils/is-non-interactive-role.js";
 import { isPresentationRole } from "../../utils/is-presentation-role.js";
 import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
+import {
+  fileImportsNonReactJsxDialect,
+  jsxAttributeIsNonReactDialectMarker,
+} from "../../utils/non-react-jsx-dialect.js";
 import type { Rule } from "../../utils/rule.js";
 
 const MESSAGE =
@@ -123,9 +127,17 @@ export const noStaticElementInteractions = defineRule<Rule>({
   create: (context) => {
     const settings = resolveSettings(context.settings);
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let fileIsNonReactJsx = false;
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
+      },
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
         if (isTestlikeFile) return;
+        if (!fileIsNonReactJsx && jsxAttributeIsNonReactDialectMarker(node)) {
+          fileIsNonReactJsx = true;
+        }
+        if (fileIsNonReactJsx) return;
         // Find any active handler — but pure event-blocker handlers
         // (`onClick={(e) => e.stopPropagation()}`) don't count as
         // "interactive": the element isn't a user-interaction target,

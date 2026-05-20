@@ -8,6 +8,10 @@ import { isHiddenFromScreenReader } from "../../utils/is-hidden-from-screen-read
 import { isInteractiveElement } from "../../utils/is-interactive-element.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
+import {
+  fileImportsNonReactJsxDialect,
+  jsxAttributeIsNonReactDialectMarker,
+} from "../../utils/non-react-jsx-dialect.js";
 import type { Rule } from "../../utils/rule.js";
 import { HTML_TAGS } from "../../constants/html-tags.js";
 
@@ -80,9 +84,17 @@ export const clickEventsHaveKeyEvents = defineRule<Rule>({
   category: "Accessibility",
   create: (context) => {
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let fileIsNonReactJsx = false;
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
+      },
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
         if (isTestlikeFile) return;
+        if (!fileIsNonReactJsx && jsxAttributeIsNonReactDialectMarker(node)) {
+          fileIsNonReactJsx = true;
+        }
+        if (fileIsNonReactJsx) return;
         const tag = getElementType(node, context.settings);
         // Skip non-DOM elements (custom components might handle keyboard
         // internally).

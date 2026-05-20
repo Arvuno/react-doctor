@@ -21,6 +21,18 @@ const NON_PRODUCTION_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/demos/",
   "/sandbox/",
   "/sandboxes/",
+  "/e2e/",
+  "/e2e-tests/",
+  "/specs/",
+  "/spec/",
+  "/integration-tests/",
+  "/integration/",
+  "/it/",
+  "/benchmarks/",
+  "/benchmark/",
+  "/__benchmarks__/",
+  "/perf/",
+  "/perf-tests/",
 ];
 
 // True iff `filename` looks like test / spec / Storybook / Cypress /
