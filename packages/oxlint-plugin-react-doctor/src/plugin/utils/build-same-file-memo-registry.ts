@@ -40,21 +40,13 @@ const isMemoisingCall = (call: EsTreeNode): boolean => {
   return name !== null && HOC_NAMES_FOR_MEMOISATION.has(name);
 };
 
-export const buildSameFileMemoRegistry = (
-  program: EsTreeNode,
-): Map<string, MemoStatus> => {
+export const buildSameFileMemoRegistry = (program: EsTreeNode): Map<string, MemoStatus> => {
   const registry = new Map<string, MemoStatus>();
   if (!isNodeOfType(program, "Program")) return registry;
   for (const statement of program.body) {
-    const root = isNodeOfType(
-      statement as { type: string } as never,
-      "ExportNamedDeclaration",
-    )
+    const root = isNodeOfType(statement as { type: string } as never, "ExportNamedDeclaration")
       ? ((statement as { declaration: EsTreeNode | null }).declaration as EsTreeNode | null)
-      : isNodeOfType(
-            statement as { type: string } as never,
-            "ExportDefaultDeclaration",
-          )
+      : isNodeOfType(statement as { type: string } as never, "ExportDefaultDeclaration")
         ? ((statement as { declaration: EsTreeNode | null }).declaration as EsTreeNode | null)
         : (statement as EsTreeNode);
     if (!root) continue;

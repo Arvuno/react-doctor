@@ -57,9 +57,7 @@ const isPureEventBlockerBody = (body: EsTreeNode | null | undefined): boolean =>
   return false;
 };
 
-const isPureEventBlockerHandler = (
-  attribute: EsTreeNodeOfType<"JSXAttribute">,
-): boolean => {
+const isPureEventBlockerHandler = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
   if (!attribute.value || !isNodeOfType(attribute.value, "JSXExpressionContainer")) {
     return false;
   }

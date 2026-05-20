@@ -38,9 +38,7 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   // If/else: max of branches (only one fires).
   if (isNodeOfType(node, "IfStatement")) {
     const thenCount = countMaxPathSetStateCalls(node.consequent as EsTreeNode);
-    const elseCount = node.alternate
-      ? countMaxPathSetStateCalls(node.alternate as EsTreeNode)
-      : 0;
+    const elseCount = node.alternate ? countMaxPathSetStateCalls(node.alternate as EsTreeNode) : 0;
     return Math.max(thenCount, elseCount);
   }
   // Conditional expression — same logic.
@@ -67,9 +65,7 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   if (isNodeOfType(node, "TryStatement")) {
     const tryCount = countMaxPathSetStateCalls(node.block as EsTreeNode);
     const catchCount = node.handler
-      ? countMaxPathSetStateCalls(
-          (node.handler as { body: EsTreeNode }).body,
-        )
+      ? countMaxPathSetStateCalls((node.handler as { body: EsTreeNode }).body)
       : 0;
     const finallyCount = node.finalizer
       ? countMaxPathSetStateCalls(node.finalizer as EsTreeNode)

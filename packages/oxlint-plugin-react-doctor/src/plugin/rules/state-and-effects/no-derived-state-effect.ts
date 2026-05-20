@@ -93,6 +93,18 @@ export const noDerivedStateEffect = defineRule<Rule>({
         if (isNodeOfType(element, "Identifier")) dependencyNames.add(element.name);
       }
       if (dependencyNames.size === 0) return;
+      // Initial-only / default / seed-named deps signal an explicit
+      // controlled-init re-sync pattern. `useEffect(..., [initialValue])`
+      // is the canonical "reset child state when the caller passes a
+      // new initial" idiom — skip it.
+      let allDepsAreInitialOnly = true;
+      for (const name of dependencyNames) {
+        if (!isInitialOnlyName(name)) {
+          allDepsAreInitialOnly = false;
+          break;
+        }
+      }
+      if (allDepsAreInitialOnly) return;
 
       const statements = getCallbackStatements(callback);
       if (statements.length === 0) return;
@@ -183,3 +195,15 @@ export const noDerivedStateEffect = defineRule<Rule>({
     },
   }),
 });
+
+const isInitialOnlyName = (name: string): boolean => {
+  if (name === "initialValue" || name === "defaultValue" || name === "seedValue") return true;
+  return (
+    /^initial[A-Z]/.test(name) ||
+    /^default[A-Z]/.test(name) ||
+    /^seed[A-Z]/.test(name) ||
+    /^starting[A-Z]/.test(name) ||
+    /^baseline[A-Z]/.test(name) ||
+    /^preset[A-Z]/.test(name)
+  );
+};

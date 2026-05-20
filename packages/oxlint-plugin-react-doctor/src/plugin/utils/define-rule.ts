@@ -16,7 +16,9 @@ interface DefineRule {
 // auto-parallelizable awaits, etc. None of these apply to files that
 // don't ship to users. We wrap `create()` once here so every such rule
 // auto-skips testlike files without each one re-implementing the check.
-const wrapCreateForTestNoise = <CreateFn extends (context: { getFilename?: () => string | undefined }) => Record<string, unknown>>(
+const wrapCreateForTestNoise = <
+  CreateFn extends (context: { getFilename?: () => string | undefined }) => Record<string, unknown>,
+>(
   create: CreateFn,
 ): CreateFn =>
   ((context) => {
@@ -69,9 +71,7 @@ const wrapCreateForReactJsxOnly = <
         continue;
       }
       if (key === "JSXOpeningElement") {
-        wrappedVisitors.JSXOpeningElement = (
-          node: EsTreeNodeOfType<"JSXOpeningElement">,
-        ) => {
+        wrappedVisitors.JSXOpeningElement = (node: EsTreeNodeOfType<"JSXOpeningElement">) => {
           if (!fileIsNonReactJsx && jsxAttributeIsNonReactDialectMarker(node)) {
             fileIsNonReactJsx = true;
           }
@@ -93,9 +93,7 @@ const wrapCreateForReactJsxOnly = <
     return wrappedVisitors;
   }) as CreateFn;
 
-export const defineRule: DefineRule = <RuleDefinition>(
-  rule: RuleDefinition,
-): RuleDefinition => {
+export const defineRule: DefineRule = <RuleDefinition>(rule: RuleDefinition): RuleDefinition => {
   const tags = (rule as { tags?: ReadonlyArray<string> }).tags;
   const create = (rule as { create?: unknown }).create;
   if (typeof create !== "function") return rule;

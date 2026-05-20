@@ -67,15 +67,15 @@ export const jsHoistIntl = defineRule<Rule>({
           if (
             fnParent &&
             isNodeOfType(fnParent, "CallExpression") &&
-            (fnParent.arguments?.[0] === cursor)
+            fnParent.arguments?.[0] === cursor
           ) {
             const callee = fnParent.callee;
             const calleeName = isNodeOfType(callee, "Identifier")
               ? callee.name
               : isNodeOfType(callee, "MemberExpression") &&
-                isNodeOfType(callee.property, "Identifier")
-              ? callee.property.name
-              : null;
+                  isNodeOfType(callee.property, "Identifier")
+                ? callee.property.name
+                : null;
             if (
               calleeName === "useMemo" ||
               calleeName === "useCallback" ||

@@ -477,7 +477,21 @@ const UTILITY_FILE_BASENAMES: ReadonlySet<string> = new Set([
 // `Mutations` isn't a meaningful word boundary — we want
 // `User-Mappings.tsx`, `userMappings.tsx`, `UserMappings.tsx`).
 const UTILITY_BASENAME_SUFFIX_PATTERN =
-  /^[A-Za-z][\w-]*(Utils|Helpers|Helper|Shared|Constants|Types|Mappings|Lookups|Registry|Renderers|NodeTypes|EdgeTypes|CellTypes|ColumnDefs|ColumnTypes|ColumnRenderers|Columns|Schemas|Schema|Definitions|Config|Defaults|Tokens|Palette)\.(t|j)sx?$/;
+  /^[A-Za-z][\w-]*(Utils|Util|Helpers|Helper|Shared|Constants|Constant|Types|Type|Mappings|Mapping|Lookups|Lookup|Registry|Renderers|Renderer|NodeTypes|EdgeTypes|CellTypes|ColumnDefs|ColumnTypes|ColumnRenderers|Columns|Schemas|Schema|Definitions|Definition|Config|Configuration|Defaults|Default|Tokens|Palette|Context|Provider|Providers|Logic|Scene|Page|Layout|Fields|Field|Forms|Form|Table|Tables|Cells|Cell|Rows|Row|Header|Headers|Footer|Footers|Wrapper|Container|Containers|Modal|Modals|Dialog|Dialogs|Drawer|Popover|Tooltip|Menu|Menus|Dropdown|Dropdowns|Tab|Tabs|Panel|Panels|Card|Cards|Tile|Tiles|Sidebar|Toolbar|Toolbars|Breadcrumb|Breadcrumbs|Navigation|Nav|Footer|Banner|Banners|Alert|Alerts|Toast|Toasts|Notification|Notifications|Empty|EmptyState|Loading|Loader|Skeleton|Skeletons|Avatar|Avatars|Badge|Badges|Chip|Chips|Tag|Tags|Pill|Pills|Status|Statuses|Indicator|Indicators)\.(t|j)sx?$/;
+
+// Custom hook files: `useCreateRouter.tsx`, `useTranslation.tsx`,
+// `useSafeId.tsx`. Hook files conventionally co-export helper types
+// + constants + sometimes a small helper component alongside the hook.
+// Fast Refresh doesn't preserve hook state across edits anyway.
+const HOOK_FILE_BASENAME_PATTERN = /^use[A-Z][\w-]*\.(t|j)sx?$/;
+
+// Plugin-style node-definition files for editor / notebook /
+// flowchart ecosystems (`NotebookNodePerson.tsx`, `NodeShapeUtil.tsx`,
+// `*Node*.tsx`, `*ShapeUtil.tsx`). These are plugin registrations
+// that conventionally export the node component + types + handlers
+// from one file.
+const NODE_DEFINITION_BASENAME_PATTERN =
+  /^([A-Z][\w-]*)?(NodeUtil|ShapeUtil|EdgeUtil|BindingUtil|BlockNode|Block|Node|InlineNode|Extension|Plugin|Component)\.(t|j)sx?$/;
 
 const isAssetOrUtilityFile = (filename: string): boolean => {
   const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
@@ -485,6 +499,8 @@ const isAssetOrUtilityFile = (filename: string): boolean => {
   if (ASSET_FILE_BASENAME_PATTERN.test(basename)) return true;
   if (UTILITY_FILE_BASENAMES.has(basename)) return true;
   if (UTILITY_BASENAME_SUFFIX_PATTERN.test(basename)) return true;
+  if (HOOK_FILE_BASENAME_PATTERN.test(basename)) return true;
+  if (NODE_DEFINITION_BASENAME_PATTERN.test(basename)) return true;
   return false;
 };
 

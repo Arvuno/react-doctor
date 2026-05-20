@@ -48,10 +48,7 @@ const innerExpression = (expression: EsTreeNode): EsTreeNode => {
 // consumer's prop value. The consumer site is where the rule should
 // fire, not the trampoline. (Without this, every well-behaved input
 // wrapper that exposes `autoFocus` to its caller gets flagged.)
-const isSameNameIdentifierForward = (
-  attributeName: string,
-  value: EsTreeNode | null,
-): boolean => {
+const isSameNameIdentifierForward = (attributeName: string, value: EsTreeNode | null): boolean => {
   if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return false;
   const expression = innerExpression(value.expression as EsTreeNode);
   if (isNodeOfType(expression, "Identifier") && expression.name === attributeName) {

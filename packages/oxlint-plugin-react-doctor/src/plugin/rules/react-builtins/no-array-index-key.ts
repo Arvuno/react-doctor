@@ -39,11 +39,7 @@ const isAllLiteralArrayExpression = (node: EsTreeNode): boolean => {
     if (!element) return false;
     if (!isNodeOfType(element, "Literal")) return false;
     const value = (element as { value: unknown }).value;
-    if (
-      typeof value !== "string" &&
-      typeof value !== "number" &&
-      typeof value !== "boolean"
-    )
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")
       return false;
   }
   return true;
@@ -54,10 +50,7 @@ const isPositionallyStableIterationReceiver = (receiver: EsTreeNode): boolean =>
   if (isAllLiteralArrayExpression(receiver)) return true;
   // `[...Array(N)].map(...)` or `[...Array.from(...)].map(...)` — spread
   // of an array constructor; the result has a fixed positional shape.
-  if (
-    isNodeOfType(receiver, "ArrayExpression") &&
-    receiver.elements?.length === 1
-  ) {
+  if (isNodeOfType(receiver, "ArrayExpression") && receiver.elements?.length === 1) {
     const only = receiver.elements[0];
     if (only && isNodeOfType(only, "SpreadElement")) {
       const arg = only.argument as EsTreeNode | null;
@@ -110,8 +103,7 @@ const templateHasIteratorMember = (
   iteratorName: string,
 ): boolean => {
   for (const expression of templateLiteral.expressions ?? []) {
-    if (isNodeOfType(expression, "Identifier") && expression.name === iteratorName)
-      return true;
+    if (isNodeOfType(expression, "Identifier") && expression.name === iteratorName) return true;
     if (
       isNodeOfType(expression, "MemberExpression") &&
       isNodeOfType(expression.object, "Identifier") &&
@@ -302,6 +294,192 @@ const isPureSvgPrimitiveJsxName = (jsxOpeningName: EsTreeNode): boolean => {
   return PURE_SVG_PRIMITIVE_TAGS.has(jsxOpeningName.name);
 };
 
+// Plain-display HTML elements that carry no DOM-managed state
+// (selection, focus, scroll, video time, etc.) and emit no events
+// that would benefit from stable identity. Reorder hazards for these
+// only matter when their CHILDREN have state — see the descendant
+// scan below.
+const STATELESS_HTML_LEAF_TAGS: ReadonlySet<string> = new Set([
+  "div",
+  "span",
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "footer",
+  "section",
+  "article",
+  "aside",
+  "main",
+  "nav",
+  "li",
+  "ul",
+  "ol",
+  "dl",
+  "dt",
+  "dd",
+  "tr",
+  "td",
+  "th",
+  "tbody",
+  "thead",
+  "tfoot",
+  "table",
+  "caption",
+  "colgroup",
+  "col",
+  "strong",
+  "em",
+  "small",
+  "b",
+  "i",
+  "u",
+  "s",
+  "mark",
+  "del",
+  "ins",
+  "sub",
+  "sup",
+  "abbr",
+  "cite",
+  "code",
+  "kbd",
+  "samp",
+  "pre",
+  "blockquote",
+  "q",
+  "br",
+  "hr",
+  "wbr",
+  "img",
+  "picture",
+  "figure",
+  "figcaption",
+  "label",
+  "legend",
+  "fieldset",
+  "address",
+  "time",
+  "data",
+  "var",
+  "ruby",
+  "rt",
+  "rp",
+  "bdi",
+  "bdo",
+]);
+
+// HTML elements that manage DOM state (selection / focus / scroll /
+// playback / interactive identity). If any descendant of a keyed
+// element is one of these, reordering with an index key WOULD
+// corrupt that state. Detected via a bounded AST walk over the
+// JSXElement's children.
+const STATEFUL_HTML_DESCENDANT_TAGS: ReadonlySet<string> = new Set([
+  // Form controls — their value, focus, and selection are tied to
+  // DOM identity.
+  "input",
+  "textarea",
+  "select",
+  "option",
+  "optgroup",
+  "button",
+  "form",
+  "output",
+  "progress",
+  "meter",
+  // Media — playback state.
+  "video",
+  "audio",
+  "source",
+  "track",
+  // Document embeddings — independent state.
+  "iframe",
+  "embed",
+  "object",
+  // Interactive containers — `<a href>` carries focus/click identity.
+  "a",
+  "details",
+  "summary",
+  "dialog",
+  // Editable content.
+  "canvas",
+]);
+
+const isStatelessLeafJsxName = (jsxOpeningName: EsTreeNode): boolean => {
+  if (!isNodeOfType(jsxOpeningName, "JSXIdentifier")) return false;
+  return STATELESS_HTML_LEAF_TAGS.has(jsxOpeningName.name);
+};
+
+// Bounded walk over a JSXElement's children to detect any stateful
+// HTML descendant or any CUSTOM (PascalCase) component descendant.
+// Custom components are assumed potentially-stateful — we can't see
+// inside them.
+const STATEFUL_DESCENDANT_SCAN_BUDGET = 200;
+
+const containsStatefulDescendant = (jsxElement: EsTreeNode): boolean => {
+  let budget = STATEFUL_DESCENDANT_SCAN_BUDGET;
+  const stack: Array<EsTreeNode> = [jsxElement];
+  while (stack.length > 0) {
+    if (budget <= 0) return true; // Conservative bail-out — assume stateful.
+    budget -= 1;
+    const node = stack.pop()!;
+    if (isNodeOfType(node, "JSXElement")) {
+      const opening = (node as { openingElement: EsTreeNode }).openingElement;
+      const name = (opening as { name?: EsTreeNode }).name;
+      if (name && isNodeOfType(name, "JSXIdentifier")) {
+        const tagName = name.name;
+        const firstChar = tagName.charCodeAt(0);
+        const isUppercase = firstChar >= 65 && firstChar <= 90;
+        // PascalCase custom component — unknown state, treat as stateful.
+        if (isUppercase) return true;
+        if (STATEFUL_HTML_DESCENDANT_TAGS.has(tagName)) return true;
+      }
+      // Member-expression JSX (e.g. `<Foo.Bar />`) — custom; stateful.
+      if (name && isNodeOfType(name, "JSXMemberExpression")) return true;
+      // Walk children.
+      const children = (node as { children?: ReadonlyArray<EsTreeNode> }).children ?? [];
+      for (const child of children) stack.push(child);
+      continue;
+    }
+    if (isNodeOfType(node, "JSXFragment")) {
+      const children = (node as { children?: ReadonlyArray<EsTreeNode> }).children ?? [];
+      for (const child of children) stack.push(child);
+      continue;
+    }
+    if (isNodeOfType(node, "JSXExpressionContainer")) {
+      // `{anything}` — could render arbitrary JSX. Conservative: bail.
+      const expression = node.expression as EsTreeNode;
+      // Function-call children (`{renderX(...)}`, `{items.map(...)}`,
+      // `{children}`) are unknown — assume stateful.
+      if (
+        isNodeOfType(expression, "CallExpression") ||
+        isNodeOfType(expression, "Identifier") ||
+        isNodeOfType(expression, "MemberExpression")
+      ) {
+        return true;
+      }
+      // Conditional / logical / template — walk into.
+      stack.push(expression);
+      continue;
+    }
+    // Walk through ternary/logical expressions to find JSX branches.
+    if (isNodeOfType(node, "ConditionalExpression")) {
+      stack.push(node.consequent as EsTreeNode, node.alternate as EsTreeNode);
+      continue;
+    }
+    if (isNodeOfType(node, "LogicalExpression")) {
+      stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
+      continue;
+    }
+    // JSXText, Literal — pure content, never stateful.
+  }
+  return false;
+};
+
 // Recognises `<React.Fragment>` / `<Fragment>` / shorthand `<>` —
 // fragments carry no DOM identity and no internal state, so an index
 // key has no reordering hazard. (React would warn loudly if a key
@@ -354,6 +532,18 @@ export const noArrayIndexKey = defineRule<Rule>({
       if (isNodeOfType(expression, "TemplateLiteral")) {
         const itemName = findIteratorItemName(node as EsTreeNode);
         if (itemName && templateHasIteratorMember(expression, itemName)) return;
+      }
+      // Stateless HTML leaf (`<div>`, `<li>`, `<span>`, etc.) whose
+      // descendants are ALL pure-content (no `<input>`, `<button>`,
+      // `<select>`, `<video>`, no custom PascalCase components, no
+      // function-call expressions returning unknown JSX). Reordering
+      // can't corrupt any DOM-managed state because there isn't any.
+      if (isStatelessLeafJsxName(node.name as EsTreeNode)) {
+        // node.parent should be the JSXElement; if not, fall through.
+        const jsxElement = node.parent;
+        if (jsxElement && isNodeOfType(jsxElement, "JSXElement")) {
+          if (!containsStatefulDescendant(jsxElement as EsTreeNode)) return;
+        }
       }
       context.report({ node: keyAttribute, message: MESSAGE });
     },

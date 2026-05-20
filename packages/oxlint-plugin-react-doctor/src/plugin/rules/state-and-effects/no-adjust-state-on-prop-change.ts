@@ -39,10 +39,19 @@ export const noAdjustStateOnPropChange = defineRule<Rule>({
       const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
-      const isSomeDepsProps = depsRefs
-        .flatMap((ref) => getUpstreamRefs(analysis, ref))
-        .some((ref) => isProp(analysis, ref));
+      const depsUpstream = depsRefs.flatMap((ref) => getUpstreamRefs(analysis, ref));
+      const isSomeDepsProps = depsUpstream.some((ref) => isProp(analysis, ref));
       if (!isSomeDepsProps) return;
+      // Initial-only / default / seed prop in deps — the entire
+      // effect is a controlled-reset on a deliberately-named init
+      // prop. Don't flag.
+      const allPropDepsAreInitialOnly = depsUpstream
+        .filter((ref) => isProp(analysis, ref))
+        .every((ref) => {
+          const id = ref.identifier as unknown as EsTreeNode | undefined;
+          return Boolean(id && isNodeOfType(id, "Identifier") && isInitialOnlyPropName(id.name));
+        });
+      if (allPropDepsAreInitialOnly) return;
 
       for (const ref of effectFnRefs) {
         if (!isStateSetterCall(analysis, ref)) continue;
@@ -63,3 +72,17 @@ export const noAdjustStateOnPropChange = defineRule<Rule>({
     },
   }),
 });
+
+const isInitialOnlyPropName = (propName: string): boolean => {
+  if (propName === "initialValue" || propName === "defaultValue" || propName === "seedValue") {
+    return true;
+  }
+  return (
+    /^initial[A-Z]/.test(propName) ||
+    /^default[A-Z]/.test(propName) ||
+    /^seed[A-Z]/.test(propName) ||
+    /^starting[A-Z]/.test(propName) ||
+    /^baseline[A-Z]/.test(propName) ||
+    /^preset[A-Z]/.test(propName)
+  );
+};

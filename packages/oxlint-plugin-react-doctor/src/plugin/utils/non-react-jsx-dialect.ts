@@ -32,9 +32,7 @@ const NON_REACT_JSX_DIALECT_PACKAGE_PREFIXES: ReadonlyArray<string> = [
 const startsWithAny = (source: string, prefixes: ReadonlyArray<string>): boolean =>
   prefixes.some((prefix) => source === prefix || source.startsWith(`${prefix}/`));
 
-export const fileImportsNonReactJsxDialect = (
-  program: EsTreeNodeOfType<"Program">,
-): boolean => {
+export const fileImportsNonReactJsxDialect = (program: EsTreeNodeOfType<"Program">): boolean => {
   for (const statement of program.body) {
     if (!isNodeOfType(statement as EsTreeNode, "ImportDeclaration")) continue;
     const source = (statement as EsTreeNodeOfType<"ImportDeclaration">).source;

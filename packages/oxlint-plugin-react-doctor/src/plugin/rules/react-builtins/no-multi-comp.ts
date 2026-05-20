@@ -135,9 +135,7 @@ const isSimpleJsxPassthrough = (expression: EsTreeNode): boolean => {
   if (!isReactComponentName(opening.name.name)) return false;
   const attrs = opening.attributes;
   if (attrs.length > MAX_PASSTHROUGH_ATTRS) return false;
-  const hasSpread = attrs.some((attr) =>
-    isNodeOfType(attr as EsTreeNode, "JSXSpreadAttribute"),
-  );
+  const hasSpread = attrs.some((attr) => isNodeOfType(attr as EsTreeNode, "JSXSpreadAttribute"));
   if (!hasSpread) return false;
   for (const child of expression.children ?? []) {
     if (!isTrivialPassthroughChild(child as EsTreeNode)) return false;
@@ -331,10 +329,7 @@ const collectReExportedNames = (program: EsTreeNode): Set<string> => {
   return names;
 };
 
-const isExportedDeclaration = (
-  node: EsTreeNode,
-  reExportedNames: Set<string>,
-): boolean => {
+const isExportedDeclaration = (node: EsTreeNode, reExportedNames: Set<string>): boolean => {
   // The component's reportNode is the binding identifier (e.g.
   // `Foo` inside `export function Foo()`). To detect export-ness we
   // walk up through AT MOST one function/class layer (the binding
@@ -658,7 +653,22 @@ export const noMultiComp = defineRule<Rule>({
           exportedCount <= 4 &&
           flagged.length >= 8 &&
           exportedCount * 2 < flagged.length;
-        if (isSmallFeatureModule || isLargeFeatureModule) return;
+        // Very-large feature module: 8+ exports, 12+ total, private
+        // helpers still 30 %+ of the file. PostHog's
+        // `WebAnalyticsFilters.tsx` / `WebAnalyticsDashboard.tsx` shape
+        // — feature modules with a public surface of 5–8 named
+        // components plus a handful of private subcomponents
+        // (`<HeaderRow>`, `<MaybeWrapInTooltip>`, etc.). Splitting each
+        // public component into its own file would fragment a tightly-
+        // coupled UI without any maintenance benefit; the file already
+        // names the feature.
+        const isVeryLargeFeatureModule =
+          exportedCount >= 5 &&
+          flagged.length >= 12 &&
+          // Private helpers ≥ 25 % of the file (so we're not just
+          // exempting a barrel that mostly re-exports).
+          (flagged.length - exportedCount) * 4 >= flagged.length;
+        if (isSmallFeatureModule || isLargeFeatureModule || isVeryLargeFeatureModule) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
         }

@@ -42,6 +42,160 @@ const PURE_SVG_PRIMITIVE_TAGS: ReadonlySet<string> = new Set([
   "desc",
 ]);
 
+// Mirror of `no-array-index-key`'s stateless-leaf list. See that file
+// for the full rationale.
+const STATELESS_HTML_LEAF_TAGS: ReadonlySet<string> = new Set([
+  "div",
+  "span",
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "footer",
+  "section",
+  "article",
+  "aside",
+  "main",
+  "nav",
+  "li",
+  "ul",
+  "ol",
+  "dl",
+  "dt",
+  "dd",
+  "tr",
+  "td",
+  "th",
+  "tbody",
+  "thead",
+  "tfoot",
+  "table",
+  "caption",
+  "colgroup",
+  "col",
+  "strong",
+  "em",
+  "small",
+  "b",
+  "i",
+  "u",
+  "s",
+  "mark",
+  "del",
+  "ins",
+  "sub",
+  "sup",
+  "abbr",
+  "cite",
+  "code",
+  "kbd",
+  "samp",
+  "pre",
+  "blockquote",
+  "q",
+  "br",
+  "hr",
+  "wbr",
+  "img",
+  "picture",
+  "figure",
+  "figcaption",
+  "label",
+  "legend",
+  "fieldset",
+  "address",
+  "time",
+  "data",
+  "var",
+  "ruby",
+  "rt",
+  "rp",
+  "bdi",
+  "bdo",
+]);
+
+const STATEFUL_HTML_DESCENDANT_TAGS: ReadonlySet<string> = new Set([
+  "input",
+  "textarea",
+  "select",
+  "option",
+  "optgroup",
+  "button",
+  "form",
+  "output",
+  "progress",
+  "meter",
+  "video",
+  "audio",
+  "source",
+  "track",
+  "iframe",
+  "embed",
+  "object",
+  "a",
+  "details",
+  "summary",
+  "dialog",
+  "canvas",
+]);
+
+const STATEFUL_DESCENDANT_SCAN_BUDGET = 200;
+
+const containsStatefulDescendant = (jsxElement: EsTreeNode): boolean => {
+  let budget = STATEFUL_DESCENDANT_SCAN_BUDGET;
+  const stack: Array<EsTreeNode> = [jsxElement];
+  while (stack.length > 0) {
+    if (budget <= 0) return true;
+    budget -= 1;
+    const node = stack.pop()!;
+    if (isNodeOfType(node, "JSXElement")) {
+      const opening = (node as { openingElement: EsTreeNode }).openingElement;
+      const name = (opening as { name?: EsTreeNode }).name;
+      if (name && isNodeOfType(name, "JSXIdentifier")) {
+        const tagName = name.name;
+        const firstChar = tagName.charCodeAt(0);
+        const isUppercase = firstChar >= 65 && firstChar <= 90;
+        if (isUppercase) return true;
+        if (STATEFUL_HTML_DESCENDANT_TAGS.has(tagName)) return true;
+      }
+      if (name && isNodeOfType(name, "JSXMemberExpression")) return true;
+      const children = (node as { children?: ReadonlyArray<EsTreeNode> }).children ?? [];
+      for (const child of children) stack.push(child);
+      continue;
+    }
+    if (isNodeOfType(node, "JSXFragment")) {
+      const children = (node as { children?: ReadonlyArray<EsTreeNode> }).children ?? [];
+      for (const child of children) stack.push(child);
+      continue;
+    }
+    if (isNodeOfType(node, "JSXExpressionContainer")) {
+      const expression = node.expression as EsTreeNode;
+      if (
+        isNodeOfType(expression, "CallExpression") ||
+        isNodeOfType(expression, "Identifier") ||
+        isNodeOfType(expression, "MemberExpression")
+      ) {
+        return true;
+      }
+      stack.push(expression);
+      continue;
+    }
+    if (isNodeOfType(node, "ConditionalExpression")) {
+      stack.push(node.consequent as EsTreeNode, node.alternate as EsTreeNode);
+      continue;
+    }
+    if (isNodeOfType(node, "LogicalExpression")) {
+      stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
+      continue;
+    }
+  }
+  return false;
+};
+
 const extractIndexName = (node: EsTreeNode): string | null => {
   if (isNodeOfType(node, "Identifier") && INDEX_PARAMETER_NAMES.has(node.name)) return node.name;
 
@@ -124,10 +278,10 @@ const isArrayFromCall = (node: EsTreeNode | null | undefined): boolean => {
   const callee = node.callee;
   return Boolean(
     isNodeOfType(callee, "MemberExpression") &&
-      isNodeOfType(callee.object, "Identifier") &&
-      callee.object.name === "Array" &&
-      isNodeOfType(callee.property, "Identifier") &&
-      callee.property.name === "from",
+    isNodeOfType(callee.object, "Identifier") &&
+    callee.object.name === "Array" &&
+    isNodeOfType(callee.property, "Identifier") &&
+    callee.property.name === "from",
   );
 };
 
@@ -144,11 +298,7 @@ const isAllLiteralArrayExpression = (node: EsTreeNode): boolean => {
     if (!element) return false;
     if (!isNodeOfType(element, "Literal")) return false;
     const value = element.value;
-    if (
-      typeof value !== "string" &&
-      typeof value !== "number" &&
-      typeof value !== "boolean"
-    )
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")
       return false;
   }
   return true;
@@ -266,8 +416,7 @@ const findIteratorItemName = (node: EsTreeNode): string | null => {
         isArrayFromCall(parent) && parent.arguments.length >= 2 && parent.arguments[1] === current;
 
       if (isIteratorMethodCall || isArrayFromCallback) {
-        const cbParams =
-          (current as EsTreeNodeOfType<"ArrowFunctionExpression">).params ?? [];
+        const cbParams = (current as EsTreeNodeOfType<"ArrowFunctionExpression">).params ?? [];
         const first = cbParams[0];
         if (first && isNodeOfType(first, "Identifier")) return first.name;
         return null;
@@ -284,8 +433,7 @@ const templateLiteralHasIteratorIdentity = (
   itemName: string,
 ): boolean => {
   for (const expression of template.expressions ?? []) {
-    if (isNodeOfType(expression, "Identifier") && expression.name === itemName)
-      return true;
+    if (isNodeOfType(expression, "Identifier") && expression.name === itemName) return true;
     if (
       isNodeOfType(expression, "MemberExpression") &&
       isNodeOfType(expression.object, "Identifier") &&
@@ -340,6 +488,15 @@ export const noArrayIndexAsKey = defineRule<Rule>({
         if (isNodeOfType(elementName, "JSXIdentifier")) {
           if (elementName.name === "Fragment") return;
           if (PURE_SVG_PRIMITIVE_TAGS.has(elementName.name)) return;
+          // Stateless HTML leaf element whose subtree contains no
+          // form controls, no media, no custom components, no
+          // function-call children — reorder hazard doesn't apply.
+          if (STATELESS_HTML_LEAF_TAGS.has(elementName.name)) {
+            const jsxElement = openingElement.parent;
+            if (jsxElement && isNodeOfType(jsxElement, "JSXElement")) {
+              if (!containsStatefulDescendant(jsxElement as EsTreeNode)) return;
+            }
+          }
         }
         if (
           isNodeOfType(elementName, "JSXMemberExpression") &&

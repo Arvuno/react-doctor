@@ -549,10 +549,7 @@ const isStableCallExpression = (node: EsTreeNode): boolean => {
   if (isNodeOfType(inner, "ChainExpression")) inner = inner.expression as EsTreeNode;
   if (!isNodeOfType(inner, "CallExpression")) return false;
   const callee = inner.callee;
-  if (
-    !isNodeOfType(callee, "Identifier") &&
-    !isNodeOfType(callee, "MemberExpression")
-  )
+  if (!isNodeOfType(callee, "Identifier") && !isNodeOfType(callee, "MemberExpression"))
     return false;
   // For calls on safe-receiver namespaces (`router.push(...)`,
   // `console.log(...)`, `Sentry.captureException(...)`), any
@@ -590,11 +587,17 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
     const leftIsCall =
       isNodeOfType(body.left as EsTreeNode, "CallExpression") ||
       (isNodeOfType(body.left as EsTreeNode, "ChainExpression") &&
-        isNodeOfType((body.left as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode, "CallExpression"));
+        isNodeOfType(
+          (body.left as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode,
+          "CallExpression",
+        ));
     const rightIsCall =
       isNodeOfType(body.right as EsTreeNode, "CallExpression") ||
       (isNodeOfType(body.right as EsTreeNode, "ChainExpression") &&
-        isNodeOfType((body.right as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode, "CallExpression"));
+        isNodeOfType(
+          (body.right as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode,
+          "CallExpression",
+        ));
     return leftIsCall || rightIsCall;
   }
   // Ternary body: `(e) => cond ? fn(e) : other(e)` — accept when
@@ -789,9 +792,10 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
         // change, new function references included. The wrapper
         // pattern is unactionable noise here.
         const parentJsxOpening = node.parent;
-        const openingName = parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")
-          ? (parentJsxOpening.name as EsTreeNode)
-          : null;
+        const openingName =
+          parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")
+            ? (parentJsxOpening.name as EsTreeNode)
+            : null;
         if (memoStatusForJsxOpeningName(memoRegistry, openingName) === "not-memoised") return;
         // One-shot lifecycle handlers (onMount / onError / onClose /
         // etc.) and render-prop slots (`fallback`, `render*`, `*Render`,

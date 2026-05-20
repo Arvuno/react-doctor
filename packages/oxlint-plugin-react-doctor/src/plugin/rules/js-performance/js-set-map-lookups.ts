@@ -260,9 +260,9 @@ const isIndexedArrayElementWithStringArgument = (
   }
   const property = receiver.property as EsTreeNode;
   const isIndexLike =
-    (isNodeOfType(property, "Identifier") &&
-      INDEX_LIKE_IDENTIFIER_NAMES.has(property.name)) ||
-    (isNodeOfType(property, "Literal") && typeof (property as { value?: unknown }).value === "number");
+    (isNodeOfType(property, "Identifier") && INDEX_LIKE_IDENTIFIER_NAMES.has(property.name)) ||
+    (isNodeOfType(property, "Literal") &&
+      typeof (property as { value?: unknown }).value === "number");
   if (!isIndexLike) return false;
   // Pair with `.includes("literal-string")` — only skip when the
   // argument is itself a string literal so we don't paper over genuine

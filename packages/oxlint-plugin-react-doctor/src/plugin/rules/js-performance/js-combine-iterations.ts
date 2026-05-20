@@ -144,6 +144,22 @@ const isNullFilteringPredicateBody = (body: EsTreeNode): boolean => {
   return false;
 };
 
+// `.filter((x): x is T => …)` — TypeScript type predicate. The arrow
+// has an explicit `is T` return annotation on its body, which only
+// makes sense when chained with .map() to operate on the narrowed
+// type. We detect by checking for a `returnType` field whose name
+// contains "TSTypePredicate" — robust against AST shape variance.
+const isTypePredicateArrow = (filterArgument: EsTreeNode | null | undefined): boolean => {
+  if (!filterArgument) return false;
+  if (!isNodeOfType(filterArgument, "ArrowFunctionExpression")) return false;
+  const returnType = (filterArgument as { returnType?: unknown }).returnType;
+  if (!returnType || typeof returnType !== "object") return false;
+  const annotation = (returnType as { typeAnnotation?: unknown }).typeAnnotation;
+  if (!annotation || typeof annotation !== "object") return false;
+  const annotationType = (annotation as { type?: unknown }).type;
+  return typeof annotationType === "string" && annotationType.includes("TypePredicate");
+};
+
 const isNullFilteringPredicate = (filterArgument: EsTreeNode | null | undefined): boolean => {
   if (!filterArgument) return false;
   if (!isNodeOfType(filterArgument, "ArrowFunctionExpression")) return false;
@@ -165,9 +181,7 @@ const isNullFilteringPredicate = (filterArgument: EsTreeNode | null | undefined)
 // array whose size is determined by the source string (typically
 // small). Walks past chained pass-through calls (.map, .filter, etc.)
 // to find the receiver root and checks for `.split(...)`.
-const isStringSplitRootedChain = (
-  receiverNode: EsTreeNode | null | undefined,
-): boolean => {
+const isStringSplitRootedChain = (receiverNode: EsTreeNode | null | undefined): boolean => {
   let cursor: EsTreeNode | null | undefined = receiverNode;
   let hops = 0;
   while (cursor && hops < 12) {
@@ -294,6 +308,22 @@ export const jsCombineIterations = defineRule<Rule>({
           // possibly-null transform". Rewriting to .reduce() loses
           // both the type narrowing AND readability. Bounded by N.
           if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) return;
+        }
+        // `.filter(typeNarrowingFn).map(...)` — the canonical
+        // TypeScript "narrow then transform" pattern. The .filter is
+        // a type predicate (`(x): x is T => x != null`) or null guard
+        // and the .map receives the narrowed type. Rewriting to
+        // .reduce() loses the type-narrowing benefit AND readability.
+        if (innerMethod === "filter" && outerMethod === "map") {
+          const innerCallArgs = (innerCall as EsTreeNodeOfType<"CallExpression">).arguments;
+          const filterArgument = innerCallArgs?.[0];
+          if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) {
+            return;
+          }
+          // Type-predicate arrow (`(x): x is T => ...`) — even if the
+          // body isn't a simple null check, the user is doing
+          // narrow-then-transform. Skip.
+          if (isTypePredicateArrow(filterArgument as EsTreeNode | null | undefined)) return;
         }
 
         if (isReceiverChainIteratorRooted(innerCall.callee.object, generatorNamesInFile)) return;
