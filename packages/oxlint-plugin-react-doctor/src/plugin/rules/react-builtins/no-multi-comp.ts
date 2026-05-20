@@ -609,16 +609,25 @@ export const noMultiComp = defineRule<Rule>({
           (flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75)) ||
           (flagged.length >= 8 && exportedCount >= Math.ceil(flagged.length * 0.6));
         if (isBarrelLikeFile) return;
-        // Feature module: 1-2 exported components + N private helpers.
-        // The "1 or 2 exported" allowance covers the common shape where a
-        // file exports both `<FeatureScene />` and its `<FeatureSceneHeader />`
-        // as a deliberate two-piece public API (the header is sometimes
-        // composed by a parent layout while the scene handles the body).
-        // More than 2 exported = likely needs splitting; require the
-        // file's exported components to be the minority.
-        const isFeatureModule =
+        // Feature module: small exported surface + N private helpers
+        // making up the bulk of the file. Two band-tightnesses:
+        //   - 1–2 exported (any flagged.length) — the canonical
+        //     `<FeatureScene />` + `<FeatureSceneHeader />` two-piece
+        //     public API shape with a couple of internal helpers.
+        //   - 1–4 exported AND flagged.length >= 8 AND the private
+        //     helpers are the majority (exportedCount * 2 <
+        //     flagged.length) — `PlayerSummaryViews.tsx`-style coherent
+        //     feature module where one public surface like
+        //     `<SessionSummary />` is implemented via a handful of
+        //     internal exports plus many private subcomponents.
+        const isSmallFeatureModule =
           exportedCount > 0 && exportedCount <= 2 && exportedCount < flagged.length;
-        if (isFeatureModule) return;
+        const isLargeFeatureModule =
+          exportedCount > 0 &&
+          exportedCount <= 4 &&
+          flagged.length >= 8 &&
+          exportedCount * 2 < flagged.length;
+        if (isSmallFeatureModule || isLargeFeatureModule) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
         }
