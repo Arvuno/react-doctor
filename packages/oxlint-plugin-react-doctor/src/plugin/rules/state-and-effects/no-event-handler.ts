@@ -93,46 +93,57 @@ export const noEventHandler = defineRule<Rule>({
           !ifNode.alternate &&
           !isPureEarlyExitConsequent(ifNode.consequent as EsTreeNode),
       );
-      const ifTestRefs = ifStatementsNoElse.flatMap((ifNode) => {
-        if (!isNodeOfType(ifNode, "IfStatement")) return [];
-        return getDownstreamRefs(analysis, ifNode.test as EsTreeNode).flatMap((ref) =>
-          getUpstreamRefs(analysis, ref),
-        );
-      });
-
-      // Dedupe by RESOLVED BINDING (not by identifier identity) —
-      // `getUpstreamRefs` returns every reference to the same
-      // binding (including unrelated call sites and the destructure
-      // location), and each reference has a different identifier
-      // node. Without binding-level dedupe, a single useEffect use
-      // of a prop emits one diagnostic at every other reference to
-      // that prop in the file.
+      // For each downstream ref in an if-test, keep the downstream ref
+      // (we'll report THERE — the actual useEffect use site) and
+      // separately compute whether its binding is state/prop via the
+      // upstream refs. This avoids reporting at every unrelated
+      // reference to the same prop elsewhere in the file (which the
+      // previous "report on upstream identifier" shape did).
+      interface IfTestUsage {
+        downstreamRef: (typeof ifStatementsNoElse)[number] extends infer _T
+          ? Parameters<typeof getDownstreamRefs>[1] extends infer _U
+            ? ReturnType<typeof getDownstreamRefs>[number]
+            : never
+          : never;
+        isState: boolean;
+        isProp: boolean;
+      }
+      const ifTestUsages: IfTestUsage[] = [];
       const seenBindings = new Set<unknown>();
-      const seenIdentifiers = new Set<EsTreeNode>();
-      const dedupedRefs = ifTestRefs.filter((ref) => {
-        const identifier = ref.identifier as unknown as EsTreeNode;
-        if (!identifier) return false;
-        const resolved = (ref as unknown as { resolved?: unknown }).resolved;
-        if (resolved && seenBindings.has(resolved)) return false;
-        if (resolved) seenBindings.add(resolved);
-        if (seenIdentifiers.has(identifier)) return false;
-        seenIdentifiers.add(identifier);
-        return true;
-      });
+      for (const ifNode of ifStatementsNoElse) {
+        if (!isNodeOfType(ifNode, "IfStatement")) continue;
+        for (const downstreamRef of getDownstreamRefs(analysis, ifNode.test as EsTreeNode)) {
+          const upstreamRefs = getUpstreamRefs(analysis, downstreamRef);
+          // Dedupe by binding identity across the entire effect — if
+          // an effect's test has `if (a || b)` and both `a` and `b`
+          // resolve to the same prop, fire ONCE.
+          const resolved = (downstreamRef as unknown as { resolved?: unknown }).resolved;
+          if (resolved && seenBindings.has(resolved)) continue;
+          if (resolved) seenBindings.add(resolved);
+          const refIsState = upstreamRefs.some((upRef) => isState(analysis, upRef));
+          const refIsProp = upstreamRefs.some((upRef) => isProp(analysis, upRef));
+          if (!refIsState && !refIsProp) continue;
+          ifTestUsages.push({
+            downstreamRef: downstreamRef as IfTestUsage["downstreamRef"],
+            isState: refIsState,
+            isProp: refIsProp,
+          });
+        }
+      }
 
-      for (const ref of dedupedRefs) {
-        if (isState(analysis, ref)) {
+      for (const usage of ifTestUsages) {
+        if (usage.isState) {
           context.report({
-            node: ref.identifier as unknown as EsTreeNode,
+            node: usage.downstreamRef.identifier as unknown as EsTreeNode,
             message:
               "Avoid using state and effects as an event handler. Instead, call the event handling code directly when the event occurs.",
           });
         }
       }
-      for (const ref of dedupedRefs) {
-        if (isProp(analysis, ref)) {
+      for (const usage of ifTestUsages) {
+        if (usage.isProp) {
           context.report({
-            node: ref.identifier as unknown as EsTreeNode,
+            node: usage.downstreamRef.identifier as unknown as EsTreeNode,
             message:
               "Avoid using props and effects as an event handler. Instead, move the handler to the parent component.",
           });
