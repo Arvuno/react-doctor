@@ -561,6 +561,32 @@ const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
         isNodeOfType((body.right as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode, "CallExpression"));
     return leftIsCall || rightIsCall;
   }
+  // Ternary body: `(e) => cond ? fn(e) : other(e)` — accept when
+  // both branches are themselves lightweight calls.
+  if (isNodeOfType(body, "ConditionalExpression")) {
+    return (
+      isLightweightBodyExpression(body.consequent as EsTreeNode) &&
+      isLightweightBodyExpression(body.alternate as EsTreeNode)
+    );
+  }
+  // `void copyToClipboard(value)` — `void` wrapper around a stable
+  // call. The void just discards the return value (often used to
+  // signal "I'm intentionally not awaiting this promise").
+  if (
+    isNodeOfType(body, "UnaryExpression") &&
+    (body.operator === "void" || body.operator === "!")
+  ) {
+    return isLightweightBodyExpression(body.argument as EsTreeNode);
+  }
+  // `(value as string)` style TS assertion at the body level — unwrap.
+  if (
+    (body as { type: string }).type === "TSAsExpression" ||
+    (body as { type: string }).type === "TSTypeAssertion" ||
+    (body as { type: string }).type === "TSNonNullExpression" ||
+    (body as { type: string }).type === "TSSatisfiesExpression"
+  ) {
+    return isLightweightBodyExpression((body as { expression: EsTreeNode }).expression);
+  }
   // Pure-value or no-call bodies (`() => true`, `(x) => x.length`) get
   // flagged — these can be trivially hoisted (`const T = () => true`).
   return false;
