@@ -367,6 +367,7 @@ const followsRenderLocalObjectBinding = (
 // scope-analysis gap noted there.
 export const jsxNoNewObjectAsProp = defineRule<Rule>({
   id: "jsx-no-new-object-as-prop",
+  tags: ["react-jsx-only"],
   severity: "warn",
   // React Compiler auto-memoizes prop allocations, so the perf footgun
   // this rule guards against doesn't exist in compiler-enabled projects.

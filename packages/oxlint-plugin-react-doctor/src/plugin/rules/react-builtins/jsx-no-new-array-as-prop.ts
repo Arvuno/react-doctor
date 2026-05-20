@@ -424,6 +424,7 @@ const followsRenderLocalArrayBinding = (
 // document and skip those tests.
 export const jsxNoNewArrayAsProp = defineRule<Rule>({
   id: "jsx-no-new-array-as-prop",
+  tags: ["react-jsx-only"],
   severity: "warn",
   // React Compiler auto-memoizes prop allocations. The perf footgun this
   // rule guards against doesn't exist in compiler-enabled projects.

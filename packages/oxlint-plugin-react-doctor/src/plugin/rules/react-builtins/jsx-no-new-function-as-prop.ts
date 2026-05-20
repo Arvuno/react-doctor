@@ -759,6 +759,7 @@ const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
 // return <C onClick={x} />`) we don't catch yet.
 export const jsxNoNewFunctionAsProp = defineRule<Rule>({
   id: "jsx-no-new-function-as-prop",
+  tags: ["react-jsx-only"],
   severity: "warn",
   // React Compiler auto-memoizes inline callbacks. The perf footgun this
   // rule guards against doesn't exist in compiler-enabled projects.

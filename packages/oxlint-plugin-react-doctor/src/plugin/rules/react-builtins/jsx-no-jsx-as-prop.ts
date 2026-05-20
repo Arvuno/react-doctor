@@ -311,6 +311,7 @@ const followsRenderLocalJsxBinding = (
 // don't track — those tests are not ported.
 export const jsxNoJsxAsProp = defineRule<Rule>({
   id: "jsx-no-jsx-as-prop",
+  tags: ["react-jsx-only"],
   severity: "warn",
   // React Compiler auto-memoizes inline JSX. The perf footgun this rule
   // guards against doesn't exist in compiler-enabled projects.

@@ -47,6 +47,7 @@ const isProviderName = (node: EsTreeNode): boolean => {
 // `<X.Provider …>` shape, which covers the common cases.
 export const jsxNoConstructedContextValues = defineRule<Rule>({
   id: "jsx-no-constructed-context-values",
+  tags: ["react-jsx-only"],
   severity: "warn",
   recommendation: "Memoize the context value (`useMemo`) or hoist it outside the render.",
   category: "Performance",
