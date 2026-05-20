@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Context, Effect, Layer, Ref } from "effect";
-import type { Diagnostic } from "./diagnostic-schema.js";
+import { Diagnostic } from "./diagnostic-schema.js";
+import { Schema } from "effect";
 
 /**
  * The captured-diagnostic store backing `Reporter.layerCapture`.
@@ -65,4 +68,40 @@ export class Reporter extends Context.Service<
       }),
     ),
   ).pipe(Layer.provideMerge(ReporterCapture.layer));
+
+  /**
+   * Append-only NDJSON reporter: every diagnostic is encoded
+   * through the `Diagnostic` Schema and written as a single JSON
+   * line. Schema-encode at the wire boundary mirrors the
+   * react-doctor-evals NDJSON pipeline; the file is opened with
+   * `O_APPEND` so concurrent writers (a future watch mode running
+   * a fiber per project) don't corrupt each other's lines.
+   *
+   * The directory is created lazily so callers don't have to
+   * mkdirp — the `.evals/<traceId>.jsonl` shape used by the eval
+   * harness "just works" if the path's parent exists or can be
+   * created. Errors during open are surfaced as defects so a
+   * misconfigured cache path fails loud, not silently.
+   */
+  static readonly layerNdjson = (filePath: string): Layer.Layer<Reporter> =>
+    Layer.effect(
+      Reporter,
+      Effect.sync(() => {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        const handle = fs.openSync(filePath, "a");
+        const encode = Schema.encodeUnknownSync(Diagnostic);
+
+        const emit = (diagnostic: Diagnostic): Effect.Effect<void> =>
+          Effect.sync(() => {
+            const line = `${JSON.stringify(encode(diagnostic))}\n`;
+            fs.writeSync(handle, line);
+          });
+
+        const finalize = Effect.sync(() => {
+          fs.closeSync(handle);
+        });
+
+        return Reporter.of({ emit, finalize });
+      }),
+    );
 }

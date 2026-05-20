@@ -149,4 +149,35 @@ export class Linter extends Context.Service<
         lint: () => Stream.fromIterable(diagnostics),
       }),
     );
+
+  /**
+   * Composite layer: runs every supplied linter implementation in
+   * sequence and concatenates their diagnostic streams. The
+   * downstream pipeline cannot tell the diagnostics apart from a
+   * single-backend run — `dedupeDiagnostics` (already inside
+   * `runOxlint`'s output path) is the obvious add-on if backends
+   * are expected to overlap on rules.
+   *
+   * This is what unlocks "oxlint + a Biome subset for X rules" or
+   * "the ESLint worker pool for the rules oxlint doesn't yet
+   * implement" without changing the Linter contract or the
+   * orchestrator. Each entry is a fully-formed `Linter`
+   * implementation (call `Linter.of({ lint })` to construct one).
+   */
+  static readonly layerComposite = (
+    backends: ReadonlyArray<Linter["Service"]>,
+  ): Layer.Layer<Linter> =>
+    Layer.succeed(
+      Linter,
+      Linter.of({
+        lint: (input: LintInput) => {
+          if (backends.length === 0) return Stream.empty;
+          let stream = backends[0].lint(input);
+          for (let index = 1; index < backends.length; index++) {
+            stream = stream.pipe(Stream.concat(backends[index].lint(input)));
+          }
+          return stream;
+        },
+      }),
+    );
 }

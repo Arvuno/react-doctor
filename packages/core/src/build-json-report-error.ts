@@ -1,6 +1,19 @@
 import type { JsonReport, JsonReportMode } from "@react-doctor/types";
-import { formatReactDoctorError, ReactDoctorError } from "./errors.js";
+import { formatReactDoctorError, type ReactDoctorError } from "./errors.js";
 import { getErrorChainMessages } from "./format-error-chain.js";
+
+/**
+ * Structural `_tag` check — see `react-doctor/src/inspect.ts` for
+ * the rationale. Vitest module isolation produces a class-identity
+ * mismatch at the catch site, so we discriminate on the tag the
+ * runtime publishes structurally instead of `instanceof`.
+ */
+const isReactDoctorErrorLike = (cause: unknown): cause is ReactDoctorError =>
+  typeof cause === "object" &&
+  cause !== null &&
+  (cause as { _tag?: unknown })._tag === "ReactDoctorError" &&
+  typeof (cause as { reason?: { _tag?: unknown } }).reason === "object" &&
+  (cause as { reason?: { _tag?: unknown } }).reason !== null;
 
 interface BuildJsonReportErrorInput {
   version: string;
@@ -31,24 +44,22 @@ export const buildJsonReportError = (input: BuildJsonReportErrorInput): JsonRepo
   // so the JSON `error.message` matches what the CLI prints. The
   // chain walk only kicks in for legacy `Error`s with `cause`
   // links — that's where third-party plugin / fs throws still live.
-  const chain =
-    input.error instanceof ReactDoctorError
-      ? [formatReactDoctorError(input.error)]
-      : safeGetErrorChain(input.error);
-  const errorPayload =
-    input.error instanceof ReactDoctorError
+  const chain = isReactDoctorErrorLike(input.error)
+    ? [formatReactDoctorError(input.error)]
+    : safeGetErrorChain(input.error);
+  const errorPayload = isReactDoctorErrorLike(input.error)
+    ? {
+        message: formatReactDoctorError(input.error),
+        name: input.error._tag,
+        chain,
+      }
+    : input.error instanceof Error
       ? {
-          message: formatReactDoctorError(input.error),
-          name: input.error._tag,
+          message: input.error.message || input.error.name || "Error",
+          name: input.error.name || "Error",
           chain,
         }
-      : input.error instanceof Error
-        ? {
-            message: input.error.message || input.error.name || "Error",
-            name: input.error.name || "Error",
-            chain,
-          }
-        : { message: safeStringify(input.error), name: "Error", chain };
+      : { message: safeStringify(input.error), name: "Error", chain };
 
   return {
     schemaVersion: 1,

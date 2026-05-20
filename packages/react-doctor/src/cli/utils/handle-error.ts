@@ -3,9 +3,23 @@ import {
   formatErrorChain,
   formatReactDoctorError,
   logger,
-  ReactDoctorError,
+  type ReactDoctorError,
 } from "@react-doctor/core";
 import type { HandleErrorOptions } from "@react-doctor/types";
+
+/**
+ * Structural tag check — see `inspect.ts` for the full rationale
+ * (vitest module isolation can produce different class identities
+ * for `ReactDoctorError` at the catch site vs. the throw site, so
+ * `instanceof` is unreliable and `_tag` is the structural contract
+ * the runtime actually publishes).
+ */
+const isReactDoctorErrorLike = (cause: unknown): cause is ReactDoctorError =>
+  typeof cause === "object" &&
+  cause !== null &&
+  (cause as { _tag?: unknown })._tag === "ReactDoctorError" &&
+  typeof (cause as { reason?: { _tag?: unknown } }).reason === "object" &&
+  (cause as { reason?: { _tag?: unknown } }).reason !== null;
 
 /**
  * Renders any thrown value to the CLI as a one-line error
@@ -25,7 +39,7 @@ export const handleError = (
   logger.error(`If the problem persists, please open an issue at ${CANONICAL_GITHUB_URL}/issues.`);
   logger.error("");
   logger.error(
-    error instanceof ReactDoctorError ? formatReactDoctorError(error) : formatErrorChain(error),
+    isReactDoctorErrorLike(error) ? formatReactDoctorError(error) : formatErrorChain(error),
   );
   logger.break();
   if (options.shouldExit) {
