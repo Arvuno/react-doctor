@@ -137,7 +137,6 @@ const ONE_SHOT_LIFECYCLE_HANDLER_NAMES: ReadonlySet<string> = new Set([
   "onSearch",
   "onSearchChange",
   "onClear",
-  "onReset",
   "onCopy",
   "onPaste",
   "onPick",
@@ -203,7 +202,6 @@ const ONE_SHOT_LIFECYCLE_HANDLER_NAMES: ReadonlySet<string> = new Set([
   "onInputChange",
   "onLabelChange",
   "onValueCommit",
-  "onCommit",
 ]);
 
 // Render-prop / slot / customization suffix conventions — `render*`,

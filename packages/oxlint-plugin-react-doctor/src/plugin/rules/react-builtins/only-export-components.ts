@@ -468,16 +468,14 @@ const UTILITY_FILE_BASENAMES: ReadonlySet<string> = new Set([
   "defaults.jsx",
 ]);
 
-// Suffix patterns for files conventionally holding mixed exports —
-// `*Utils.tsx`, `*Helpers.tsx`, `*Shared.tsx`, `*Constants.tsx`,
-// `*Types.tsx`, `*Mappings.tsx`, `*ColumnRenderers.tsx`,
-// `*NodeTypes.tsx`, `*Registry.tsx`, etc. Suffix MUST be preceded by
-// either a kebab/snake separator OR a PascalCase boundary so we don't
-// accidentally match `MutationsTypes.tsx` as `*Types.tsx` (it is, but
-// `Mutations` isn't a meaningful word boundary — we want
-// `User-Mappings.tsx`, `userMappings.tsx`, `UserMappings.tsx`).
+// Suffix patterns for files conventionally holding MIXED exports
+// (component + constants/types/registry data). The list is
+// deliberately scoped to utility / registry / framework-specific
+// conventions — NOT general component suffixes like `Modal` /
+// `Dialog` / `Card` (those routinely ARE the single-component file
+// only-export-components correctly wants to protect).
 const UTILITY_BASENAME_SUFFIX_PATTERN =
-  /^[A-Za-z][\w-]*(Utils|Util|Helpers|Helper|Shared|Constants|Constant|Types|Type|Mappings|Mapping|Lookups|Lookup|Registry|Renderers|Renderer|NodeTypes|EdgeTypes|CellTypes|ColumnDefs|ColumnTypes|ColumnRenderers|Columns|Schemas|Schema|Definitions|Definition|Config|Configuration|Defaults|Default|Tokens|Palette|Context|Provider|Providers|Logic|Scene|Page|Layout|Fields|Field|Forms|Form|Table|Tables|Cells|Cell|Rows|Row|Header|Headers|Footer|Footers|Wrapper|Container|Containers|Modal|Modals|Dialog|Dialogs|Drawer|Popover|Tooltip|Menu|Menus|Dropdown|Dropdowns|Tab|Tabs|Panel|Panels|Card|Cards|Tile|Tiles|Sidebar|Toolbar|Toolbars|Breadcrumb|Breadcrumbs|Navigation|Nav|Footer|Banner|Banners|Alert|Alerts|Toast|Toasts|Notification|Notifications|Empty|EmptyState|Loading|Loader|Skeleton|Skeletons|Avatar|Avatars|Badge|Badges|Chip|Chips|Tag|Tags|Pill|Pills|Status|Statuses|Indicator|Indicators)\.(t|j)sx?$/;
+  /^[A-Za-z][\w-]*(Utils|Util|Helpers|Helper|Shared|Constants|Constant|Types|Type|Mappings|Mapping|Lookups|Lookup|Registry|Renderers|Renderer|NodeTypes|EdgeTypes|CellTypes|ColumnDefs|ColumnTypes|ColumnRenderers|Schemas|Schema|Definitions|Definition|Config|Configuration|Defaults|Default|Tokens|Palette|Context|Provider|Providers|Logic|Scene|Page|Layout)\.(t|j)sx?$/;
 
 // Custom hook files: `useCreateRouter.tsx`, `useTranslation.tsx`,
 // `useSafeId.tsx`. Hook files conventionally co-export helper types
@@ -485,13 +483,15 @@ const UTILITY_BASENAME_SUFFIX_PATTERN =
 // Fast Refresh doesn't preserve hook state across edits anyway.
 const HOOK_FILE_BASENAME_PATTERN = /^use[A-Z][\w-]*\.(t|j)sx?$/;
 
-// Plugin-style node-definition files for editor / notebook /
-// flowchart ecosystems (`NotebookNodePerson.tsx`, `NodeShapeUtil.tsx`,
-// `*Node*.tsx`, `*ShapeUtil.tsx`). These are plugin registrations
-// that conventionally export the node component + types + handlers
-// from one file.
+// Plugin-style node-definition files for editor / notebook / flowchart
+// ecosystems (tldraw `*ShapeUtil`, xyflow `*Node` plugin registrations,
+// Lexical `*Node` declarations). These conventionally export the node
+// component + types + handlers from one file. We anchor on the
+// distinctive `*Util` / `*Node` plugin-registration shapes; bare
+// `Component.tsx` / `Block.tsx` are too generic and would over-match
+// ordinary single-component files.
 const NODE_DEFINITION_BASENAME_PATTERN =
-  /^([A-Z][\w-]*)?(NodeUtil|ShapeUtil|EdgeUtil|BindingUtil|BlockNode|Block|Node|InlineNode|Extension|Plugin|Component)\.(t|j)sx?$/;
+  /^[A-Z][\w-]*(NodeUtil|ShapeUtil|EdgeUtil|BindingUtil|InlineNode|BlockNode|NotebookNode)\.(t|j)sx?$/;
 
 const isAssetOrUtilityFile = (filename: string): boolean => {
   const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));

@@ -2,6 +2,7 @@ import type { Reference } from "eslint-scope";
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isInitialOnlyPropName } from "../../utils/is-initial-only-prop-name.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
@@ -119,9 +120,8 @@ export const noDerivedState = defineRule<Rule>({
   }),
 });
 
-// `setX(initialValue)` — the setter's sole argument is a bare
-// identifier whose name signals the consumer's "controlled-init / reset"
-// intent. Strictest shape (no .map/.transform; just the raw prop).
+// `setX(initialValue)` — sole argument is a bare identifier whose name
+// signals the consumer's controlled-init / reset intent.
 const isInitialOnlySetterCall = (callExpr: EsTreeNode): boolean => {
   if (!isNodeOfType(callExpr, "CallExpression")) return false;
   const args = callExpr.arguments ?? [];
@@ -129,18 +129,4 @@ const isInitialOnlySetterCall = (callExpr: EsTreeNode): boolean => {
   const arg = args[0] as EsTreeNode;
   if (!isNodeOfType(arg, "Identifier")) return false;
   return isInitialOnlyPropName(arg.name);
-};
-
-const isInitialOnlyPropName = (propName: string): boolean => {
-  if (propName === "initialValue" || propName === "defaultValue" || propName === "seedValue") {
-    return true;
-  }
-  return (
-    /^initial[A-Z]/.test(propName) ||
-    /^default[A-Z]/.test(propName) ||
-    /^seed[A-Z]/.test(propName) ||
-    /^starting[A-Z]/.test(propName) ||
-    /^baseline[A-Z]/.test(propName) ||
-    /^preset[A-Z]/.test(propName)
-  );
 };

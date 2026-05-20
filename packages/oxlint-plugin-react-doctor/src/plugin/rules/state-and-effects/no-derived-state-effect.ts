@@ -5,6 +5,7 @@ import { getCallbackStatements } from "../../utils/get-callback-statements.js";
 import { getEffectCallback } from "../../utils/get-effect-callback.js";
 import { getRootIdentifierName } from "../../utils/get-root-identifier-name.js";
 import { isHookCall } from "../../utils/is-hook-call.js";
+import { isInitialOnlyPropName } from "../../utils/is-initial-only-prop-name.js";
 import { isSetterCall } from "../../utils/is-setter-call.js";
 import { isSetterIdentifier } from "../../utils/is-setter-identifier.js";
 import { walkAst } from "../../utils/walk-ast.js";
@@ -101,7 +102,7 @@ export const noDerivedStateEffect = defineRule<Rule>({
       let sawAnyDep = false;
       for (const name of dependencyNames) {
         sawAnyDep = true;
-        if (!isInitialOnlyName(name)) {
+        if (!isInitialOnlyPropName(name)) {
           allDepsAreInitialOnly = false;
           break;
         }
@@ -197,15 +198,3 @@ export const noDerivedStateEffect = defineRule<Rule>({
     },
   }),
 });
-
-const isInitialOnlyName = (name: string): boolean => {
-  if (name === "initialValue" || name === "defaultValue" || name === "seedValue") return true;
-  return (
-    /^initial[A-Z]/.test(name) ||
-    /^default[A-Z]/.test(name) ||
-    /^seed[A-Z]/.test(name) ||
-    /^starting[A-Z]/.test(name) ||
-    /^baseline[A-Z]/.test(name) ||
-    /^preset[A-Z]/.test(name)
-  );
-};

@@ -19,7 +19,8 @@ const TEST_FILE_SUFFIX_PATTERN =
 // fixture projects (`tests/fixtures/<proj>/src/...`) so the FIXTURE
 // source files don't get auto-suppressed just because the outer wrap
 // happens to have `/tests/` or `/fixtures/` in the path.
-const SOURCE_ROOT_PATTERN = /\/(?:src|app|lib|components|pages|features|modules|packages|apps|frontend|client)\//g;
+const SOURCE_ROOT_PATTERN =
+  /\/(?:src|app|lib|components|pages|features|modules|packages|apps|frontend|client)\//g;
 
 const stripAboveSourceRoot = (relativePath: string): string => {
   let lastIdx = -1;

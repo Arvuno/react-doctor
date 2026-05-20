@@ -1,6 +1,7 @@
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isNamespacedApiCallee } from "../../utils/is-namespaced-api-call.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
@@ -131,126 +132,6 @@ const getCallMethodName = (callee: EsTreeNode): string | null => {
   return null;
 };
 
-// Mirrors `no-pass-data-to-parent`'s namespaced-API detection — see
-// that rule for the full rationale. `editor.commands.setSelection(...)`,
-// `props.store.dispatch(...)`, `props.queryClient.invalidate(...)`
-// are imperative-API method calls, not parent callback handoffs.
-const NAMESPACED_API_PROPERTY_NAMES: ReadonlySet<string> = new Set([
-  "commands",
-  "actions",
-  "api",
-  "store",
-  "service",
-  "client",
-  "controller",
-  "manager",
-  "registry",
-  "dispatch",
-  "queryClient",
-  "fetcher",
-  "loader",
-  "editor",
-  "model",
-  "context",
-  "transport",
-  "channel",
-  "session",
-  "connection",
-  "instance",
-  "ref",
-  "current",
-  "value",
-  "state",
-  "vm",
-  "viewModel",
-  "logic",
-  "selectors",
-  "queries",
-  "mutations",
-  "effects",
-  "utils",
-  "helpers",
-  "lib",
-  "fonts",
-  "shapes",
-  "nodes",
-  "layers",
-  "users",
-  "accounts",
-  "events",
-  "logs",
-  "metrics",
-  "telemetry",
-  "analytics",
-  "posthog",
-  "sentry",
-  "auth",
-  "permissions",
-  "roles",
-  "features",
-  "flags",
-  "preferences",
-  "storage",
-  "cache",
-  "history",
-  "navigation",
-  "router",
-  "navigator",
-  "scheduler",
-  "queue",
-  "pipeline",
-  "stream",
-  "socket",
-  "bridge",
-  "io",
-  "fs",
-  "db",
-  "kv",
-  "blob",
-  "buffer",
-  "cells",
-  "rows",
-  "columns",
-  "tabs",
-  "panels",
-  "windows",
-  "elements",
-  "selections",
-  "selection",
-  "clipboard",
-  "viewport",
-  "camera",
-  "scene",
-  "world",
-  "physics",
-  "renderer",
-  "renderers",
-  "rendering",
-  "ports",
-  "messages",
-  "channels",
-  "subscriptions",
-  "observers",
-  "watchers",
-  "listeners",
-  "handlers",
-]);
-
-const callIsThroughNamespacedApi = (callee: EsTreeNode): boolean => {
-  let cursor: EsTreeNode | null | undefined = callee;
-  let hops = 0;
-  while (cursor && hops < 16) {
-    hops += 1;
-    if (!isNodeOfType(cursor, "MemberExpression")) return false;
-    if (!cursor.computed && isNodeOfType(cursor.property, "Identifier")) {
-      const name = cursor.property.name;
-      if (NAMESPACED_API_PROPERTY_NAMES.has(name)) return true;
-    }
-    cursor = cursor.object;
-  }
-  return false;
-};
-
 export const noPassLiveStateToParent = defineRule<Rule>({
   id: "no-pass-live-state-to-parent",
   severity: "warn",
@@ -278,7 +159,7 @@ export const noPassLiveStateToParent = defineRule<Rule>({
         const calleeNode = (callExpr as unknown as { callee?: EsTreeNode }).callee;
         const methodName = calleeNode ? getCallMethodName(calleeNode) : null;
         if (methodName && ITERATOR_METHOD_NAMES.has(methodName)) continue;
-        if (calleeNode && callIsThroughNamespacedApi(calleeNode)) continue;
+        if (calleeNode && isNamespacedApiCallee(calleeNode)) continue;
 
         const isStateInArgs = getArgsUpstreamRefs(analysis, ref).some((argRef) =>
           isState(analysis, argRef),

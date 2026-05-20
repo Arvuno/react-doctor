@@ -67,43 +67,15 @@ const isReceiverChainIteratorRooted = (
   return false;
 };
 
-// Walks `receiver.X(...).Y(...).Z(...)` chains looking for the
-// ROOT-most receiver. Returns it if the root is a small literal
-// array — iterating a 5-element literal twice is fully negligible
-// cost and the rewrite to a single-pass reduce just hurts readability.
+// Small literal array root: `[a, b, c].map(...).filter(...)` —
+// iterating an ≤8-element literal twice is negligible cost; the
+// rewrite to a single-pass reduce hurts readability.
 const SMALL_LITERAL_ARRAY_MAX_ELEMENTS = 8;
 
-// Receivers whose result size is bounded by the source's KEY COUNT
-// (objects rarely exceed a few dozen keys in app code). The chain
-// `Object.entries(config).map(...).filter(...)` iterates the same
-// fixed-size key set twice; converting to `for...of` is purely
-// stylistic.
-const KEY_BOUNDED_RECEIVER_METHODS: ReadonlySet<string> = new Set([
-  "entries",
-  "keys",
-  "values",
-  "fromEntries",
-  "getOwnPropertyNames",
-  "getOwnPropertyDescriptors",
-  "getOwnPropertySymbols",
-]);
-
-const isKeyBoundedReceiver = (receiverNode: EsTreeNode | null | undefined): boolean => {
-  if (!receiverNode) return false;
-  if (!isNodeOfType(receiverNode, "CallExpression")) return false;
-  const callee = receiverNode.callee;
-  if (!isNodeOfType(callee, "MemberExpression")) return false;
-  if (!isNodeOfType(callee.object, "Identifier")) return false;
-  if (callee.object.name !== "Object") return false;
-  if (!isNodeOfType(callee.property, "Identifier")) return false;
-  return KEY_BOUNDED_RECEIVER_METHODS.has(callee.property.name);
-};
-
-// `.filter(x => x != null)` / `.filter(x => x !== undefined)` /
-// `.filter((x): x is T => x !== null && x !== undefined)` — pure
-// non-null narrowing predicate. Combined `.map().filter()` rewrites
-// to `.reduce()` lose type narrowing here; users should keep the
-// readable two-step form.
+// `.filter(x => x != null)` — type-narrowing predicate. The
+// `.map().filter()` form is the canonical "transform then narrow to
+// non-null" pattern; the .reduce() rewrite loses both readability
+// and type narrowing.
 const isNullishComparison = (expression: EsTreeNode | null | undefined): boolean => {
   if (!expression) return false;
   if (isNodeOfType(expression, "BinaryExpression")) {
@@ -221,12 +193,6 @@ const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefi
       }
       return true;
     }
-    // `Object.entries(obj).map(...).filter(...)` IS array-eager —
-    // Object.values / Object.entries materialize a new array each
-    // call, so iterating twice DOES allocate temporary arrays. Even
-    // though config-key counts are usually small, downstream readers
-    // legitimately want the .reduce()/for...of rewrite for clarity.
-    // Don't skip here.
     if (!isNodeOfType(cursor, "CallExpression")) return false;
     if (!isChainPassThroughCall(cursor)) return false;
     const nextCallee = cursor.callee;
@@ -305,36 +271,16 @@ export const jsCombineIterations = defineRule<Rule>({
               isNodeOfType(filterArgument.params[0], "Identifier") &&
               filterArgument.body.name === filterArgument.params[0].name);
           if (isBooleanOrIdentityFilter) return;
-          // `.map(x => …).filter((x): x is T => x != null)` /
-          // `.filter(x => x != null)` — TYPE-NARROWING filter. The
-          // user's intent is "produce a typed non-null array from a
-          // possibly-null transform". Rewriting to .reduce() loses
-          // both the type narrowing AND readability. Bounded by N.
           if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) return;
         }
-        // `.filter(typeNarrowingFn).map(...)` — the canonical
-        // TypeScript "narrow then transform" pattern. The .filter is
-        // a type predicate (`(x): x is T => x != null`) or null guard
-        // and the .map receives the narrowed type. Rewriting to
-        // .reduce() loses the type-narrowing benefit AND readability.
         if (innerMethod === "filter" && outerMethod === "map") {
-          const innerCallArgs = (innerCall as EsTreeNodeOfType<"CallExpression">).arguments;
-          const filterArgument = innerCallArgs?.[0];
-          if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) {
-            return;
-          }
-          // Type-predicate arrow (`(x): x is T => ...`) — even if the
-          // body isn't a simple null check, the user is doing
-          // narrow-then-transform. Skip.
+          const filterArgument = (innerCall as EsTreeNodeOfType<"CallExpression">).arguments?.[0];
+          if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) return;
           if (isTypePredicateArrow(filterArgument as EsTreeNode | null | undefined)) return;
         }
 
         if (isReceiverChainIteratorRooted(innerCall.callee.object, generatorNamesInFile)) return;
         if (isSmallLiteralArrayRootedChain(innerCall.callee.object)) return;
-        // `str.split(',').map(...).filter(...)` — split returns a
-        // bounded array whose size is determined by the input string
-        // (typically small, 1-50 elements). Same trivial-cost
-        // reasoning as Object.entries / literal-array roots.
         if (isStringSplitRootedChain(innerCall.callee.object)) return;
 
         context.report({

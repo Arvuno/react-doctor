@@ -1,6 +1,7 @@
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isNamespacedApiCallee } from "../../utils/is-namespaced-api-call.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import {
@@ -148,143 +149,6 @@ const getCallMethodName = (callee: EsTreeNode): string | null => {
   return null;
 };
 
-// Intermediate property names in a member-expression chain that mark
-// the callee as a method on a namespaced API object rather than a
-// parent callback prop. `editor.commands.setSelection(...)` is calling
-// an imperative editor command, NOT handing data back to a parent.
-// Same for `props.store.dispatch(...)`, `props.api.refresh(...)`,
-// `props.client.invalidate(...)`, etc.
-const NAMESPACED_API_PROPERTY_NAMES: ReadonlySet<string> = new Set([
-  "commands",
-  "actions",
-  "api",
-  "store",
-  "service",
-  "client",
-  "controller",
-  "manager",
-  "registry",
-  "dispatch",
-  "queryClient",
-  "fetcher",
-  "loader",
-  "editor",
-  "model",
-  "context",
-  "transport",
-  "channel",
-  "session",
-  "connection",
-  "instance",
-  "ref",
-  "current",
-  "value",
-  "state",
-  "vm",
-  "viewModel",
-  "logic",
-  "selectors",
-  "queries",
-  "mutations",
-  "effects",
-  "utils",
-  "helpers",
-  "lib",
-  // Domain-grouped APIs commonly exposed on editor / app / sdk objects.
-  // `editor.fonts.X`, `editor.shapes.X`, `app.users.X`, `posthog.events.X`,
-  // `analytics.events.X`, `webhooks.X`, etc. — these are namespaced
-  // method groups, not parent callbacks.
-  "fonts",
-  "shapes",
-  "nodes",
-  "layers",
-  "users",
-  "accounts",
-  "events",
-  "logs",
-  "metrics",
-  "telemetry",
-  "tracker",
-  "tracking",
-  "analytics",
-  "posthog",
-  "sentry",
-  "auth",
-  "session",
-  "permissions",
-  "roles",
-  "features",
-  "flags",
-  "config",
-  "settings",
-  "preferences",
-  "storage",
-  "cache",
-  "history",
-  "navigation",
-  "router",
-  "navigator",
-  "scheduler",
-  "queue",
-  "pipeline",
-  "stream",
-  "socket",
-  "bridge",
-  "io",
-  "fs",
-  "db",
-  "kv",
-  "blob",
-  "buffer",
-  "cells",
-  "rows",
-  "columns",
-  "tabs",
-  "panels",
-  "windows",
-  "elements",
-  "selections",
-  "selection",
-  "clipboard",
-  "viewport",
-  "camera",
-  "scene",
-  "world",
-  "physics",
-  "renderer",
-  "renderers",
-  "rendering",
-  "pipeline",
-  "ports",
-  "messages",
-  "channels",
-  "subscriptions",
-  "observers",
-  "watchers",
-  "listeners",
-  "handlers",
-]);
-
-// Walks `props.X.commands.setY(...)` style chains looking for an
-// intermediate property whose name is in NAMESPACED_API_PROPERTY_NAMES.
-// If found, this is a namespace-method call, not a parent-callback
-// data hand-back.
-const callIsThroughNamespacedApi = (callee: EsTreeNode): boolean => {
-  let cursor: EsTreeNode | null | undefined = callee;
-  let hops = 0;
-  while (cursor && hops < 16) {
-    hops += 1;
-    if (!isNodeOfType(cursor, "MemberExpression")) return false;
-    // Walk left, but check intermediate property names.
-    if (!cursor.computed && isNodeOfType(cursor.property, "Identifier")) {
-      const name = cursor.property.name;
-      if (NAMESPACED_API_PROPERTY_NAMES.has(name)) return true;
-    }
-    cursor = cursor.object;
-  }
-  return false;
-};
-
 // Local mirror of upstream's inline `isUseState`/`isUseRef` checks
 // that work on the *identifier* of an upstream ref (not on a ref).
 const isUseStateIdentifier = (identifier: EsTreeNode): boolean => {
@@ -358,7 +222,7 @@ export const noPassDataToParent = defineRule<Rule>({
         // `editor.commands.setSelection(...)`, `props.store.dispatch(...)`,
         // `props.queryClient.invalidate(...)` etc. — calling a method
         // on a namespaced API object, not handing data back to a parent.
-        if (calleeNode && callIsThroughNamespacedApi(calleeNode)) continue;
+        if (calleeNode && isNamespacedApiCallee(calleeNode)) continue;
 
         const argsUpstreamRefs = getArgsUpstreamRefs(analysis, ref).filter(
           (argRef) => getUpstreamRefs(analysis, argRef).length === 1,

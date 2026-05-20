@@ -142,11 +142,9 @@ const CONFIG_OBJECT_PROP_NAMES: ReadonlySet<string> = new Set([
   "a",
   "b",
   // Chart / visualization specifics (recharts, nivo, victory, visx).
-  // These typically receive config objects per-render and rewriting
-  // to `useMemo` adds noise without measurable perf gain for the
-  // typical chart-with-data-prop usage.
+  // These typically receive config objects per-render; rewriting to
+  // `useMemo` adds noise without measurable perf gain.
   "edgeTypes",
-  "nodeTypes",
   "axisBottom",
   "axisLeft",
   "axisRight",
@@ -159,7 +157,6 @@ const CONFIG_OBJECT_PROP_NAMES: ReadonlySet<string> = new Set([
   "yData",
   "activeDot",
   "defaultViewport",
-  "viewport",
   "effectiveValueRange",
   "arcLinkLabelsColor",
   "applicationInfo",
@@ -249,8 +246,6 @@ const CONFIG_OBJECT_PROP_SUFFIXES: ReadonlyArray<string> = [
   "Left",
   "Right",
   "Layer",
-  "Margin",
-  "Padding",
   "Viewport",
   "ViewBox",
   "Bounds",

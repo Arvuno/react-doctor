@@ -276,7 +276,6 @@ const DATA_ARRAY_PROP_SUFFIXES: ReadonlyArray<string> = [
   "Deployments",
   "Jobs",
   "Tasks",
-  "Stages",
   "Phases",
   "Milestones",
   "Cards",

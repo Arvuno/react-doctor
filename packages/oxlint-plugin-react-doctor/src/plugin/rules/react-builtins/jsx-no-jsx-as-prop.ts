@@ -156,7 +156,6 @@ const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
   "iconButton",
   // Dialog / modal slots
   "dialog",
-  "modal",
   "drawer",
   "popover",
   "sheet",
@@ -206,7 +205,6 @@ const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
   "image",
   "img",
   "thumbnail",
-  "icon2",
   "logo",
   "media",
   "cover",

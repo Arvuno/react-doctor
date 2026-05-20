@@ -8,21 +8,14 @@ import { findDownstreamNodes, getDownstreamRefs, getUpstreamRefs } from "./utils
 import { getProgramAnalysis } from "./utils/effect/get-program-analysis.js";
 import { getEffectFnRefs, hasCleanup, isProp, isState, isUseEffect } from "./utils/effect/react.js";
 
-// Early-exit guards inside useEffect are the standard React idiom for
-// gating an effect: `if (!enabled) return;`. They're NOT
-// "event-handler-in-disguise" antipatterns — the body doesn't run any
-// side effect when the guard trips. Treat any `if` whose consequent is a
-// pure early return / break / continue (with no side effect downstream)
-// as not-an-event-handler. Also accepts the reset-then-exit shape
-// (`setX(default); return;`) — the effect is bailing out and the
-// setter is just clearing derived state before bail, NOT
-// event-handler-like behaviour.
 const SETTER_NAME_PATTERN = /^set[A-Z]/;
 
+// True for the preamble forms allowed inside a pure-early-exit
+// consequent block: `setX(value)`, `setX?.(value)`, `props.onChange(value)`,
+// or `xxxRef.current = value` (ref bookkeeping isn't event-handler-like).
 const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
   if (!isNodeOfType(node, "ExpressionStatement")) return false;
   let expression = node.expression as EsTreeNode | null;
-  // `setX?.(value)` ChainExpression — unwrap.
   if (expression && isNodeOfType(expression, "ChainExpression")) {
     expression = expression.expression as EsTreeNode;
   }
@@ -32,8 +25,6 @@ const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
     if (isNodeOfType(callee, "Identifier")) {
       return SETTER_NAME_PATTERN.test(callee.name);
     }
-    // `props.onChange(value)` — looks like a prop callback. Treat as
-    // setter-like (it's a write call, not an event-handler trigger).
     if (
       isNodeOfType(callee, "MemberExpression") &&
       isNodeOfType(callee.property, "Identifier") &&
@@ -43,11 +34,6 @@ const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
     }
     return false;
   }
-  // `xxxRef.current = value` — ref mutation. Refs aren't React state,
-  // so assigning to them inside an effect is bookkeeping (one-shot
-  // marker, abort signal, scroll position cache), NOT event-handler-
-  // like behaviour. Common idiom:
-  //   if (!isEditing) { promptOpen.current = false; return }
   if (isNodeOfType(expression, "AssignmentExpression")) {
     const left = expression.left;
     if (
@@ -63,17 +49,15 @@ const isSetterCallExpressionStatement = (node: EsTreeNode): boolean => {
   return false;
 };
 
-// `xxxRef.current` — ref read. When an IF test contains a ref guard
-// (`if (wrapperRef.current !== null && X && !hydratedRef.current)`),
-// the effect is a one-shot hydration / lazy-mount / scroll-restore
-// pattern, not an event-handler-in-disguise. The ref check is the
-// "have we run this once yet" guard.
+// `xxxRef.current` anywhere in the IF test marks the effect as a
+// one-shot hydration / lazy-mount / scroll-restore guard, not an
+// event-handler antipattern.
+const REF_GUARD_SCAN_BUDGET = 50;
+
 const containsRefGuard = (testNode: EsTreeNode): boolean => {
-  // Walk the AST under testNode for any `X.current` MemberExpression.
   const stack: EsTreeNode[] = [testNode];
-  let depth = 0;
-  while (stack.length > 0 && depth < 50) {
-    depth += 1;
+  let budget = REF_GUARD_SCAN_BUDGET;
+  while (stack.length > 0 && budget-- > 0) {
     const node = stack.pop()!;
     if (
       isNodeOfType(node, "MemberExpression") &&
@@ -83,17 +67,9 @@ const containsRefGuard = (testNode: EsTreeNode): boolean => {
       isNodeOfType(node.object, "Identifier")
     ) {
       const name = node.object.name;
-      // Heuristic: identifier ends with "Ref" or is literally "ref" /
-      // "ref<N>" — common React/Vue ref naming.
-      if (name === "ref" || name.endsWith("Ref") || name.endsWith("ref")) {
-        return true;
-      }
+      if (name === "ref" || name.endsWith("Ref") || name.endsWith("ref")) return true;
     }
-    // Recurse — limit to common compound expression types so we don't
-    // wander into nested arrow functions, etc.
-    if (isNodeOfType(node, "LogicalExpression")) {
-      stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
-    } else if (isNodeOfType(node, "BinaryExpression")) {
+    if (isNodeOfType(node, "LogicalExpression") || isNodeOfType(node, "BinaryExpression")) {
       stack.push(node.left as EsTreeNode, node.right as EsTreeNode);
     } else if (isNodeOfType(node, "UnaryExpression")) {
       stack.push(node.argument as EsTreeNode);
@@ -107,18 +83,14 @@ const containsRefGuard = (testNode: EsTreeNode): boolean => {
       stack.push(node.object as EsTreeNode);
     } else if (isNodeOfType(node, "ChainExpression")) {
       stack.push(node.expression as EsTreeNode);
-    } else if (isNodeOfType(node, "ParenthesizedExpression")) {
-      stack.push((node as { expression: EsTreeNode }).expression);
     }
   }
   return false;
 };
 
-// A "side-effect-free exit": `return;`, `return null;`, `return X;`
-// where X is a simple identifier or primitive literal. `return fn()`
-// is NOT side-effect-free — the call IS the work the effect is
-// doing, just disguised as an "early exit". Same for
-// `return X.method()`.
+// "Side-effect-free exit": `return;`, `return null;`, `return X;` where
+// X is a simple identifier/literal. `return fn()` is NOT — the call IS
+// the work, just disguised.
 const isSideEffectFreeExit = (statement: EsTreeNode): boolean => {
   if (isNodeOfType(statement, "ContinueStatement")) return true;
   if (isNodeOfType(statement, "BreakStatement")) return true;
@@ -127,15 +99,11 @@ const isSideEffectFreeExit = (statement: EsTreeNode): boolean => {
   if (!argument) return true;
   if (isNodeOfType(argument, "Literal")) return true;
   if (isNodeOfType(argument, "Identifier")) return true;
-  // `return undefined` (Identifier "undefined") covered above.
-  // `return void 0`
   if (isNodeOfType(argument, "UnaryExpression") && argument.operator === "void") return true;
   return false;
 };
 
 const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
-  // `if (cond) return;` / `if (cond) return null;` / `if (cond) return x;`
-  // — but NOT `if (cond) return fn()` (the call IS the side-effect).
   if (
     isNodeOfType(consequent, "ReturnStatement") ||
     isNodeOfType(consequent, "ContinueStatement") ||
@@ -143,9 +111,6 @@ const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
   ) {
     return isSideEffectFreeExit(consequent);
   }
-  // `if (cond) { return; }` — block with side-effect-free early-exit
-  // at the end and (optionally) a contiguous run of setter calls
-  // before it.
   if (isNodeOfType(consequent, "BlockStatement")) {
     const body = consequent.body ?? [];
     if (body.length === 0) return true;
@@ -161,10 +126,9 @@ const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
   return false;
 };
 
-// 1:1 port of upstream `src/rules/no-event-handler.js`, narrowed to skip
-// pure early-exit guard patterns (`if (!enabled) return;`) which are the
-// canonical React idiom for gating an effect, not an event-handler
-// antipattern.
+// 1:1 port of upstream `src/rules/no-event-handler.js`, narrowed to
+// skip pure early-exit guard patterns (`if (!enabled) return;`) and
+// one-shot ref-guarded effects (`if (wrapperRef.current && ...)`).
 export const noEventHandler = defineRule<Rule>({
   id: "no-event-handler",
   tags: ["test-noise"],
@@ -185,9 +149,6 @@ export const noEventHandler = defineRule<Rule>({
           isNodeOfType(ifNode, "IfStatement") &&
           !ifNode.alternate &&
           !isPureEarlyExitConsequent(ifNode.consequent as EsTreeNode) &&
-          // Ref-guard IF tests (`if (wrapperRef.current !== null && X
-          // && !hydratedRef.current)`) are one-shot hydration / lazy-
-          // mount / scroll-restore patterns, not event-handler logic.
           !containsRefGuard(ifNode.test as EsTreeNode),
       );
       const ifTestRefs = ifStatementsNoElse.flatMap((ifNode) => {
@@ -197,13 +158,9 @@ export const noEventHandler = defineRule<Rule>({
         );
       });
 
-      // Dedupe by RESOLVED BINDING (not by identifier identity) —
-      // `getUpstreamRefs` returns every reference to the same
-      // binding (including unrelated call sites and the destructure
-      // location), and each reference has a different identifier
-      // node. Without binding-level dedupe, a single useEffect use
-      // of a prop emits one diagnostic at every other reference to
-      // that prop in the file.
+      // Dedupe by resolved binding (not identifier identity) so a
+      // single useEffect use of a prop doesn't emit one diagnostic per
+      // reference site in the file.
       const seenBindings = new Set<unknown>();
       const seenIdentifiers = new Set<EsTreeNode>();
       const dedupedRefs = ifTestRefs.filter((ref) => {

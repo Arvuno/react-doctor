@@ -102,8 +102,7 @@ export const defineRule: DefineRule = <RuleDefinition>(rule: RuleDefinition): Ru
   // test code is the very surface that needs migration (`react-dom/test-utils`
   // imports, legacy lifecycle methods in test class fixtures, etc.).
   // Skip the test-noise wrapper when the rule has both tags.
-  const honorsTestNoise =
-    tags?.includes("test-noise") && !tags?.includes("migration-hint");
+  const honorsTestNoise = tags?.includes("test-noise") && !tags?.includes("migration-hint");
   if (honorsTestNoise) {
     wrappedCreate = wrapCreateForTestNoise(wrappedCreate as never) as never;
   }

@@ -2,29 +2,11 @@ import { createComponentPropStackTracker } from "../../utils/create-component-pr
 import { defineRule } from "../../utils/define-rule.js";
 import { getRootIdentifierName } from "../../utils/get-root-identifier-name.js";
 import { isHookCall } from "../../utils/is-hook-call.js";
+import { isInitialOnlyPropName } from "../../utils/is-initial-only-prop-name.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
-
-// Props whose NAME explicitly signals "seed only / initial only" —
-// the consumer has already opted into the uncontrolled-init pattern
-// by choosing this name, so we shouldn't flag them. Captures the
-// canonical React names (`initialValue`, `defaultValue`, `seedValue`,
-// `defaultX`, `initialX`, `seedX`, etc.).
-const isInitialOnlyPropName = (propName: string): boolean => {
-  if (propName === "initialValue" || propName === "defaultValue" || propName === "seedValue") {
-    return true;
-  }
-  return (
-    /^initial[A-Z]/.test(propName) ||
-    /^default[A-Z]/.test(propName) ||
-    /^seed[A-Z]/.test(propName) ||
-    /^starting[A-Z]/.test(propName) ||
-    /^baseline[A-Z]/.test(propName) ||
-    /^preset[A-Z]/.test(propName)
-  );
-};
 
 export const noDerivedUseState = defineRule<Rule>({
   id: "no-derived-useState",
