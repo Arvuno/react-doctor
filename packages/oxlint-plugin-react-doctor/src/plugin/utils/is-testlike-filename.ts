@@ -33,6 +33,28 @@ const NON_PRODUCTION_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/__benchmarks__/",
   "/perf/",
   "/perf-tests/",
+  // CLI / one-shot / build-time tooling — never shipped in the
+  // user-facing bundle, no render-perf or React-rule concerns. Captures
+  // top-level `scripts/`, `cli/`, `bin/`, `tooling/`, `tools/`,
+  // `codemods/`, `migrations/`, `generators/`, `runbooks/`, etc. as well
+  // as `src/scripts/...` shaped layouts.
+  "/scripts/",
+  "/cli/",
+  "/bin/",
+  "/tooling/",
+  "/tools/",
+  "/codemods/",
+  "/codemod/",
+  "/migrations/",
+  "/migration/",
+  "/generators/",
+  "/generator/",
+  "/runbooks/",
+  "/devtools/",
+  "/internal-tools/",
+  "/seeds/",
+  "/seed/",
+  "/dev-seeder/",
 ];
 
 // True iff `filename` looks like test / spec / Storybook / Cypress /
