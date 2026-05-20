@@ -265,7 +265,6 @@ export const INTENTIONAL_SEQUENCING_CALLEE_NAMES: ReadonlySet<string> = new Set(
   // controls deliberately (env setup, cleanup, etc.).
   "spawn",
   "spawnSync",
-  "exec",
   "execSync",
   "execFile",
   "execFileSync",

@@ -177,24 +177,43 @@ const isArrayFromLengthObjectCall = (node: EsTreeNode): boolean => {
   return false;
 };
 
+// We must inspect only the INNERMOST iterator callback enclosing the
+// keyed JSX — that's the one whose index parameter actually feeds the
+// `key=` binding. Outer `Array.from({length: N}, ...)` ancestors are
+// irrelevant when there's a nested `items.map(...)` between them and
+// the JSX (the inner index is from the dynamic map, not the placeholder).
 const isInsideStaticPlaceholderMap = (node: EsTreeNode): boolean => {
   let current = node;
   while (current.parent) {
-    current = current.parent;
-    if (!isNodeOfType(current, "CallExpression")) continue;
-
-    // Case A: <static-placeholder>.map((_, i) => ...)
+    const parent = current.parent;
+    const isCrossingFunctionBoundary =
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "FunctionExpression") ||
+      isNodeOfType(current, "FunctionDeclaration");
     if (
-      isNodeOfType(current.callee, "MemberExpression") &&
-      isNodeOfType(current.callee.property, "Identifier") &&
-      current.callee.property.name === "map" &&
-      isStaticPlaceholderReceiver(current.callee.object)
-    )
-      return true;
-
-    // Case B: Array.from({ length: N }, (_, i) => ...) — the mapping is the
-    // second argument of Array.from, not a chained .map call.
-    if (isArrayFromLengthObjectCall(current)) return true;
+      isCrossingFunctionBoundary &&
+      isNodeOfType(parent, "CallExpression") &&
+      parent.arguments.includes(current as never)
+    ) {
+      const callee = parent.callee;
+      if (
+        isNodeOfType(callee, "MemberExpression") &&
+        isNodeOfType(callee.property, "Identifier") &&
+        (callee.property.name === "map" ||
+          callee.property.name === "flatMap" ||
+          callee.property.name === "forEach")
+      ) {
+        return isStaticPlaceholderReceiver(callee.object);
+      }
+      if (
+        isArrayFromCall(parent) &&
+        parent.arguments.length >= 2 &&
+        parent.arguments[1] === current
+      ) {
+        return isArrayFromLengthObjectCall(parent);
+      }
+    }
+    current = parent;
   }
   return false;
 };

@@ -191,6 +191,11 @@ export const buttonHasType = defineRule<Rule>({
           context.report({ node: propsArgument, message: MISSING_MESSAGE });
           return;
         }
+        // Mirror the JSX branch: consumer-forwarded `type` (`{ type: type }`
+        // / `{ type: props.type }` / defaulted forwards) is a wrapper
+        // re-exporting the prop, so the diagnostic should fire at the
+        // caller's literal, not at the trampoline.
+        if (isConsumerPropForward(typeProp)) return;
         if (!isProvenValidExpression(typeProp, settings)) {
           reportInvalid(context, typeProp, settings);
         }

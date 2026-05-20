@@ -338,6 +338,11 @@ const ARRAY_CONSTRUCTOR_NAMES = new Set(["Array"]);
 const SINGLE_ARG_ARRAY_METHODS = new Set(["map", "filter"]);
 const ANY_ARG_ARRAY_METHODS = new Set(["concat"]);
 
+const isEmptyArrayLiteralExpression = (expression: EsTreeNode): boolean => {
+  const stripped = stripParenExpression(expression);
+  return isNodeOfType(stripped, "ArrayExpression") && (stripped.elements ?? []).length === 0;
+};
+
 const isArrayProducingExpression = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
   if (isNodeOfType(stripped, "ArrayExpression")) return true;
@@ -367,13 +372,19 @@ const isArrayProducingExpression = (expression: EsTreeNode): boolean => {
     return false;
   }
   if (isNodeOfType(stripped, "LogicalExpression")) {
-    // `value ?? []` / `value || []` — the empty array on the right is
-    // a fallback that only allocates on the rare null/undefined path.
-    // Short-circuit semantics: `[]` isn't evaluated when `value` is
-    // defined. Flagging it would force the user to hoist an
-    // `EMPTY_ARRAY` const just to dodge a non-existent re-render cost.
+    // `value ?? []` / `value || []` — an empty array literal on
+    // either side is a fallback that only allocates on the rare
+    // null/undefined path. Short-circuit semantics mean `[]` isn't
+    // evaluated when the other side is defined. Skip the empty side
+    // and check the other; if NEITHER side is an empty fallback, the
+    // expression always allocates an array somewhere (e.g.
+    // `items={data ?? buildList()}` where `buildList()` is itself
+    // array-producing), so check both sides.
     if (stripped.operator === "??" || stripped.operator === "||") {
-      return isArrayProducingExpression(stripped.left);
+      const leftIsEmptyFallback = isEmptyArrayLiteralExpression(stripped.left);
+      const rightIsEmptyFallback = isEmptyArrayLiteralExpression(stripped.right);
+      if (leftIsEmptyFallback) return isArrayProducingExpression(stripped.right);
+      if (rightIsEmptyFallback) return isArrayProducingExpression(stripped.left);
     }
     return isArrayProducingExpression(stripped.left) || isArrayProducingExpression(stripped.right);
   }

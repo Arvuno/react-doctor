@@ -286,6 +286,11 @@ const OBJECT_PRODUCING_METHODS = new Set([
   "seal",
 ]);
 
+const isEmptyObjectLiteralExpression = (expression: EsTreeNode): boolean => {
+  const stripped = stripParenExpression(expression);
+  return isNodeOfType(stripped, "ObjectExpression") && (stripped.properties ?? []).length === 0;
+};
+
 const isObjectProducingExpression = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
   if (isNodeOfType(stripped, "ObjectExpression")) return true;
@@ -314,14 +319,18 @@ const isObjectProducingExpression = (expression: EsTreeNode): boolean => {
     return false;
   }
   if (isNodeOfType(stripped, "LogicalExpression")) {
-    // `value ?? {}` / `value || {}` — the empty object on the right
-    // is a fallback that only allocates on the rare null/undefined
-    // path. Short-circuit semantics: `{}` isn't evaluated when
-    // `value` is defined. Same reasoning as the array variant —
-    // forcing a hoisted `EMPTY_OBJECT` const for a non-existent cost
-    // is pure noise.
+    // `value ?? {}` / `{} || value` — an empty object literal on
+    // either side is a fallback that only allocates on the rare
+    // null/undefined path. Same reasoning as the array variant; if
+    // NEITHER side is the empty-fallback shape (e.g.
+    // `style={opts ?? makeDefaults()}` where `makeDefaults()` itself
+    // allocates an object), the expression always allocates so we
+    // check both.
     if (stripped.operator === "??" || stripped.operator === "||") {
-      return isObjectProducingExpression(stripped.left);
+      const leftIsEmptyFallback = isEmptyObjectLiteralExpression(stripped.left);
+      const rightIsEmptyFallback = isEmptyObjectLiteralExpression(stripped.right);
+      if (leftIsEmptyFallback) return isObjectProducingExpression(stripped.right);
+      if (rightIsEmptyFallback) return isObjectProducingExpression(stripped.left);
     }
     return (
       isObjectProducingExpression(stripped.left) || isObjectProducingExpression(stripped.right)

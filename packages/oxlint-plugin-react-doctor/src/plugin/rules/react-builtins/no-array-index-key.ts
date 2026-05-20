@@ -119,9 +119,53 @@ const templateHasIteratorMember = (
   return false;
 };
 
+// True for `Array.from(arr, (item, index) => …)`. The mapping callback
+// is the SECOND argument, so the regular "callback is parent.arguments[0]"
+// shape doesn't catch it.
+const isArrayFromMapperCallback = (
+  parentCall: EsTreeNodeOfType<"CallExpression">,
+  callback: EsTreeNode,
+): boolean => {
+  if (parentCall.arguments[1] !== callback) return false;
+  const callee = parentCall.callee;
+  return (
+    isNodeOfType(callee, "MemberExpression") &&
+    isNodeOfType(callee.object, "Identifier") &&
+    callee.object.name === "Array" &&
+    isNodeOfType(callee.property, "Identifier") &&
+    callee.property.name === "from"
+  );
+};
+
+// `Array.from(source, mapper)` — the positional stability of the
+// produced array depends on `source`. `{length: N}` is the placeholder
+// shape (fixed-length blank slots, index IS stable); anything else
+// inherits source's own stability.
+const isArrayFromSourcePositionallyStable = (source: EsTreeNode): boolean => {
+  if (isNodeOfType(source, "ObjectExpression")) {
+    for (const property of source.properties ?? []) {
+      if (!isNodeOfType(property, "Property")) continue;
+      const key = property.key;
+      const isLengthKey =
+        (isNodeOfType(key, "Identifier") && key.name === "length") ||
+        (isNodeOfType(key, "Literal") && key.value === "length");
+      if (isLengthKey) return true;
+    }
+    return false;
+  }
+  return isPositionallyStableIterationReceiver(source);
+};
+
 // Walk up from the JSX opening element to find the iteration callback's
-// FIRST parameter (the per-item value, e.g. `item` in `arr.map((item, i) => …)`).
-// Returns null if not inside a known iterator callback.
+// per-item parameter (`item` in `arr.map((item, i) => …)` — that's
+// params[0]; for `reduce`/`reduceRight` it's params[1] because params[0]
+// is the accumulator). Composite keys like `` `${item.id}-${index}` ``
+// stay stable across reorders, so we don't want to flag them.
+//
+// Walk through inner non-iterator function boundaries — the keyed JSX
+// may be inside a nested `cond ? renderA() : renderB()` helper arrow
+// that closes over the outer iterator's `item`. Stop only when we
+// reach an iterator-callback function whose params we can read.
 const findIteratorItemName = (node: EsTreeNode): string | null => {
   let current: EsTreeNode | null | undefined = node;
   while (current) {
@@ -136,15 +180,27 @@ const findIteratorItemName = (node: EsTreeNode): string | null => {
         if (
           isFirstArg &&
           isNodeOfType(callee, "MemberExpression") &&
-          isNodeOfType(callee.property, "Identifier") &&
-          SECOND_INDEX_METHODS.has(callee.property.name)
+          isNodeOfType(callee.property, "Identifier")
         ) {
-          const first = current.params[0];
-          if (first && isNodeOfType(first, "Identifier")) return first.name;
-          return null;
+          const methodName = callee.property.name;
+          if (SECOND_INDEX_METHODS.has(methodName)) {
+            const item = current.params[0];
+            if (item && isNodeOfType(item, "Identifier")) return item.name;
+          }
+          if (THIRD_INDEX_METHODS.has(methodName)) {
+            // params[0] is the accumulator, params[1] is the per-item value.
+            const item = current.params[1];
+            if (item && isNodeOfType(item, "Identifier")) return item.name;
+          }
+        }
+        if (isArrayFromMapperCallback(parent, current)) {
+          const item = current.params[0];
+          if (item && isNodeOfType(item, "Identifier")) return item.name;
         }
       }
-      return null;
+      // Not an iterator callback — keep walking up; the keyed JSX may
+      // be inside a nested helper arrow that closes over an outer
+      // iterator's binding.
     }
     current = current.parent ?? null;
   }
@@ -190,6 +246,14 @@ const findIndexParameterBinding = (node: EsTreeNode): EsTreeNodeOfType<"Identifi
               return param;
             }
           }
+        }
+        // `Array.from(source, (item, index) => …)` — the mapping
+        // callback is the second arg, with index as params[1].
+        if (isArrayFromMapperCallback(callbackParent, walker)) {
+          const source = callbackParent.arguments[0] as EsTreeNode | undefined;
+          if (source && isArrayFromSourcePositionallyStable(source)) return null;
+          const param = walker.params[1] as EsTreeNode | undefined;
+          if (param && isNodeOfType(param, "Identifier")) return param;
         }
       }
       // Don't cross a function boundary.

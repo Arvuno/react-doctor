@@ -12,11 +12,8 @@ import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isNonInteractiveElement } from "../../utils/is-non-interactive-element.js";
 import { isNonInteractiveRole } from "../../utils/is-non-interactive-role.js";
 import { isPresentationRole } from "../../utils/is-presentation-role.js";
+import { isPureEventBlockerHandler } from "../../utils/is-pure-event-blocker-handler.js";
 import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
-import {
-  fileImportsNonReactJsxDialect,
-  jsxAttributeIsNonReactDialectMarker,
-} from "../../utils/non-react-jsx-dialect.js";
 import type { Rule } from "../../utils/rule.js";
 
 const MESSAGE =
@@ -62,60 +59,9 @@ const isNullValue = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
   );
 };
 
-// `<div onClick={(e) => e.stopPropagation()}>` is the canonical "block
-// bubbling" idiom — the div isn't a user-interaction target, it just
-// stops a click from reaching its parent. Adding role/keyboard handlers
-// would be misleading (the div ISN'T a button), so the rule should
-// pass through pure event-blocker handlers.
-const BLOCKER_METHOD_NAMES: ReadonlySet<string> = new Set([
-  "stopPropagation",
-  "preventDefault",
-  "stopImmediatePropagation",
-]);
-
-const isEventBlockerCall = (node: EsTreeNode | null | undefined): boolean => {
-  if (!node) return false;
-  if (!isNodeOfType(node, "CallExpression")) return false;
-  const callee = node.callee;
-  if (!isNodeOfType(callee, "MemberExpression")) return false;
-  if (!isNodeOfType(callee.property, "Identifier")) return false;
-  return BLOCKER_METHOD_NAMES.has(callee.property.name);
-};
-
-const isPureEventBlockerBody = (body: EsTreeNode | null | undefined): boolean => {
-  if (!body) return false;
-  if (isEventBlockerCall(body)) return true;
-  if (isNodeOfType(body, "BlockStatement")) {
-    const statements = body.body ?? [];
-    // Require at least one statement, AND every statement must be a
-    // blocker call. Empty `() => {}` is NOT a blocker — it's a no-op
-    // that the rule should still flag as "non-interactive element with
-    // a click handler".
-    if (statements.length === 0) return false;
-    for (const statement of statements) {
-      if (!isNodeOfType(statement, "ExpressionStatement")) return false;
-      if (!isEventBlockerCall(statement.expression as EsTreeNode)) return false;
-    }
-    return true;
-  }
-  return false;
-};
-
-const isPureEventBlockerHandler = (attribute: EsTreeNodeOfType<"JSXAttribute">): boolean => {
-  if (!attribute.value || !isNodeOfType(attribute.value, "JSXExpressionContainer")) {
-    return false;
-  }
-  const expression = attribute.value.expression as EsTreeNode;
-  if (
-    isNodeOfType(expression, "ArrowFunctionExpression") ||
-    isNodeOfType(expression, "FunctionExpression")
-  ) {
-    return isPureEventBlockerBody(expression.body as EsTreeNode);
-  }
-  return false;
-};
-
 // Port of `oxc_linter::rules::jsx_a11y::no_static_element_interactions`.
+// Non-React JSX dialect skipping is handled by the `react-jsx-only`
+// tag via `defineRule`.
 export const noStaticElementInteractions = defineRule<Rule>({
   id: "no-static-element-interactions",
   tags: ["react-jsx-only"],
@@ -126,17 +72,9 @@ export const noStaticElementInteractions = defineRule<Rule>({
   create: (context) => {
     const settings = resolveSettings(context.settings);
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
-    let fileIsNonReactJsx = false;
     return {
-      Program(node: EsTreeNodeOfType<"Program">) {
-        fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
-      },
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
         if (isTestlikeFile) return;
-        if (!fileIsNonReactJsx && jsxAttributeIsNonReactDialectMarker(node)) {
-          fileIsNonReactJsx = true;
-        }
-        if (fileIsNonReactJsx) return;
         // Find any active handler — but pure event-blocker handlers
         // (`onClick={(e) => e.stopPropagation()}`) don't count as
         // "interactive": the element isn't a user-interaction target,

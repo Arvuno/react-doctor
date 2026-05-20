@@ -1,10 +1,11 @@
 import { defineRule } from "../../utils/define-rule.js";
-import { isHookCall } from "../../utils/is-hook-call.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
+import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
+import { isImportedFromModule } from "../../utils/find-import-source-for-name.js";
+import { isHookCall } from "../../utils/is-hook-call.js";
+import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
-import { isNodeOfType } from "../../utils/is-node-of-type.js";
-import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 const isSimpleExpression = (node: EsTreeNode | null): boolean => {
   if (!node) return false;
@@ -61,9 +62,17 @@ export const noUsememoSimpleExpression = defineRule<Rule>({
         const object = node.callee.object;
         if (isNodeOfType(object, "Identifier")) {
           const objectName = object.name;
-          const isReactNamespace =
+          // Accept `React.useMemo` / `react.useMemo` / transpiled `_react.useMemo`
+          // by name (the canonical shapes), and ANY identifier that the
+          // file's imports resolve back to the `react` package — e.g.
+          // `import * as R from 'react'` → `R.useMemo`. Anything else
+          // (Dispatcher.useMemo, MyTestRenderer.useMemo, …) is a non-React
+          // lookalike.
+          const isReactNamespaceByName =
             objectName === "React" || objectName === "react" || objectName.startsWith("_");
-          if (!isReactNamespace) return;
+          if (!isReactNamespaceByName && !isImportedFromModule(object, objectName, "react")) {
+            return;
+          }
         }
       }
 

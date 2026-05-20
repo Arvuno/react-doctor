@@ -76,10 +76,13 @@ export const jsHoistIntl = defineRule<Rule>({
                   isNodeOfType(callee.property, "Identifier")
                 ? callee.property.name
                 : null;
+            // `memo(Component)` only short-circuits re-renders when
+            // props are shallow-equal. When props DO change, the body
+            // (and the `new Intl.*()`) still runs each render. It is
+            // intentionally NOT in this list.
             if (
               calleeName === "useMemo" ||
               calleeName === "useCallback" ||
-              calleeName === "memo" ||
               calleeName === "useRef"
             ) {
               return;

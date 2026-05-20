@@ -700,11 +700,14 @@ const isNullishOrStableWrapper = (expression: EsTreeNode): boolean => {
   if (isNodeOfType(stripped, "Literal")) {
     return (stripped as { value?: unknown }).value === null;
   }
+  // Only the literal identifier `undefined` is nullish. Other
+  // identifiers (`onClick`, `props.onSubmit`, etc.) might resolve to
+  // a freshly-allocated function — `cond ? () => fn() : onClick`
+  // still allocates on every render the truthy branch fires, and
+  // `useCallback` IS able to fix that. Bailing out here would be a
+  // false negative.
   if (isNodeOfType(stripped, "Identifier")) {
-    if (stripped.name === "undefined") return true;
-    // Identifier reference to a hoisted handler — let the rule's
-    // existing `followsRenderLocalFunctionBinding` check decide.
-    return true;
+    return stripped.name === "undefined";
   }
   if (isNodeOfType(stripped, "ArrowFunctionExpression")) {
     return isParameterBindingWrapper(stripped);

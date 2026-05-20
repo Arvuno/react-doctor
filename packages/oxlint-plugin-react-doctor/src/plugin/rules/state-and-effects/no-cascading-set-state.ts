@@ -29,6 +29,15 @@ const isAsyncFunctionLike = (node: EsTreeNode): boolean => {
   return false;
 };
 
+// `break` / `return` / `throw` / `continue` end a switch-case run; the
+// absence of any of these means the next case label falls through and
+// its setters execute on the same dispatch.
+const isTerminatingStatement = (statement: EsTreeNode): boolean =>
+  isNodeOfType(statement, "BreakStatement") ||
+  isNodeOfType(statement, "ReturnStatement") ||
+  isNodeOfType(statement, "ThrowStatement") ||
+  isNodeOfType(statement, "ContinueStatement");
+
 const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
   if (!node || typeof node !== "object") return 0;
   // Async function bodies — see comment above. Sync function bodies
@@ -48,17 +57,30 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
       countMaxPathSetStateCalls(node.alternate as EsTreeNode),
     );
   }
-  // Switch: max across cases (only one matches per dispatch).
+  // Switch: max across runs (a "run" is a sequence of cases that fall
+  // through into each other; a run terminates at break/return/throw/
+  // continue). Without fall-through every run is a single case, so this
+  // reduces to plain max. With fall-through, falling cases sum together
+  // because they execute on the same dispatch.
   if (isNodeOfType(node, "SwitchStatement")) {
-    let maxCase = 0;
+    let maxRun = 0;
+    let currentRun = 0;
     for (const switchCase of node.cases ?? []) {
+      const consequent = (switchCase as EsTreeNodeOfType<"SwitchCase">).consequent ?? [];
       let caseCount = 0;
-      for (const statement of (switchCase as EsTreeNodeOfType<"SwitchCase">).consequent ?? []) {
+      let terminates = false;
+      for (const statement of consequent) {
         caseCount += countMaxPathSetStateCalls(statement as EsTreeNode);
+        if (isTerminatingStatement(statement as EsTreeNode)) terminates = true;
       }
-      if (caseCount > maxCase) maxCase = caseCount;
+      currentRun += caseCount;
+      if (terminates) {
+        if (currentRun > maxRun) maxRun = currentRun;
+        currentRun = 0;
+      }
     }
-    return maxCase;
+    if (currentRun > maxRun) maxRun = currentRun;
+    return maxRun;
   }
   // Try/catch/finally: max(try, catch) (only one path runs on
   // success vs throw) + finally (always runs).
@@ -72,8 +94,16 @@ const countMaxPathSetStateCalls = (node: EsTreeNode): number => {
       : 0;
     return Math.max(tryCount, catchCount) + finallyCount;
   }
-  // Direct setter call.
-  if (isSetterCall(node)) return 1;
+  // Direct setter call — plus any setters inside its arguments. A
+  // functional updater `setX(prev => { setY(); ... })` runs the
+  // callback synchronously during dispatch, so `setY()` compounds.
+  if (isSetterCall(node)) {
+    let nestedFromArgs = 0;
+    for (const argument of (node as EsTreeNodeOfType<"CallExpression">).arguments ?? []) {
+      nestedFromArgs += countMaxPathSetStateCalls(argument as EsTreeNode);
+    }
+    return 1 + nestedFromArgs;
+  }
   // Walk children, summing — sequential statements compound.
   let total = 0;
   const nodeRecord = node as unknown as Record<string, unknown>;

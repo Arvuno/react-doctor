@@ -291,6 +291,20 @@ const collectReExportedNames = (program: EsTreeNode): Set<string> => {
   const names = new Set<string>();
   if (!isNodeOfType(program, "Program")) return names;
   for (const statement of program.body) {
+    // `export default Foo` where `Foo` is an Identifier referencing a
+    // separately-declared component. Walking up from `Foo`'s binding
+    // node never reaches the ExportDefaultDeclaration, so we record
+    // the name here for `isExportedDeclaration` to pick up.
+    if (
+      isNodeOfType(
+        statement as EsTreeNodeOfType<"ExportDefaultDeclaration">,
+        "ExportDefaultDeclaration",
+      )
+    ) {
+      const declaration = (statement as EsTreeNodeOfType<"ExportDefaultDeclaration">).declaration;
+      if (isNodeOfType(declaration, "Identifier")) names.add(declaration.name);
+      continue;
+    }
     if (
       !isNodeOfType(
         statement as EsTreeNodeOfType<"ExportNamedDeclaration">,

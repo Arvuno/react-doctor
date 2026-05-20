@@ -128,16 +128,22 @@ export const noUnknownProperty = defineRule<Rule>({
         fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
       },
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
-        // Solid-distinctive `classList={…}` attribute — the entire
-        // file is Solid JSX even if the import scan missed it.
+        // Solid-distinctive `classList={{…}}` attribute — only the
+        // object-value shape (`classList={{foo: true}}`) is unique to
+        // Solid. A plain `classList={...}` in a React file is just a
+        // user mistake we should still flag as an unknown prop, so we
+        // require the ObjectExpression form before promoting the entire
+        // file to a non-React dialect.
         if (!fileIsNonReactJsx) {
           for (const attribute of node.attributes) {
             if (!isNodeOfType(attribute, "JSXAttribute")) continue;
             if (!isNodeOfType(attribute.name, "JSXIdentifier")) continue;
-            if (attribute.name.name === "classList") {
-              fileIsNonReactJsx = true;
-              break;
-            }
+            if (attribute.name.name !== "classList") continue;
+            const value = attribute.value;
+            if (!isNodeOfType(value, "JSXExpressionContainer")) continue;
+            if (!isNodeOfType(value.expression, "ObjectExpression")) continue;
+            fileIsNonReactJsx = true;
+            break;
           }
         }
         if (fileIsNonReactJsx) return;

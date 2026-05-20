@@ -22,10 +22,8 @@ const wrapCreateForTestNoise = <
   create: CreateFn,
 ): CreateFn =>
   ((context) => {
-    const visitors = create(context);
-    if (!isTestlikeFilename(context.getFilename?.())) return visitors;
-    // No visitors → rule fires nothing for this file.
-    return {};
+    if (isTestlikeFilename(context.getFilename?.())) return {};
+    return create(context);
   }) as CreateFn;
 
 // Rules tagged `"react-jsx-only"` apply React-flavoured semantics

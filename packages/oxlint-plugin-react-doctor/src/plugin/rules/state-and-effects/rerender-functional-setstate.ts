@@ -23,6 +23,15 @@ const deriveStateVariableName = (setterName: string): string | null => {
 // callback runs after subsequent renders. Synchronous handlers like
 // `onClick={() => setX({...x, …})}` are NOT subject to stale-closure
 // bugs: the arrow is recreated every render and closes over fresh `x`.
+//
+// NOTE: `useCallback` and `useMemo` are deliberately NOT here. A
+// memoized `onClick={useCallback(() => setX({...x, …}), [x])}` still
+// runs synchronously when the button is clicked; the memo identity is
+// stable but the closed-over state is fresh on every dep-driven recreation.
+// Treating them as deferred caused false positives on memoized sync
+// handlers. The actual deferred wrappers (useEffect / useLayoutEffect /
+// useInsertionEffect / setTimeout / .then(...) / addEventListener / …)
+// remain in the list.
 const DEFERRED_EXECUTION_CALLEE_NAMES: ReadonlySet<string> = new Set([
   "setTimeout",
   "setInterval",
@@ -41,8 +50,6 @@ const DEFERRED_EXECUTION_CALLEE_NAMES: ReadonlySet<string> = new Set([
   "useEffect",
   "useLayoutEffect",
   "useInsertionEffect",
-  "useCallback",
-  "useMemo",
 ]);
 
 // True if the enclosing function-like ancestor is an argument to a
@@ -53,7 +60,7 @@ const DEFERRED_EXECUTION_CALLEE_NAMES: ReadonlySet<string> = new Set([
 const isInsideDeferredCallback = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node;
   while (current) {
-    const parent = current.parent;
+    const parent: EsTreeNode | null | undefined = current.parent;
     if (!parent) return false;
     const isFunctionLike =
       isNodeOfType(current, "ArrowFunctionExpression") ||

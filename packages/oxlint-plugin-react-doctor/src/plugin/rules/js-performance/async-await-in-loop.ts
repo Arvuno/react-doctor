@@ -71,13 +71,16 @@ const SLEEP_LIKE_FUNCTION_NAMES = new Set([
   "writeFile",
   "appendFile",
   "copyFile",
-  // Process spawning
+  // Process spawning and shell command wrappers (`$`/`sh` are the common
+  // zx / bun-shell / google-zx names used by build scripts).
   "spawn",
   "spawnSync",
   "execSync",
   "execFile",
   "execFileSync",
   "fork",
+  "$",
+  "sh",
   // Browser automation (playwright / puppeteer)
   "navigate",
   "goto",

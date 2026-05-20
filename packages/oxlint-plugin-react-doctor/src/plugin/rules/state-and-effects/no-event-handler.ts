@@ -113,7 +113,10 @@ const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
   }
   if (isNodeOfType(consequent, "BlockStatement")) {
     const body = consequent.body ?? [];
-    if (body.length === 0) return true;
+    // An empty `if (cond) {}` is NOT a pure early-exit guard — it's
+    // either dead code or a guarded-no-op around following work. Either
+    // way it doesn't justify skipping the rule.
+    if (body.length === 0) return false;
     const last = body[body.length - 1] as EsTreeNode;
     if (!isSideEffectFreeExit(last)) return false;
     // Allow any number of setter-only preamble statements:

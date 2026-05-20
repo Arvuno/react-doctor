@@ -102,7 +102,6 @@ const STRING_TYPED_IDENTIFIER_SUFFIXES: ReadonlyArray<string> = [
   "Prefix",
   "String",
   "Source",
-  "Source",
   "Locale",
   "Codepoint",
   "Char",
