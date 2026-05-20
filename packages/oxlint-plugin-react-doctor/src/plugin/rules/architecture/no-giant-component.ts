@@ -11,7 +11,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noGiantComponent = defineRule<Rule>({
   id: "no-giant-component",
   severity: "warn",
-  tags: ["test-noise"],
+  tags: ["test-noise", "react-jsx-only"],
   recommendation:
     "Extract logical sections into focused components: `<UserHeader />`, `<UserActions />`, etc.",
   create: (context: RuleContext) => {
