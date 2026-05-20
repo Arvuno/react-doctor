@@ -9,6 +9,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 export const noDerivedUseState = defineRule<Rule>({
   id: "no-derived-useState",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Remove useState and compute the value inline: `const value = transform(propName)`",

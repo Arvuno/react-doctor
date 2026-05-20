@@ -75,6 +75,7 @@ const isPureEarlyExitConsequent = (consequent: EsTreeNode): boolean => {
 // antipattern.
 export const noEventHandler = defineRule<Rule>({
   id: "no-event-handler",
+  tags: ["test-noise"],
   severity: "warn",
   recommendation:
     "Move the side effect into the event handler that triggers it, instead of guarding on its state inside a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#sharing-logic-between-event-handlers",
