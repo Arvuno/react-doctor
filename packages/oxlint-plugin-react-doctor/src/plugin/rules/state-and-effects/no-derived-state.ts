@@ -82,16 +82,15 @@ export const noDerivedState = defineRule<Rule>({
           getUpstreamRefs(analysis, depRef),
         );
 
-        // Initial-only / default / seed prop pattern. When every
-        // upstream arg is a prop whose NAME signals init-only intent
+        // Initial-only / default / seed prop pattern. When the
+        // setter receives EXACTLY one arg that IS a bare prop
+        // identifier whose name signals init-only intent
         // (`initialValue`, `defaultX`, `seedY`, etc.), the consumer
-        // is intentionally re-syncing on a controlled-init prop. This
-        // is `useState(initialValue) + useEffect(...) ` to rebind on
-        // explicit "reset" — skip.
-        const allArgsAreInitialOnlyProps =
-          argsUpstreamRefs.length > 0 &&
-          argsUpstreamRefs.every((argRef) => isInitialOnlyPropRef(analysis, argRef));
-        if (allArgsAreInitialOnlyProps) continue;
+        // is intentionally re-syncing on a controlled-init prop —
+        // `useState(initialValue) + useEffect(() => setX(initialValue), [initialValue])`
+        // to rebind on explicit "reset". Strict shape: avoids
+        // `.every([]) === true` and AST-shape false-positives.
+        if (isInitialOnlySetterCall(callExpr)) continue;
 
         const isSomeArgsInternal = argsUpstreamRefs.some(
           (argRef) => isState(analysis, argRef) || isProp(analysis, argRef),
@@ -120,21 +119,16 @@ export const noDerivedState = defineRule<Rule>({
   }),
 });
 
-// True iff `ref` resolves to a prop whose NAME signals the consumer
-// opted into the controlled-init pattern (`initialValue`,
-// `defaultValue`, `seedColor`, `startingState`, `baselineX`,
-// `presetTheme`). For these, sync-on-change via useEffect is the
-// canonical "reset child state when caller passes a new initial" idiom
-// and shouldn't be flagged.
-const isInitialOnlyPropRef = (
-  analysis: ReturnType<typeof getProgramAnalysis>,
-  ref: Reference,
-): boolean => {
-  if (!analysis) return false;
-  if (!isProp(analysis, ref)) return false;
-  const id = ref.identifier as unknown as EsTreeNode | undefined;
-  if (!id || !isNodeOfType(id, "Identifier")) return false;
-  return isInitialOnlyPropName(id.name);
+// `setX(initialValue)` — the setter's sole argument is a bare
+// identifier whose name signals the consumer's "controlled-init / reset"
+// intent. Strictest shape (no .map/.transform; just the raw prop).
+const isInitialOnlySetterCall = (callExpr: EsTreeNode): boolean => {
+  if (!isNodeOfType(callExpr, "CallExpression")) return false;
+  const args = callExpr.arguments ?? [];
+  if (args.length !== 1) return false;
+  const arg = args[0] as EsTreeNode;
+  if (!isNodeOfType(arg, "Identifier")) return false;
+  return isInitialOnlyPropName(arg.name);
 };
 
 const isInitialOnlyPropName = (propName: string): boolean => {

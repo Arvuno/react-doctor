@@ -96,15 +96,17 @@ export const noDerivedStateEffect = defineRule<Rule>({
       // Initial-only / default / seed-named deps signal an explicit
       // controlled-init re-sync pattern. `useEffect(..., [initialValue])`
       // is the canonical "reset child state when the caller passes a
-      // new initial" idiom — skip it.
+      // new initial" idiom — skip when EVERY dep matches.
       let allDepsAreInitialOnly = true;
+      let sawAnyDep = false;
       for (const name of dependencyNames) {
+        sawAnyDep = true;
         if (!isInitialOnlyName(name)) {
           allDepsAreInitialOnly = false;
           break;
         }
       }
-      if (allDepsAreInitialOnly) return;
+      if (sawAnyDep && allDepsAreInitialOnly) return;
 
       const statements = getCallbackStatements(callback);
       if (statements.length === 0) return;
