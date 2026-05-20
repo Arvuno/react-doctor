@@ -47,8 +47,12 @@ const ITERATOR_METHOD_NAMES: ReadonlySet<string> = new Set([
   "findIndex",
   "findLast",
   "findLastIndex",
-  // Observer / EventEmitter patterns
+  // Observer / EventEmitter / event bus patterns — these are
+  // hand-off calls (the consumer keeps a subscription / dispatches
+  // to subscribers) not the "pass derived data to a parent"
+  // anti-pattern the rule targets.
   "subscribe",
+  "unsubscribe",
   "addEventListener",
   "addListener",
   "removeEventListener",
@@ -56,17 +60,40 @@ const ITERATOR_METHOD_NAMES: ReadonlySet<string> = new Set([
   "on",
   "once",
   "off",
+  "emit",
+  "dispatch",
+  "publish",
+  "notify",
+  "trigger",
+  "fire",
+  "broadcast",
+  "send",
   // Promise
   "then",
   "catch",
   "finally",
-  // Set / Map
+  // Set / Map / cache
   "add",
   "delete",
   "has",
   "get",
   "set",
   "clear",
+  "put",
+  "push",
+  "pop",
+  "shift",
+  "unshift",
+  // Logger / telemetry shapes — `props.logger.info(...)` is reporting,
+  // not data hand-off.
+  "log",
+  "info",
+  "warn",
+  "error",
+  "debug",
+  "trace",
+  "track",
+  "capture",
 ]);
 
 const getCallMethodName = (callee: EsTreeNode): string | null => {
