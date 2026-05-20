@@ -49,6 +49,22 @@ export const noUsememoSimpleExpression = defineRule<Rule>({
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
       if (!isHookCall(node, "useMemo")) return;
+      // Skip non-React useMemo lookalikes — `Dispatcher.useMemo(...)`,
+      // `MyTestRenderer.useMemo(...)`, etc. The hook-call helper above
+      // matches both `useMemo` and `React.useMemo` namespaced forms,
+      // but the React-style call is always bound to `react`-flavour
+      // identifiers (`React`, `react`, lowercased import alias). A
+      // `Dispatcher.useMemo` is the internal scheduler API and isn't
+      // governed by the same trivial-allocation reasoning.
+      if (isNodeOfType(node.callee, "MemberExpression")) {
+        const object = node.callee.object;
+        if (isNodeOfType(object, "Identifier")) {
+          const objectName = object.name;
+          const isReactNamespace =
+            objectName === "React" || objectName === "react" || objectName.startsWith("_");
+          if (!isReactNamespace) return;
+        }
+      }
 
       const callback = node.arguments?.[0];
       if (!callback) return;

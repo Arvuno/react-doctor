@@ -1,4 +1,9 @@
-export const Z_INDEX_ABSURD_THRESHOLD = 100;
+// Tightened to 1000 (was 100) — many design systems use a 100-step
+// scale (`dropdown: 100`, `modal: 500`, `toast: 900`) which is a
+// deliberate token system, not the `z-index: 9999` "escape hatch"
+// the rule actually targets. Values above 1000 are almost always the
+// "go on top of everything" escalation antipattern.
+export const Z_INDEX_ABSURD_THRESHOLD = 1000;
 
 export const INLINE_STYLE_PROPERTY_THRESHOLD = 8;
 
