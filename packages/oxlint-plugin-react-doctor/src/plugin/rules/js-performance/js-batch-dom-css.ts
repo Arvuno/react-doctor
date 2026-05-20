@@ -5,13 +5,26 @@ import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
+const ITERATOR_METHOD_NAMES: ReadonlySet<string> = new Set([
+  "forEach",
+  "map",
+  "flatMap",
+  "filter",
+  "reduce",
+  "reduceRight",
+]);
+
 // Style writes alone don't trigger reflow — the browser batches them.
-// Layout thrashing happens when reads (`offsetHeight`, `getBoundingClientRect`,
-// etc.) are interleaved with writes inside a loop. So sequential style
-// writes outside a loop body are harmless; only flag when we can prove
-// we're inside a loop / `.forEach` / `.map` body. Plus the typical "build
-// a DOM element by setting a few style props" pattern (no loop) is the
-// dominant FP source — it has no reflow cost at all.
+// Layout thrashing happens when reads (`offsetHeight`,
+// `getBoundingClientRect`, etc.) are interleaved with writes inside a
+// loop. Sequential style writes outside a loop body are harmless; only
+// flag when we can prove we're inside a loop / `.forEach` / `.map`
+// body. The typical "build a DOM element by setting a few style props"
+// pattern (no loop) is the dominant FP source — no reflow cost at all.
+//
+// Crossing a non-iterator function boundary (event handler arrow,
+// setTimeout callback, etc.) stops the walk: the function's body runs
+// in its own per-invocation scope, not per-iteration of the outer loop.
 const isInsideLoopContext = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
@@ -25,21 +38,24 @@ const isInsideLoopContext = (node: EsTreeNode): boolean => {
       return true;
     }
     if (
-      isNodeOfType(current, "CallExpression") &&
-      isNodeOfType(current.callee, "MemberExpression") &&
-      isNodeOfType(current.callee.property, "Identifier")
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "FunctionExpression") ||
+      isNodeOfType(current, "FunctionDeclaration")
     ) {
-      const methodName = current.callee.property.name;
+      // This function IS the loop body only when it's an iterator
+      // callback (`arr.forEach(fn)` / `.map(fn)` / etc.).
+      const functionParent = current.parent;
       if (
-        methodName === "forEach" ||
-        methodName === "map" ||
-        methodName === "flatMap" ||
-        methodName === "filter" ||
-        methodName === "reduce" ||
-        methodName === "reduceRight"
+        functionParent &&
+        isNodeOfType(functionParent, "CallExpression") &&
+        functionParent.arguments[0] === current &&
+        isNodeOfType(functionParent.callee, "MemberExpression") &&
+        isNodeOfType(functionParent.callee.property, "Identifier") &&
+        ITERATOR_METHOD_NAMES.has(functionParent.callee.property.name)
       ) {
         return true;
       }
+      return false;
     }
     current = current.parent ?? null;
   }
