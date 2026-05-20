@@ -1,3 +1,8 @@
+import {
+  buildSameFileMemoRegistry,
+  memoStatusForJsxOpeningName,
+  type MemoStatus,
+} from "../../utils/build-same-file-memo-registry.js";
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
@@ -240,13 +245,25 @@ export const jsxNoJsxAsProp = defineRule<Rule>({
   category: "Performance",
   create: (context) => {
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let memoRegistry: Map<string, MemoStatus> | null = null;
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        memoRegistry = buildSameFileMemoRegistry(node as EsTreeNode);
+      },
       JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
         if (isTestlikeFile) return;
         // Intrinsic HTML elements aren't memoized; flagging inline JSX
         // passed as a prop on them is unactionable. See
         // `jsx-no-new-function-as-prop` for the full rationale.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        // Same-file plain-function consumer — `React.memo` rationale
+        // doesn't apply.
+        const parentJsxOpening = node.parent;
+        const openingName =
+          parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")
+            ? (parentJsxOpening.name as EsTreeNode)
+            : null;
+        if (memoStatusForJsxOpeningName(memoRegistry, openingName) === "not-memoised") return;
         // Known slot prop names (icon, tooltip, fallback, header, etc.)
         // and slot suffixes (*Button, *Icon, *Component, *Element, ...)
         // are designed to receive JSX. Flagging them is unactionable.

@@ -1,3 +1,8 @@
+import {
+  buildSameFileMemoRegistry,
+  memoStatusForJsxOpeningName,
+  type MemoStatus,
+} from "../../utils/build-same-file-memo-registry.js";
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
@@ -293,13 +298,25 @@ export const jsxNoNewObjectAsProp = defineRule<Rule>({
   category: "Performance",
   create: (context) => {
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let memoRegistry: Map<string, MemoStatus> | null = null;
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        memoRegistry = buildSameFileMemoRegistry(node as EsTreeNode);
+      },
       JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
         if (isTestlikeFile) return;
         // Intrinsic HTML elements aren't memoized; flagging inline
         // object literals on them is unactionable. See the same skip
         // in `jsx-no-new-function-as-prop` for the full rationale.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        // Same-file plain-function consumer — `React.memo` rationale
+        // doesn't apply.
+        const parentJsxOpening = node.parent;
+        const openingName =
+          parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")
+            ? (parentJsxOpening.name as EsTreeNode)
+            : null;
+        if (memoStatusForJsxOpeningName(memoRegistry, openingName) === "not-memoised") return;
         if (!isInsideFunctionScope(node)) return;
         if (!isNodeOfType(node.name, "JSXIdentifier")) return;
         if (ALWAYS_FRESH_OBJECT_PROPS.has(node.name.name)) return;

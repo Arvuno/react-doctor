@@ -1,3 +1,8 @@
+import {
+  buildSameFileMemoRegistry,
+  memoStatusForJsxOpeningName,
+  type MemoStatus,
+} from "../../utils/build-same-file-memo-registry.js";
 import { defineRule } from "../../utils/define-rule.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
@@ -290,13 +295,28 @@ export const jsxNoNewArrayAsProp = defineRule<Rule>({
   category: "Performance",
   create: (context) => {
     const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    let memoRegistry: Map<string, MemoStatus> | null = null;
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        memoRegistry = buildSameFileMemoRegistry(node as EsTreeNode);
+      },
       JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
         if (isTestlikeFile) return;
         // Intrinsic HTML elements aren't memoized; flagging inline
         // arrays on them is unactionable. See `jsx-no-new-function-as-prop`
         // for the full rationale.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        // Consumer-component memo-status: if the parent JSX element
+        // is a plain function/arrow defined in this same file (no
+        // memo/forwardRef/observer wrapper), the rule's "React.memo
+        // bails" rationale doesn't apply — the parent re-renders
+        // unconditionally on every prop change.
+        const parentJsxOpening = node.parent;
+        const openingName =
+          parentJsxOpening && isNodeOfType(parentJsxOpening, "JSXOpeningElement")
+            ? (parentJsxOpening.name as EsTreeNode)
+            : null;
+        if (memoStatusForJsxOpeningName(memoRegistry, openingName) === "not-memoised") return;
         // Data-collection slot props (`items`, `data`, `options`,
         // `tabs`, `*Items`, `*Options`, etc.) receive inline array
         // literals by convention — every list/table/menu/chart
