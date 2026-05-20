@@ -453,6 +453,39 @@ const isStableArgumentValue = (node: EsTreeNode): boolean => {
   return false;
 };
 
+// Receivers whose method calls don't typically pass derived state
+// — navigation, routing, telemetry, dialog management. Used as a
+// "fully stable" gate: any args to these calls are accepted as
+// stable even if they're themselves call expressions, because the
+// outer wrapper is doing a fire-and-forget side effect.
+const SAFE_RECEIVER_NAMES: ReadonlySet<string> = new Set([
+  "router",
+  "navigate",
+  "navigation",
+  "history",
+  "console",
+  "window",
+  "document",
+  "location",
+  "localStorage",
+  "sessionStorage",
+  "analytics",
+  "telemetry",
+  "logger",
+  "log",
+  "posthog",
+  "Sentry",
+]);
+
+const calleeReceiverName = (callee: EsTreeNode): string | null => {
+  let cursor: EsTreeNode = callee;
+  // Walk down chains: `router.actions.push` → root is `router`.
+  while (isNodeOfType(cursor, "MemberExpression")) {
+    cursor = cursor.object as EsTreeNode;
+  }
+  return isNodeOfType(cursor, "Identifier") ? cursor.name : null;
+};
+
 const isStableCallExpression = (node: EsTreeNode): boolean => {
   let inner = node;
   if (isNodeOfType(inner, "ChainExpression")) inner = inner.expression as EsTreeNode;
@@ -463,6 +496,12 @@ const isStableCallExpression = (node: EsTreeNode): boolean => {
     !isNodeOfType(callee, "MemberExpression")
   )
     return false;
+  // For calls on safe-receiver namespaces (`router.push(...)`,
+  // `console.log(...)`, `Sentry.captureException(...)`), any
+  // argument shape is fine — these are fire-and-forget side
+  // effects, not data hand-off to a memoised consumer.
+  const receiverName = calleeReceiverName(callee);
+  if (receiverName && SAFE_RECEIVER_NAMES.has(receiverName)) return true;
   for (const argument of inner.arguments ?? []) {
     if (!isStableArgumentValue(argument as EsTreeNode)) return false;
   }
