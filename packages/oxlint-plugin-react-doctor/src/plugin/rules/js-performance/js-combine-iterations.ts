@@ -99,6 +99,95 @@ const isKeyBoundedReceiver = (receiverNode: EsTreeNode | null | undefined): bool
   return KEY_BOUNDED_RECEIVER_METHODS.has(callee.property.name);
 };
 
+// `.filter(x => x != null)` / `.filter(x => x !== undefined)` /
+// `.filter((x): x is T => x !== null && x !== undefined)` — pure
+// non-null narrowing predicate. Combined `.map().filter()` rewrites
+// to `.reduce()` lose type narrowing here; users should keep the
+// readable two-step form.
+const isNullishComparison = (expression: EsTreeNode | null | undefined): boolean => {
+  if (!expression) return false;
+  if (isNodeOfType(expression, "BinaryExpression")) {
+    const operator = expression.operator;
+    if (operator !== "!=" && operator !== "!==" && operator !== "==" && operator !== "===") {
+      return false;
+    }
+    const isNullLiteral = (n: EsTreeNode | null | undefined): boolean => {
+      if (!n) return false;
+      if (isNodeOfType(n, "Literal") && (n as { value?: unknown }).value === null) return true;
+      if (isNodeOfType(n, "Identifier") && n.name === "undefined") return true;
+      return false;
+    };
+    return (
+      isNullLiteral(expression.left as EsTreeNode | null) ||
+      isNullLiteral(expression.right as EsTreeNode | null)
+    );
+  }
+  return false;
+};
+
+const isNullFilteringPredicateBody = (body: EsTreeNode): boolean => {
+  // `x != null` / `x !== undefined` etc.
+  if (isNullishComparison(body)) return true;
+  // `x != null && x !== undefined` / `x !== null || x.foo` — both
+  // branches are nullish comparisons (conservative — only accept when
+  // EVERY clause is a nullish comparison so we don't accept arbitrary
+  // logic).
+  if (
+    isNodeOfType(body, "LogicalExpression") &&
+    (body.operator === "&&" || body.operator === "||")
+  ) {
+    return (
+      isNullFilteringPredicateBody(body.left as EsTreeNode) &&
+      isNullFilteringPredicateBody(body.right as EsTreeNode)
+    );
+  }
+  return false;
+};
+
+const isNullFilteringPredicate = (filterArgument: EsTreeNode | null | undefined): boolean => {
+  if (!filterArgument) return false;
+  if (!isNodeOfType(filterArgument, "ArrowFunctionExpression")) return false;
+  if ((filterArgument.params?.length ?? 0) === 0) return false;
+  const body = filterArgument.body as EsTreeNode;
+  // Expression-body arrow.
+  if (!isNodeOfType(body, "BlockStatement")) {
+    return isNullFilteringPredicateBody(body);
+  }
+  // Block-body arrow with a single `return <nullish-cmp>` statement.
+  const statements = body.body ?? [];
+  if (statements.length !== 1) return false;
+  const only = statements[0] as EsTreeNode;
+  if (!isNodeOfType(only, "ReturnStatement") || !only.argument) return false;
+  return isNullFilteringPredicateBody(only.argument as EsTreeNode);
+};
+
+// `str.split(',').map(...).filter(...)` — split returns a bounded
+// array whose size is determined by the source string (typically
+// small). Walks past chained pass-through calls (.map, .filter, etc.)
+// to find the receiver root and checks for `.split(...)`.
+const isStringSplitRootedChain = (
+  receiverNode: EsTreeNode | null | undefined,
+): boolean => {
+  let cursor: EsTreeNode | null | undefined = receiverNode;
+  let hops = 0;
+  while (cursor && hops < 12) {
+    hops += 1;
+    if (isNodeOfType(cursor, "ChainExpression")) {
+      cursor = cursor.expression;
+      continue;
+    }
+    if (!isNodeOfType(cursor, "CallExpression")) return false;
+    const callee = cursor.callee;
+    if (!isNodeOfType(callee, "MemberExpression")) return false;
+    if (!isNodeOfType(callee.property, "Identifier")) return false;
+    if (callee.property.name === "split") return true;
+    // Walk past .map / .filter / etc. — any chainable iteration method.
+    if (!isChainPassThroughCall(cursor)) return false;
+    cursor = callee.object;
+  }
+  return false;
+};
+
 const isSmallLiteralArrayRootedChain = (receiverNode: EsTreeNode | null | undefined): boolean => {
   let cursor: EsTreeNode | null | undefined = receiverNode;
   while (cursor) {
@@ -199,10 +288,21 @@ export const jsCombineIterations = defineRule<Rule>({
               isNodeOfType(filterArgument.params[0], "Identifier") &&
               filterArgument.body.name === filterArgument.params[0].name);
           if (isBooleanOrIdentityFilter) return;
+          // `.map(x => …).filter((x): x is T => x != null)` /
+          // `.filter(x => x != null)` — TYPE-NARROWING filter. The
+          // user's intent is "produce a typed non-null array from a
+          // possibly-null transform". Rewriting to .reduce() loses
+          // both the type narrowing AND readability. Bounded by N.
+          if (isNullFilteringPredicate(filterArgument as EsTreeNode | null | undefined)) return;
         }
 
         if (isReceiverChainIteratorRooted(innerCall.callee.object, generatorNamesInFile)) return;
         if (isSmallLiteralArrayRootedChain(innerCall.callee.object)) return;
+        // `str.split(',').map(...).filter(...)` — split returns a
+        // bounded array whose size is determined by the input string
+        // (typically small, 1-50 elements). Same trivial-cost
+        // reasoning as Object.entries / literal-array roots.
+        if (isStringSplitRootedChain(innerCall.callee.object)) return;
 
         context.report({
           node,
