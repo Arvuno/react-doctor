@@ -64,7 +64,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # required for `diff`
-      - uses: millionco/react-doctor@main
+      - uses: millionco/react-doctor@latest
         with:
           diff: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -83,7 +83,7 @@ Pick one or both; they're independent.
 - **Both**: set `github-token` and `annotations: true`. Annotation lines are stripped from the comment body.
 
 ```yaml
-- uses: millionco/react-doctor@main
+- uses: millionco/react-doctor@latest
   with:
     diff: main
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -112,7 +112,7 @@ Combine `--fail-on` with `--diff <base>` to scope the gate to the PR's changed f
 **Advisory mode** — never blocks, always comments:
 
 ```yaml
-- uses: millionco/react-doctor@main
+- uses: millionco/react-doctor@latest
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     fail-on: none
@@ -124,7 +124,7 @@ Combine `--fail-on` with `--diff <base>` to scope the gate to the PR's changed f
 - uses: actions/checkout@v5
   with:
     fetch-depth: 0 # required for `diff`
-- uses: millionco/react-doctor@main
+- uses: millionco/react-doctor@latest
   with:
     diff: main
     fail-on: warning
@@ -135,7 +135,7 @@ Combine `--fail-on` with `--diff <base>` to scope the gate to the PR's changed f
 
 ```yaml
 - id: doctor
-  uses: millionco/react-doctor@main
+  uses: millionco/react-doctor@latest
   with:
     fail-on: error
     github-token: ${{ secrets.GITHUB_TOKEN }}
