@@ -49,5 +49,6 @@
       "oxlint": "^1.63.0",
       "oxlint-tsgolint": "^0.22.1"
     }
-  }
+  },
+  "description": "A React hooks library for handling loading states, error handling, and data fetching with ease."
 }
