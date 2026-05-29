@@ -481,3 +481,9 @@ Find a bug? Head to the [issue tracker](https://github.com/millionco/react-docto
 ### License
 
 React Doctor is MIT-licensed open-source software.
+
+## Contributing
+
+We welcome contributions! Please feel free to submit a Pull Request or open an issue for bug reports and feature suggestions.
+
+- Documentation updated for clarity
